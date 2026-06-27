@@ -29,7 +29,7 @@ void GameManager::Render(const float deltaTime)
     _cam.target = { 0, 0 };
     _cam.offset = { width / 2.0f, height / 2.0f }; // Screen center
     _cam.rotation = 0.0f;
-    _cam.zoom = 1.0f;
+    _cam.zoom = (float)height / 10.0f;
 
     BeginDrawing();
     BeginMode2D(_cam);
