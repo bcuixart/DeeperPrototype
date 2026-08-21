@@ -7,6 +7,7 @@ GameManager::GameManager()
     GameManager::instance = this;
 
 	_levelManager = std::make_unique<LevelManager>();
+	_levelManager->LoadLevel("test_level");
 }
 
 GameManager::~GameManager()
@@ -23,13 +24,18 @@ void GameManager::Update(const float deltaTime)
 
 void GameManager::Render(const float deltaTime) 
 {
-    int width = GetScreenWidth();
-    int height = GetScreenHeight();
+    int screenWidth = GetScreenWidth();
+    int screenHeight = GetScreenHeight();
+    int levelWidth = _levelManager->GetLevelWidth();
+    int levelHeight = _levelManager->GetLevelHeight();
 
-    _cam.target = { 0, 0 };
-    _cam.offset = { width / 2.0f, height / 2.0f }; // Screen center
+    float zoomX = (float)screenWidth / levelWidth;
+    float zoomY = (float)screenHeight / levelHeight;
+
+    _cam.zoom = std::min(zoomX, zoomY);
+    _cam.target = { levelWidth / 2.0f, levelHeight / 2.0f };
+    _cam.offset = { screenWidth / 2.0f, screenHeight / 2.0f };
     _cam.rotation = 0.0f;
-    _cam.zoom = (float)height / 10.0f;
 
     BeginDrawing();
     BeginMode2D(_cam);
