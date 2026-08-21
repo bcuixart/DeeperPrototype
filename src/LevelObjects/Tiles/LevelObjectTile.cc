@@ -23,3 +23,13 @@ LevelObjectTileType LevelObjectTile::GetTileType() const
 {
 	return LevelObjectTileType::None;
 }
+
+void LevelObjectTile::SetSpriteIndex(int idx)
+{
+	_spriteIndex = idx;
+}
+
+int LevelObjectTile::GetSpriteIndex() const
+{
+	return _spriteIndex;
+}

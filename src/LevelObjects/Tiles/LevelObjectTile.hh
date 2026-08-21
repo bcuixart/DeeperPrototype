@@ -15,8 +15,13 @@ public:
 
 	virtual LevelObjectTileType GetTileType() const;
 
+	void SetSpriteIndex(int idx);
+	int GetSpriteIndex() const;
+
 protected:
 	int _groundTileType = 0;
+
+	int _spriteIndex = 0;
 
 private:
 

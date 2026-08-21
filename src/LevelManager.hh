@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include "LevelObject.hh"
+#include "LevelObjects/Tiles/Autotile.hh"
 #include "LevelObjects/Tiles/LevelObjectTile.hh"
 #include "LevelObjects/Tiles/LevelObjectTileGround.hh"
 
@@ -29,6 +30,11 @@ public:
 protected:
 
 private:
+	void UpdateTileAutotile(int x, int y);
+	void UpdateAutotileNeighbors(int x, int y);
+
+	uint8_t ComputeTileRawMask(int x, int y) const;
+	uint8_t NormalizeTileRawMask(uint8_t mask) const;
 
 	int _levelWidth = 0;
 	int _levelHeight = 0;
