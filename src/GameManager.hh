@@ -9,6 +9,7 @@
 #include <raylib.h>
 #include <raymath.h>
 
+#include "AssetManager.hh"
 #include "LevelManager.hh"
 
 using namespace std;
@@ -26,6 +27,7 @@ public:
 protected:
 
 private:
+	std::unique_ptr<AssetManager> _assetManager = nullptr;
 	std::unique_ptr<LevelManager> _levelManager = nullptr;
 
 	Camera2D _cam = { 0 };

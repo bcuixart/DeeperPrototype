@@ -5,6 +5,8 @@
 #include <raymath.h>
 #include <iostream>
 
+#include "AssetManager.hh"
+
 class LevelObject {
 public:
 	LevelObject(const Vector2& position);

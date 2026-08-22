@@ -6,6 +6,8 @@ GameManager::GameManager()
 {
     GameManager::instance = this;
 
+	_assetManager = std::make_unique<AssetManager>();
+
 	_levelManager = std::make_unique<LevelManager>();
 	_levelManager->LoadLevel("test_level");
 }
@@ -14,6 +16,7 @@ GameManager::~GameManager()
 {
     GameManager::instance = nullptr;
 
+    _assetManager.reset();
 	_levelManager.reset();
 }
 

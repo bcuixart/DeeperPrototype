@@ -15,9 +15,18 @@ void LevelManager::Update(const float deltaTime)
 
 void LevelManager::Render(const float deltaTime)
 {
-	for (int i = 0; i < _levelHeight; ++i)
-		for (int j = 0; j < _levelWidth; ++j)
-			if (_levelTiles[i][j]) _levelTiles[i][j]->Render(deltaTime);
+    for (int i = 0; i < _levelHeight; ++i)
+    {
+        for (int j = 0; j < _levelWidth; ++j)
+        {
+            if (_levelTiles[i][j])
+            {
+                _levelTiles[i][j]->Render(deltaTime);
+
+                //DrawTextEx(GetFontDefault(), TextFormat("%d", NormalizeTileRawMask(ComputeTileRawMask(j, i))), { j, i }, 0.5f, 0.05f, WHITE);
+            }
+        }
+    }
 }
 
 void LevelManager::LoadLevel(const std::string& levelName)
