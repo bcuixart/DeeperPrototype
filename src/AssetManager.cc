@@ -18,6 +18,7 @@ AssetManager::~AssetManager()
 
 void AssetManager::LoadTextures()
 {
+	_textures[(size_t)TextureId::DogTest] = LoadTexture("assets/sprites/dog/derpy/Dog_Derpy_Idle000.png");
 	_textures[(size_t)TextureId::TilesetGround] = LoadTexture("assets/sprites/tilesets/Tileset_Grass.png");
 	_textures[(size_t)TextureId::TilesetSlope] = LoadTexture("assets/sprites/tilesets/Tileset_Slope.png");
 

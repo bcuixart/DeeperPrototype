@@ -11,6 +11,7 @@ LevelManager::~LevelManager()
 
 void LevelManager::Update(const float deltaTime)
 {
+    for (auto& dog : _dogs) dog->Update(deltaTime);
 }
 
 void LevelManager::Render(const float deltaTime)
@@ -27,6 +28,8 @@ void LevelManager::Render(const float deltaTime)
             }
         }
     }
+
+    for (auto& dog : _dogs) dog->Render(deltaTime);
 }
 
 void LevelManager::LoadLevel(const std::string& levelName)
@@ -56,6 +59,7 @@ void LevelManager::LoadLevel(const std::string& levelName)
             switch (row[j]) {
             case 'G': _levelTiles[i][j] = std::make_unique<LevelObjectTileGround>(pos); break;
             case 's': _levelTiles[i][j] = std::make_unique<LevelObjectTileSlope>(pos); break;
+			case 'D': InstantiateDog(pos); break;
             default:  break;
             }
         }
@@ -85,6 +89,11 @@ LevelObjectTileType LevelManager::GetTileTypeAt(const Vector2& position) const
 		return _levelTiles[y][x]->GetTileType();
 
 	return LevelObjectTileType::None;
+}
+
+void LevelManager::InstantiateDog(const Vector2& position)
+{
+    _dogs.push_back(std::make_unique<LevelObjectDog>(position, *this));
 }
 
 void LevelManager::UpdateTileAutotile(int x, int y)

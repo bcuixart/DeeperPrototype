@@ -7,6 +7,8 @@
 
 #include "AssetManager.hh"
 
+class LevelManager;
+
 class LevelObject {
 public:
 	LevelObject(const Vector2& position);
@@ -19,6 +21,9 @@ public:
 
 protected:
 	Vector2 _position;
+
+	Rectangle _bounds{};
+	Vector2   _velocity{};
 
 private:
 

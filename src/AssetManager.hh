@@ -7,6 +7,7 @@
 
 enum class TextureId 
 {
+    DogTest,
     TilesetGround,
     TilesetSlope,
 	Count // Last element to keep track of the number of textures

@@ -29,10 +29,12 @@ int main(int argc, char* argv[])
 
     GameManager* gameManager = new GameManager();
 
+    bool _firstFrame = true;
     float deltaTime = 0;
     while (!WindowShouldClose())
     {
-        deltaTime = GetFrameTime();
+        if (_firstFrame) { _firstFrame = false; continue; }
+        deltaTime = std::min(GetFrameTime(), 1.0f / 20.0f);
 
         gameManager->Update(deltaTime);
         gameManager->Render(deltaTime);
