@@ -11,6 +11,7 @@
 #include "LevelObjects/Tiles/Autotile.hh"
 #include "LevelObjects/Tiles/LevelObjectTile.hh"
 #include "LevelObjects/Tiles/LevelObjectTileGround.hh"
+#include "LevelObjects/Tiles/LevelObjectTileSlope.hh"
 
 class LevelManager {
 public:

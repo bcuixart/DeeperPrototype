@@ -55,6 +55,7 @@ void LevelManager::LoadLevel(const std::string& levelName)
             Vector2 pos = { static_cast<float>(j), static_cast<float>(i) };
             switch (row[j]) {
             case 'G': _levelTiles[i][j] = std::make_unique<LevelObjectTileGround>(pos); break;
+            case 's': _levelTiles[i][j] = std::make_unique<LevelObjectTileSlope>(pos); break;
             default:  break;
             }
         }
