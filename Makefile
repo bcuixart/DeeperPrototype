@@ -1,5 +1,6 @@
 CXX      := g++
 CXXFLAGS := -Wall -O3 -std=c++17
+SHELL    := C:/msys64/usr/bin/sh.exe
 
 RAYLIB_PATH := raylib
 
