@@ -13,6 +13,8 @@ public:
 	void Update(const float deltaTime) override;
 	void Render(const float deltaTime) const override;
 
+	HitboxType GetHitboxType() const override { return HitboxType::Solid; }
+
 	virtual LevelObjectTileType GetTileType() const;
 
 	void SetSpriteIndex(int idx);

@@ -5,14 +5,14 @@
 
 class LevelObjectDog : public LevelObject {
 public:
-    LevelObjectDog(const Vector2& position, LevelManager& level);
+    LevelObjectDog(const Vector2& position);
 
     void Update(const float deltaTime) override;
     void Render(const float deltaTime) const override;
 
-private:
-    LevelManager& _level;
+    HitboxType GetHitboxType() const override { return HitboxType::Entity; }
 
+private:
     static constexpr float kWidth = 0.95f;
     static constexpr float kHeight = 0.5f;
 };

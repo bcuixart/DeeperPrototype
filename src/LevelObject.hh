@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include "AssetManager.hh"
+#include "PhysicsProperties.hh"
 
 class LevelManager;
 
@@ -21,6 +22,8 @@ public:
 	Rectangle GetBounds() const { return _bounds; }
 	Vector2 GetPosition() const { return { _bounds.x, _bounds.y }; }
 	Vector2 GetVelocity() const { return _velocity; }
+
+	virtual HitboxType GetHitboxType() const = 0;
 
 protected:
 	Rectangle _bounds{};

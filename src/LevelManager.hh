@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 
+#include "PhysicsManager.hh"
 #include "LevelObject.hh"
 #include "LevelObjects/LevelObjectDog.hh"
 #include "LevelObjects/Tiles/Autotile.hh"
@@ -33,7 +34,8 @@ public:
 protected:
 
 private:
-	void InstantiateDog(const Vector2& position);
+	void InstantiateLevelObject(std::unique_ptr<LevelObject> obj);
+	void InstantiateLevelTile(std::unique_ptr<LevelObjectTile> tile, int i, int j);
 
 	void UpdateTileAutotile(int x, int y);
 	void UpdateAutotileNeighbors(int x, int y);
@@ -44,7 +46,9 @@ private:
 	int _levelWidth = 0;
 	int _levelHeight = 0;
 
-	std::vector<std::unique_ptr<LevelObjectDog>> _dogs;
+	std::unique_ptr<PhysicsManager> _physicsManager;
+
+	std::vector<std::unique_ptr<LevelObject>> _levelObjects;
 	std::vector<std::vector<std::unique_ptr<LevelObjectTile>>> _levelTiles;
 };
 

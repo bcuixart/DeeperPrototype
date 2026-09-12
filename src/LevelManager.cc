@@ -2,16 +2,19 @@
 
 LevelManager::LevelManager()
 {
-
+    _physicsManager = std::make_unique<PhysicsManager>();
 }
 
 LevelManager::~LevelManager()
 {
+    _physicsManager.reset();
 }
 
 void LevelManager::Update(const float deltaTime)
 {
-    for (auto& dog : _dogs) dog->Update(deltaTime);
+    for (auto& object : _levelObjects) object->Update(deltaTime);
+
+    _physicsManager->Update(deltaTime, *this);
 }
 
 void LevelManager::Render(const float deltaTime) const
@@ -27,7 +30,7 @@ void LevelManager::Render(const float deltaTime) const
         }
     }
 
-    for (auto& dog : _dogs) dog->Render(deltaTime);
+    for (auto& object : _levelObjects) object->Render(deltaTime);
 }
 
 void LevelManager::RenderBounds(const float deltaTime) const
@@ -45,7 +48,7 @@ void LevelManager::RenderBounds(const float deltaTime) const
         }
     }
 
-    for (auto& dog : _dogs) dog->RenderBounds(deltaTime, ORANGE);
+    for (auto& object : _levelObjects) object->RenderBounds(deltaTime, ORANGE);
 } 
 
 void LevelManager::LoadLevel(const std::string& levelName)
@@ -73,9 +76,9 @@ void LevelManager::LoadLevel(const std::string& levelName)
         for (int j = 0; j < _levelWidth; ++j) {
             Vector2 pos = { static_cast<float>(j), static_cast<float>(i) };
             switch (row[j]) {
-            case 'G': _levelTiles[i][j] = std::make_unique<LevelObjectTileGround>(pos); break;
-            case 's': _levelTiles[i][j] = std::make_unique<LevelObjectTileSlope>(pos); break;
-			case 'D': InstantiateDog(pos); break;
+            case 'G': InstantiateLevelTile(std::make_unique<LevelObjectTileGround>(pos), i, j); break;
+            case 's': InstantiateLevelTile(std::make_unique<LevelObjectTileSlope>(pos), i, j); break;
+			case 'D': InstantiateLevelObject(std::make_unique<LevelObjectDog>(pos)); break;
             default:  break;
             }
         }
@@ -107,9 +110,18 @@ LevelObjectTileType LevelManager::GetTileTypeAt(const Vector2& position) const
 	return LevelObjectTileType::None;
 }
 
-void LevelManager::InstantiateDog(const Vector2& position)
+void LevelManager::InstantiateLevelObject(std::unique_ptr<LevelObject> obj)
 {
-    _dogs.push_back(std::make_unique<LevelObjectDog>(position, *this));
+    LevelObject* raw = obj.get();
+    _levelObjects.push_back(std::move(obj));
+    _physicsManager->RegisterObject(raw);   
+}
+
+void LevelManager::InstantiateLevelTile(std::unique_ptr<LevelObjectTile> tile, int i, int j)
+{
+    LevelObject* raw = tile.get();
+    _levelTiles[i][j] = std::move(tile);
+    _physicsManager->RegisterObject(raw);
 }
 
 void LevelManager::UpdateTileAutotile(int x, int y)

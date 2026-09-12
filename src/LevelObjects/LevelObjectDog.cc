@@ -1,8 +1,6 @@
 #include "LevelObjectDog.hh"
-#include "LevelManager.hh"
 
-LevelObjectDog::LevelObjectDog(const Vector2& position, LevelManager& level)
-    : _level(level)
+LevelObjectDog::LevelObjectDog(const Vector2& position)
 {
     _bounds = { position.x, position.y, kWidth, kHeight };
 }
