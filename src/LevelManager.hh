@@ -20,7 +20,8 @@ public:
 	~LevelManager();
 
 	void Update(const float deltaTime);
-	void Render(const float deltaTime);
+	void Render(const float deltaTime) const;
+	void RenderBounds(const float deltaTime) const;
 
 	void LoadLevel(const std::string& levelName);
 

@@ -14,7 +14,7 @@ void LevelManager::Update(const float deltaTime)
     for (auto& dog : _dogs) dog->Update(deltaTime);
 }
 
-void LevelManager::Render(const float deltaTime)
+void LevelManager::Render(const float deltaTime) const
 {
     for (int i = 0; i < _levelHeight; ++i)
     {
@@ -23,14 +23,30 @@ void LevelManager::Render(const float deltaTime)
             if (_levelTiles[i][j])
             {
                 _levelTiles[i][j]->Render(deltaTime);
-
-                //DrawTextEx(GetFontDefault(), TextFormat("%d", NormalizeTileRawMask(ComputeTileRawMask(j, i))), { j, i }, 0.5f, 0.05f, WHITE);
             }
         }
     }
 
     for (auto& dog : _dogs) dog->Render(deltaTime);
 }
+
+void LevelManager::RenderBounds(const float deltaTime) const
+{
+    for (int i = 0; i < _levelHeight; ++i)
+    {
+        for (int j = 0; j < _levelWidth; ++j)
+        {
+            if (_levelTiles[i][j])
+            {
+                _levelTiles[i][j]->RenderBounds(deltaTime, BLACK);
+
+                //DrawTextEx(GetFontDefault(), TextFormat("%d", NormalizeTileRawMask(ComputeTileRawMask(j, i))), { j, i }, 0.5f, 0.05f, WHITE);
+            }
+        }
+    }
+
+    for (auto& dog : _dogs) dog->RenderBounds(deltaTime, ORANGE);
+} 
 
 void LevelManager::LoadLevel(const std::string& levelName)
 {

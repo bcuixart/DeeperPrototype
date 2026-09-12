@@ -11,17 +11,18 @@ class LevelManager;
 
 class LevelObject {
 public:
-	LevelObject(const Vector2& position);
+	LevelObject();
 	virtual ~LevelObject();
 
 	virtual void Update(const float deltaTime);
 	virtual void Render(const float deltaTime) const;
+	virtual void RenderBounds(const float deltaTime, const Color& color) const;
 
-	Vector2 Position() const;
+	Rectangle GetBounds() const { return _bounds; }
+	Vector2 GetPosition() const { return { _bounds.x, _bounds.y }; }
+	Vector2 GetVelocity() const { return _velocity; }
 
 protected:
-	Vector2 _position;
-
 	Rectangle _bounds{};
 	Vector2   _velocity{};
 

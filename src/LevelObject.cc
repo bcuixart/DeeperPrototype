@@ -1,9 +1,9 @@
 #include "LevelObject.hh"
 #include "GameManager.hh"
 
-LevelObject::LevelObject(const Vector2& position)
+LevelObject::LevelObject()
 {
-	_position = position;
+	_velocity = { 0.0f, 0.0f };
 }
 
 LevelObject::~LevelObject()
@@ -18,7 +18,7 @@ void LevelObject::Render(const float deltaTime) const
 {
 }
 
-Vector2 LevelObject::Position() const
+void LevelObject::RenderBounds(const float deltaTime, const Color& color) const
 {
-	return _position;
+	DrawRectangleLinesEx(_bounds, 0.05f, color);
 }

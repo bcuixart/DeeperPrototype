@@ -19,6 +19,8 @@ public:
 	int GetSpriteIndex() const;
 
 protected:
+	Vector2 _position{};
+
 	int _groundTileType = 0;
 
 	int _spriteIndex = 0;
