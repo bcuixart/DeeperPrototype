@@ -21,13 +21,30 @@ public:
 
 	Rectangle GetBounds() const { return _bounds; }
 	Vector2 GetPosition() const { return { _bounds.x, _bounds.y }; }
+	void SetBoundsX(const float x) { _bounds.x = x; }
+	void SetBoundsY(const float y) { _bounds.y = y; }
+
 	Vector2 GetVelocity() const { return _velocity; }
+	float GetVelocityX() const { return _velocity.x; }
+	float GetVelocityY() const { return _velocity.y; }
+	void SetVelocityX(const float x) { _velocity.x = x; }
+	void SetVelocityY(const float y) { _velocity.y = y; }
+	void AddVelocityX(const float x) { _velocity.x += x; }
+	void AddVelocityY(const float y) { _velocity.y += y; }
+
+	void ApplyVelocityX(const float deltaTime) { _bounds.x += _velocity.x * deltaTime; }
+	void ApplyVelocityY(const float deltaTime) { _bounds.y += _velocity.y * deltaTime; }
+
+	bool GetIsGrounded() const { return _isGrounded; }
+	void SetIsGrounded(const bool grounded) { _isGrounded = grounded; }
 
 	virtual HitboxType GetHitboxType() const = 0;
 
 protected:
 	Rectangle _bounds{};
 	Vector2   _velocity{};
+
+	bool _isGrounded{ false };
 
 private:
 

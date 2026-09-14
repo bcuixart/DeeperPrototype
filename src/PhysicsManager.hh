@@ -18,8 +18,15 @@ public:
     void UnregisterObject(LevelObject* object);
 
 protected:
-
+    
 private:
+    void ApplyGravity(const std::vector<LevelObject*>& objects, const float deltaTime);
+    void MoveAndResolveCollisionsX(const std::vector<LevelObject*>& objects, const float deltaTime);
+    void MoveAndResolveCollisionsY(const std::vector<LevelObject*>& objects, const float deltaTime);
+    bool CheckAndResolveCollisionX(LevelObject* stillObject, LevelObject* movingObject);
+    bool CheckAndResolveCollisionY(LevelObject* stillObject, LevelObject* movingObject);
+    bool CheckAndResolveCollisionYOnlyFromTop(LevelObject* stillObject, LevelObject* movingObject);
+
     void RemoveObjectFromList(std::vector<LevelObject*>& list, LevelObject* obj);
 
     std::vector<LevelObject*> _solidObjects;
@@ -29,6 +36,8 @@ private:
     std::vector<LevelObject*> _dynamicObjects;
     std::vector<LevelObject*> _forceFieldObjects;
     std::vector<LevelObject*> _triggerObjects;
+
+    constexpr static float kGravity = 9.81f;
 };
 
 #endif

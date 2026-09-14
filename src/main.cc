@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
     SetExitKey(KEY_NULL);
 
     InitAudioDevice();
-    SetTargetFPS(30);
+    SetTargetFPS(60);
 
     GameManager* gameManager = new GameManager();
 
