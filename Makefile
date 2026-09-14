@@ -11,6 +11,7 @@ rwildcard = $(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2
 
 SRC := $(call rwildcard,$(SRC_DIR)/,*.cc)
 OBJ := $(patsubst $(SRC_DIR)/%.cc,$(BUILD_DIR)/%.o,$(SRC))
+DEP := $(OBJ:.o=.d)
 
 TARGET := game.exe
 
@@ -25,9 +26,11 @@ $(TARGET): $(OBJ)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cc
 	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD -MP -c $< -o $@
 
 clean:
 	rm -rf $(BUILD_DIR) $(TARGET)
+
+-include $(DEP)
 
 .PHONY: all clean
