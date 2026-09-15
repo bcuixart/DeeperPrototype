@@ -10,6 +10,7 @@ enum class TextureId
     DogTest,
     TilesetGround,
     TilesetSlope,
+    TilesetBridge,
 	Count // Last element to keep track of the number of textures
 };
 

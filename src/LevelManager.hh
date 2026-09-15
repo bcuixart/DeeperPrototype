@@ -14,6 +14,7 @@
 #include "LevelObjects/Tiles/LevelObjectTile.hh"
 #include "LevelObjects/Tiles/LevelObjectTileGround.hh"
 #include "LevelObjects/Tiles/LevelObjectTileSlope.hh"
+#include "LevelObjects/Tiles/LevelObjectTileBridge.hh"
 
 class LevelManager {
 public:
@@ -42,6 +43,7 @@ private:
 
 	uint8_t ComputeTileRawMask(int x, int y) const;
 	uint8_t NormalizeTileRawMask(uint8_t mask) const;
+	uint8_t ComputeTileMaskBridge(int x, int y) const;
 
 	int _levelWidth = 0;
 	int _levelHeight = 0;

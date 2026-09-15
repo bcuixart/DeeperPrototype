@@ -78,6 +78,7 @@ void LevelManager::LoadLevel(const std::string& levelName)
             switch (row[j]) {
             case 'G': InstantiateLevelTile(std::make_unique<LevelObjectTileGround>(pos), i, j); break;
             case 's': InstantiateLevelTile(std::make_unique<LevelObjectTileSlope>(pos), i, j); break;
+            case 'B': InstantiateLevelTile(std::make_unique<LevelObjectTileBridge>(pos), i, j); break;
 			case 'D': InstantiateLevelObject(std::make_unique<LevelObjectDog>(pos)); break;
             default:  break;
             }
@@ -126,10 +127,34 @@ void LevelManager::InstantiateLevelTile(std::unique_ptr<LevelObjectTile> tile, i
 
 void LevelManager::UpdateTileAutotile(int x, int y)
 {
-    uint8_t normalized = NormalizeTileRawMask(ComputeTileRawMask(x, y));
+    LevelObjectTileType type = _levelTiles[y][x]->GetTileType();
+    switch(type)
+    {
+        case LevelObjectTileType::None:
+            return;
 
-    auto it = groundAutotileMap.find(normalized);
-    _levelTiles[y][x]->SetSpriteIndex(it != groundAutotileMap.end() ? it->second : 0);
+        case LevelObjectTileType::Ground:
+        case LevelObjectTileType::Slope:
+        case LevelObjectTileType::Sand:
+        case LevelObjectTileType::Dirt:
+        {
+            uint8_t normalized = NormalizeTileRawMask(ComputeTileRawMask(x, y));
+
+            auto it = groundAutotileMap.find(normalized);
+            _levelTiles[y][x]->SetSpriteIndex(it != groundAutotileMap.end() ? it->second : 0);
+            break;
+        }
+        case LevelObjectTileType::Bridge:
+        {
+            uint8_t bridgeMask = ComputeTileMaskBridge(x, y);
+
+            auto itBridge = bridgeAutotileMap.find(bridgeMask);
+            _levelTiles[y][x]->SetSpriteIndex(itBridge != bridgeAutotileMap.end() ? itBridge->second : 0);  
+            break;
+        }
+        default:
+            return;
+    }
 }
 
 void LevelManager::UpdateAutotileNeighbors(int x, int y)
@@ -176,5 +201,20 @@ uint8_t LevelManager::NormalizeTileRawMask(uint8_t mask) const
     if (!(mask & 2) || !(mask & 16)) mask &= ~4;    // NE  needs N & E
     if (!(mask & 64) || !(mask & 8)) mask &= ~32;   // SW  needs S & W
     if (!(mask & 64) || !(mask & 16)) mask &= ~128; // SE  needs S & E
+    return mask;
+}
+
+uint8_t LevelManager::ComputeTileMaskBridge(int x, int y) const
+{
+    auto same = [&](int cx, int cy) -> bool {
+        if (cx < 0 || cx >= _levelWidth || cy < 0 || cy >= _levelHeight)
+            return false;
+        return _levelTiles[cy][cx] && _levelTiles[cy][cx]->GetTileType() == LevelObjectTileType::Bridge;
+        };
+
+    uint8_t mask = 0;
+    if (same(x - 1, y)) mask |= 1;          // W
+    if (same(x + 1, y)) mask |= 2;          // E
+
     return mask;
 }

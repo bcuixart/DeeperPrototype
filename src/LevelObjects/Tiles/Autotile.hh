@@ -41,4 +41,17 @@ const std::unordered_map<uint8_t, int> groundAutotileMap =
     {250, 24 }, {251, 43 }, {254, 44 }, {255, 0 },
 };
 
+const std::unordered_map<uint8_t, int> bridgeAutotileMap = 
+{
+    // No neighbors
+    {  0,  0 },
+
+    // One neighbors
+    {  1,  3 }, // W
+    {  2,  1 }, // E
+
+    // Two neighbors
+    {  3,  2 }, // W+E
+};
+
 #endif

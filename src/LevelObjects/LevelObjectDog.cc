@@ -26,7 +26,8 @@ void LevelObjectDog::Update(const float deltaTime)
     }
 }
 
-void LevelObjectDog::Render(const float deltaTime) const {
+void LevelObjectDog::Render(const float deltaTime) const 
+{
     const Texture2D& tex = AssetManager::instance->GetTexture(TextureId::DogTest);
 
     const float spriteSize = 2.0f;

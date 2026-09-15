@@ -3,7 +3,7 @@
 
 #include "LevelObject.hh"
 
-enum class LevelObjectTileType { None, Ground, Slope, Sand, Dirt, OneWayFloor };
+enum class LevelObjectTileType { None, Ground, Slope, Sand, Dirt, Bridge };
 
 class LevelObjectTile : public LevelObject {
 public:
