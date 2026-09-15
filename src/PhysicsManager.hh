@@ -37,7 +37,7 @@ private:
     std::vector<LevelObject*> _forceFieldObjects;
     std::vector<LevelObject*> _triggerObjects;
 
-    constexpr static float kGravity = 9.81f;
+    constexpr static float kGravity = 20.0f;
 };
 
 #endif

@@ -45,7 +45,7 @@ void GameManager::Render(const float deltaTime)
     ClearBackground( {0, 196, 255, 255} );
 
 	_levelManager->Render(deltaTime);
-    _levelManager->RenderBounds(deltaTime);
+    if (DEBUG_DRAW_BOUNDS) _levelManager->RenderBounds(deltaTime);
 
     DrawFPS(-500, -500);
 
