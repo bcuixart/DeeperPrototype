@@ -13,10 +13,12 @@ public:
 
 	LevelObjectTileType GetTileType() const override;
 
+	virtual void SetSpriteIndex(uint8_t idx) override;
+
 protected:
 
 private:
-
+	bool _isSlopedTile{false};
 };
 
 #endif

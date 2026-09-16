@@ -1,6 +1,8 @@
 #ifndef LEVELOBJECTTILE_HH
 #define LEVELOBJECTTILE_HH
 
+#include <cstdint>
+
 #include "LevelObject.hh"
 
 enum class LevelObjectTileType { None, Ground, Slope, Sand, Dirt, Bridge };
@@ -17,15 +19,15 @@ public:
 
 	virtual LevelObjectTileType GetTileType() const;
 
-	void SetSpriteIndex(int idx);
-	int GetSpriteIndex() const;
+	virtual void SetSpriteIndex(uint8_t idx);
+	uint8_t GetSpriteIndex() const;
 
 protected:
 	Vector2 _position{};
 
 	int _groundTileType = 0;
 
-	int _spriteIndex = 0;
+	uint8_t _spriteIndex = 0;
 
 private:
 

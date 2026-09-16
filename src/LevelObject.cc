@@ -20,5 +20,5 @@ void LevelObject::Render(const float deltaTime) const
 
 void LevelObject::RenderBounds(const float deltaTime, const Color& color) const
 {
-	DrawRectangleLinesEx(_bounds, 0.05f, color);
+	DrawRectangleLinesEx(_bounds, 0.025f, color);
 }

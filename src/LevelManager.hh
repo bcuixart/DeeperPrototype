@@ -41,9 +41,13 @@ private:
 	void UpdateTileAutotile(int x, int y);
 	void UpdateAutotileNeighbors(int x, int y);
 
-	uint8_t ComputeTileRawMask(int x, int y) const;
-	uint8_t NormalizeTileRawMask(uint8_t mask) const;
+	uint16_t ComputeFullMask(int x, int y) const;
+	uint16_t NormalizeFullMask(uint16_t mask) const;
+	uint8_t CollapseHighByte(uint8_t low, uint8_t high) const;
 	uint8_t ComputeTileMaskBridge(int x, int y) const;
+
+	bool IsTileSame(int x, int y, LevelObjectTileType type) const;
+	bool IsTileSlope(int x, int y) const;
 
 	int _levelWidth = 0;
 	int _levelHeight = 0;

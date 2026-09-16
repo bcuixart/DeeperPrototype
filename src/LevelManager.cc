@@ -43,7 +43,8 @@ void LevelManager::RenderBounds(const float deltaTime) const
             {
                 _levelTiles[i][j]->RenderBounds(deltaTime, BLACK);
 
-                //DrawTextEx(GetFontDefault(), TextFormat("%d", NormalizeTileRawMask(ComputeTileRawMask(j, i))), { j, i }, 0.5f, 0.05f, WHITE);
+                //DrawTextEx(GetFontDefault(), TextFormat("%d", _levelTiles[i][j]->GetSpriteIndex()), { (float)j, (float)i }, 0.5f, 0.025f, WHITE);
+                DrawTextEx(GetFontDefault(), TextFormat("%x", NormalizeFullMask(ComputeFullMask(j, i))), { (float)j, (float)i }, 0.5f, 0.025f, WHITE);
             }
         }
     }
@@ -138,7 +139,7 @@ void LevelManager::UpdateTileAutotile(int x, int y)
         case LevelObjectTileType::Sand:
         case LevelObjectTileType::Dirt:
         {
-            uint8_t normalized = NormalizeTileRawMask(ComputeTileRawMask(x, y));
+            uint16_t normalized = NormalizeFullMask(ComputeFullMask(x, y));
 
             auto it = groundAutotileMap.find(normalized);
             _levelTiles[y][x]->SetSpriteIndex(it != groundAutotileMap.end() ? it->second : 0);
@@ -173,43 +174,65 @@ void LevelManager::UpdateAutotileNeighbors(int x, int y)
     }
 }
 
-uint8_t LevelManager::ComputeTileRawMask(int x, int y) const
+uint16_t LevelManager::ComputeFullMask(int x, int y) const
 {
     LevelObjectTileType type = _levelTiles[y][x]->GetTileType();
 
-    auto same = [&](int cx, int cy) -> bool {
-        if (cx < 0 || cx >= _levelWidth || cy < 0 || cy >= _levelHeight)
-            return false;
-        return _levelTiles[cy][cx] && _levelTiles[cy][cx]->GetTileType() == type;
-        };
+    uint8_t low = 0, high = 0;
+    if (IsTileSame(x - 1, y - 1, type)) { low |= 1; if (IsTileSlope(x-1,y-1)) high |= 1; }      // NW
+    if (IsTileSame(x, y - 1, type)) { low |= 2; if (IsTileSlope(x,y-1)) high |= 2; }            // N
+    if (IsTileSame(x + 1, y - 1, type)) { low |= 4; if (IsTileSlope(x+1,y-1)) high |= 4; }      // NE
+    if (IsTileSame(x - 1, y, type)) { low |= 8; if (IsTileSlope(x-1,y)) high |= 8; }            // W
+    if (IsTileSame(x + 1, y, type)) { low |= 16; if (IsTileSlope(x+1,y)) high |= 16; }          // E
+    if (IsTileSame(x - 1, y + 1, type)) { low |= 32; if (IsTileSlope(x-1,y+1)) high |= 32; }    // SW
+    if (IsTileSame(x, y + 1, type)) { low |= 64; if (IsTileSlope(x,y+1)) high |= 64; }         // S
+    if (IsTileSame(x + 1, y + 1, type)) { low |= 128; if (IsTileSlope(x+1,y+1)) high |= 128; } // SE
 
-    uint8_t mask = 0;
-    if (same(x - 1, y - 1)) mask |= 1;      // NW
-    if (same(x, y - 1)) mask |= 2;          // N
-    if (same(x + 1, y - 1)) mask |= 4;      // NE
-    if (same(x - 1, y)) mask |= 8;          // W
-    if (same(x + 1, y)) mask |= 16;         // E
-    if (same(x - 1, y + 1)) mask |= 32;     // SW
-    if (same(x, y + 1)) mask |= 64;         // S
-    if (same(x + 1, y + 1)) mask |= 128;    // SE
-    return mask;
+    return (uint16_t)(low | (high << 8));
 }
 
-uint8_t LevelManager::NormalizeTileRawMask(uint8_t mask) const
+uint16_t LevelManager::NormalizeFullMask(uint16_t mask) const
 {
-    if (!(mask & 2) || !(mask & 8)) mask &= ~1;     // NW  needs N & W
-    if (!(mask & 2) || !(mask & 16)) mask &= ~4;    // NE  needs N & E
-    if (!(mask & 64) || !(mask & 8)) mask &= ~32;   // SW  needs S & W
-    if (!(mask & 64) || !(mask & 16)) mask &= ~128; // SE  needs S & E
-    return mask;
+    uint8_t low  = mask & 0xFF;
+    uint8_t high = (mask >> 8) & 0xFF;
+
+    if (!(low & 2) || !(low & 8)) low &= ~1;     // NW  needs N & W
+    if (!(low & 2) || !(low & 16)) low &= ~4;    // NE  needs N & E
+    if (!(low & 64) || !(low & 8)) low &= ~32;   // SW  needs S & W
+    if (!(low & 64) || !(low & 16)) low &= ~128; // SE  needs S & E
+
+    high &= 0b01011010;                           // Eliminate corners that are not needed for slopes
+    for (int b = 0; b < 8; ++b)
+        if (!(low & (1 << b))) high &= ~(1 << b); // Eliminate slope from a corner if the corresponding cardinal is not present
+
+    high = CollapseHighByte(low, high);
+
+    return (uint16_t)(low | (high << 8));
+}
+
+uint8_t LevelManager::CollapseHighByte(uint8_t low, uint8_t high) const
+{
+    switch (low) 
+    {
+        case 80:  case 120: case 127: case 122:
+        case 82:  case 126: case 35:  case 86:
+            if (high & 16) { high |= 64; high &= ~16; }
+            break;
+        case 72:  case 216: case 223: case 75:
+        case 74:  case 222: case 36:  case 219: case 123:
+            if (high & 8)  { high |= 64; high &= ~8;  }
+            break;
+        default: break;
+    }
+    return high;
 }
 
 uint8_t LevelManager::ComputeTileMaskBridge(int x, int y) const
 {
     auto same = [&](int cx, int cy) -> bool {
-        if (cx < 0 || cx >= _levelWidth || cy < 0 || cy >= _levelHeight)
+        if (cx < 0 || cx >= _levelWidth || cy < 0 || cy >= _levelHeight || !_levelTiles[cy][cx])
             return false;
-        return _levelTiles[cy][cx] && _levelTiles[cy][cx]->GetTileType() == LevelObjectTileType::Bridge;
+        return _levelTiles[cy][cx]->GetTileType() == LevelObjectTileType::Bridge;
         };
 
     uint8_t mask = 0;
@@ -217,4 +240,44 @@ uint8_t LevelManager::ComputeTileMaskBridge(int x, int y) const
     if (same(x + 1, y)) mask |= 2;          // E
 
     return mask;
+}
+
+bool LevelManager::IsTileSame(int x, int y, LevelObjectTileType type) const
+{
+    if (x < 0 || x >= _levelWidth || y < 0 || y >= _levelHeight) return false;
+    if (!_levelTiles[y][x]) return false;
+
+    switch(type)
+    {
+        case LevelObjectTileType::None:
+            return false;
+
+        case LevelObjectTileType::Ground:
+        case LevelObjectTileType::Slope:
+        {
+            return _levelTiles[y][x]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y][x]->GetTileType() == LevelObjectTileType::Slope;
+            break;
+        }
+        case LevelObjectTileType::Sand:
+        case LevelObjectTileType::Dirt:
+        {
+            return _levelTiles[y][x]->GetTileType() == type;  
+        }
+        case LevelObjectTileType::Bridge:
+        {
+            return _levelTiles[y][x]->GetTileType() == type;  
+        }
+        default:
+            return false;
+    }
+
+    return false;
+}
+
+bool LevelManager::IsTileSlope(int x, int y) const
+{
+    if (x < 0 || x >= _levelWidth || y < 0 || y >= _levelHeight) return false;
+    if (!_levelTiles[y][x]) return false;
+
+    return _levelTiles[y][x]->GetTileType() == LevelObjectTileType::Slope;
 }

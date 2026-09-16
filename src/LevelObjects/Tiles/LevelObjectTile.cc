@@ -25,12 +25,12 @@ LevelObjectTileType LevelObjectTile::GetTileType() const
 	return LevelObjectTileType::None;
 }
 
-void LevelObjectTile::SetSpriteIndex(int idx)
+void LevelObjectTile::SetSpriteIndex(uint8_t idx)
 {
 	_spriteIndex = idx;
 }
 
-int LevelObjectTile::GetSpriteIndex() const
+uint8_t LevelObjectTile::GetSpriteIndex() const
 {
 	return _spriteIndex;
 }
