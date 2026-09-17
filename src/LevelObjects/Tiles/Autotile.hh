@@ -44,91 +44,91 @@ const std::unordered_map<uint16_t, uint8_t> groundAutotileMap =
 
     // ---=== SLOPE VARIATIONS ===---
     // Tiles with 1 variation
-    { 0x0212, 0 }, // Mask 18: slope above
-    { 0x020A, 0 }, // Mask 10: slope above
-    { 0x4050, 0 }, // Mask 80: slope below or right
-    { 0x4048, 0 }, // Mask 72: slope below or left
-    { 0x40D8, 0 }, // Mask 216: slope below or left
-    { 0x40DF, 0 }, // Mask 223: slope below or left
-    { 0x404B, 0 }, // Mask 75: slope below or left
-    { 0x407A, 0 }, // Mask 122: slope below or right
-    { 0x40DA, 0 }, // Mask 218: slope below or left
-    { 0x4056, 0 }, // Mask 86: slope below or right
-    { 0x407F, 0 }, // Mask 127: slope below or left
-    { 0x4078, 0 }, // Mask 120: slope below or right
-    { 0x021B, 0 }, // Mask 27: slope above
-    { 0x021E, 0 }, // Mask 30: slope above
-    { 0x02FB, 0 }, // Mask 251: slope above
-    { 0x02FE, 0 }, // Mask 254: slope above
-    { 0x026A, 0 }, // Mask 106: slope above
-    { 0x02D2, 0 }, // Mask 210: slope above
+    { 0x0212, 126 }, // Mask 18: slope above
+    { 0x020A, 126 }, // Mask 10: slope above
+    { 0x4050, 126 }, // Mask 80: slope below or right
+    { 0x4048, 126 }, // Mask 72: slope below or left
+    { 0x40D8, 126 }, // Mask 216: slope below or left
+    { 0x40DF, 126 }, // Mask 223: slope below or left
+    { 0x404B, 126 }, // Mask 75: slope below or left
+    { 0x407A, 126 }, // Mask 122: slope below or right
+    { 0x40DA, 126 }, // Mask 218: slope below or left
+    { 0x4056, 126 }, // Mask 86: slope below or right
+    { 0x407F, 126 }, // Mask 127: slope below or left
+    { 0x4078, 126 }, // Mask 120: slope below or right
+    { 0x021B, 126 }, // Mask 27: slope above
+    { 0x021E, 126 }, // Mask 30: slope above
+    { 0x02FB, 126 }, // Mask 251: slope above
+    { 0x02FE, 126 }, // Mask 254: slope above
+    { 0x026A, 126 }, // Mask 106: slope above
+    { 0x02D2, 126 }, // Mask 210: slope above
 
     // Tiles with 3 variations
 
     // mask 222: above | below or left
-    { 0x02DE, 0 }, // N slope
-    { 0x40DE, 0 }, // S slope
-    { 0x42DE, 0 }, // N + S slope
+    { 0x02DE, 126 }, // N slope
+    { 0x40DE, 126 }, // S slope
+    { 0x42DE, 126 }, // N + S slope
 
     // mask 126: above | below or right
-    { 0x027E, 0 }, // N slope
-    { 0x407E, 0 }, // S slope
-    { 0x427E, 0 }, // N + S slope
+    { 0x027E, 126 }, // N slope
+    { 0x407E, 126 }, // S slope
+    { 0x427E, 126 }, // N + S slope
 
     // mask 219: above | below or left
-    { 0x02DB, 0 }, // N slope
-    { 0x40DB, 0 }, // S slope
-    { 0x42DB, 0 }, // N + S slope
+    { 0x02DB, 126 }, // N slope
+    { 0x40DB, 126 }, // S slope
+    { 0x42DB, 126 }, // N + S slope
 
     // mask 123: above | below or right
-    { 0x027B, 0 }, // N slope
-    { 0x407B, 0 }, // S slope
-    { 0x427B, 0 }, // N + S slope
+    { 0x027B, 126 }, // N slope
+    { 0x407B, 126 }, // S slope
+    { 0x427B, 126 }, // N + S slope
 
     // mask 82:  above | below or right
-    { 0x0252, 0 }, // N slope
-    { 0x4052, 0 }, // S slope
-    { 0x4252, 0 }, // N + S slope
+    { 0x0252, 126 }, // N slope
+    { 0x4052, 126 }, // S slope
+    { 0x4252, 126 }, // N + S slope
 
     // mask 74:  above | below or left
-    { 0x024A, 0 }, // N slope
-    { 0x404A, 0 }, // S slope
-    { 0x424A, 0 }, // N + S slope
+    { 0x024A, 126 }, // N slope
+    { 0x404A, 126 }, // S slope
+    { 0x424A, 126 }, // N + S slope
 
     // mask 95:  left | right
-    { 0x105F, 0 }, // E slope
-    { 0x085F, 0 }, // W slope
-    { 0x185F, 0 }, // E + W slope
+    { 0x105F, 126 }, // E slope
+    { 0x085F, 126 }, // W slope
+    { 0x185F, 126 }, // E + W slope
 
     // mask 90:  left | right
-    { 0x105A, 0 }, // E slope
-    { 0x085A, 0 }, // W slope
-    { 0x185A, 0 }, // E + W slope
+    { 0x105A, 126 }, // E slope
+    { 0x085A, 126 }, // W slope
+    { 0x185A, 126 }, // E + W slope
 
     // mask 88:  left | right
-    { 0x1058, 0 }, // E slope
-    { 0x0858, 0 }, // W slope
-    { 0x1858, 0 }, // E + W slope
+    { 0x1058, 126 }, // E slope
+    { 0x0858, 126 }, // W slope
+    { 0x1858, 126 }, // E + W slope
 
     // Tiles with 7 variations
 
     // mask 94:
-    { 0x025E, 0 }, // N
-    { 0x085E, 0 }, // W
-    { 0x105E, 0 }, // E
-    { 0x0A5E, 0 }, // N+W
-    { 0x125E, 0 }, // N+E
-    { 0x185E, 0 }, // W+E
-    { 0x1A5E, 0 }, // N+W+E
+    { 0x025E, 126 }, // N
+    { 0x085E, 126 }, // W
+    { 0x105E, 126 }, // E
+    { 0x0A5E, 126 }, // N+W
+    { 0x125E, 126 }, // N+E
+    { 0x185E, 126 }, // W+E
+    { 0x1A5E, 126 }, // N+W+E
 
     // mask 91:
-    { 0x025B, 0 }, // N
-    { 0x085B, 0 }, // W
-    { 0x105B, 0 }, // E
-    { 0x0A5B, 0 }, // N+W
-    { 0x125B, 0 }, // N+E
-    { 0x185B, 0 }, // W+E
-    { 0x1A5B, 0 }, // N+W+E
+    { 0x025B, 126 }, // N
+    { 0x085B, 126 }, // W
+    { 0x105B, 126 }, // E
+    { 0x0A5B, 126 }, // N+W
+    { 0x125B, 126 }, // N+E
+    { 0x185B, 126 }, // W+E
+    { 0x1A5B, 126 }, // N+W+E
 };
 
 const std::unordered_set<uint8_t> slopedTiles =

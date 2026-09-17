@@ -89,6 +89,10 @@ void LevelManager::LoadLevel(const std::string& levelName)
     for (int y = 0; y < _levelHeight; ++y)
         for (int x = 0; x < _levelWidth; ++x)
             if (_levelTiles[y][x]) UpdateTileAutotile(x, y);
+
+    for (int y = 0; y < _levelHeight; ++y)
+        for (int x = 0; x < _levelWidth; ++x)
+            if (_levelTiles[y][x]) UpdateTileAutotile(x, y);
 }
 
 int LevelManager::GetLevelWidth() const
@@ -142,7 +146,7 @@ void LevelManager::UpdateTileAutotile(int x, int y)
             uint16_t normalized = NormalizeFullMask(ComputeFullMask(x, y));
 
             auto it = groundAutotileMap.find(normalized);
-            _levelTiles[y][x]->SetSpriteIndex(it != groundAutotileMap.end() ? it->second : 0);
+            _levelTiles[y][x]->SetSpriteIndex(it != groundAutotileMap.end() ? it->second : 127);
             break;
         }
         case LevelObjectTileType::Bridge:
@@ -150,7 +154,7 @@ void LevelManager::UpdateTileAutotile(int x, int y)
             uint8_t bridgeMask = ComputeTileMaskBridge(x, y);
 
             auto itBridge = bridgeAutotileMap.find(bridgeMask);
-            _levelTiles[y][x]->SetSpriteIndex(itBridge != bridgeAutotileMap.end() ? itBridge->second : 0);  
+            _levelTiles[y][x]->SetSpriteIndex(itBridge != bridgeAutotileMap.end() ? itBridge->second : 127);  
             break;
         }
         default:
@@ -212,17 +216,52 @@ uint16_t LevelManager::NormalizeFullMask(uint16_t mask) const
 
 uint8_t LevelManager::CollapseHighByte(uint8_t low, uint8_t high) const
 {
-    switch (low) 
+    switch (low)
     {
-        case 80:  case 120: case 127: case 122:
-        case 82:  case 126: case 35:  case 86:
+        // "sota o dreta": SE notch → col·lapsa E→S, conserva només S
+        case 80: case 86: case 120: case 122: case 127:
             if (high & 16) { high |= 64; high &= ~16; }
+            high &= 64;
             break;
-        case 72:  case 216: case 223: case 75:
-        case 74:  case 222: case 36:  case 219: case 123:
-            if (high & 8)  { high |= 64; high &= ~8;  }
+
+        // "sota o esquerra": SW notch → col·lapsa W→S, conserva només S
+        case 72: case 75: case 216: case 218: case 223:
+            if (high & 8) { high |= 64; high &= ~8; }
+            high &= 64;
             break;
-        default: break;
+
+        // "sobre | sota o dreta": conserva N i S (col·lapsa E→S)
+        case 82: case 123: case 126:   // ← 123 era al grup equivocat!
+            if (high & 16) { high |= 64; high &= ~16; }
+            high &= (2 | 64);
+            break;
+
+        // "sobre | sota o esquerra": conserva N i S (col·lapsa W→S)
+        case 74: case 219: case 222:
+            if (high & 8) { high |= 64; high &= ~8; }
+            high &= (2 | 64);
+            break;
+
+        // "dreta | esquerra": independents, conserva W i E
+        case 88: case 90: case 95:
+            high &= (8 | 16);
+            break;
+
+        // "sobre | dreta | esquerra": conserva N, W i E
+        case 91: case 94:
+            high &= (2 | 8 | 16);
+            break;
+
+        // "slope a sobre": conserva només N
+        case 10: case 18: case 27: case 30:
+        case 106: case 210: case 251: case 254:
+            high &= 2;
+            break;
+
+        // Cap variant de slope per a la resta
+        default:
+            high = 0;
+            break;
     }
     return high;
 }
