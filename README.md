@@ -30,9 +30,9 @@ TILES "NORMALS": /[Index Sprite començant per 1] - [Index Sprite començant per
 /47 - 46 - 210 (1, slope a sobre: 0x02D2) 116 - 115
 
 ESPECIALS: Ja són slopes de per si, de moment no tenen mascara assignada
-/50 - 49 - (1, sense res a sota a la dreta)
-/53 - 52 - (1, sense res a sota a l'esquerra)
-/54 - 53 - (3, slope a sota o dreta | sense res a sota a l'esquerra)
-/55 - 54 - (1, slope a sobre)
-/56 - 55 - (1, slope a sobre)
-/57 - 56 - (3, slope a sota o esquerra | sense res a sota a la dreta)
+/50 - 49 - (1, sense res a sota a la dreta) 117 - 116
+/53 - 52 - (1, sense res a sota a l'esquerra) 118 - 117
+/54 - 53 - (3, slope a sota o dreta | sense res a sota a l'esquerra) 119 - 118, 120 - 119, 121 - 120
+/55 - 54 - (1, slope a sobre) 122 - 121
+/56 - 55 - (1, slope a sobre) 123 - 122
+/57 - 56 - (3, slope a sota o esquerra | sense res a sota a la dreta) 124 - 123, 125 - 124, 126 - 125
