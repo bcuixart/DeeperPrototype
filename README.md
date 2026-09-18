@@ -1,4 +1,4 @@
-TILES "NORMALS": /[Index Sprite començant per 1] - [Index Sprite començant per 0] - [Mascara] (Sprites addicionals i què els fa mostrar-se)
+TILES "NORMALS": /[Index Sprite començant per 1] - [Index Sprite començant per 0] - [Mascara] (Sprites addicionals i què els fa mostrar-se) [Index nou començant per 1] - [Index nou començant per 0]
 /17 - 16 - 80 (1, slope a sota o dreta: 4050) - 58 - 57
 /18 - 17 - 18 (1, slope a sobre: 212) 59 - 58
 /19 - 18 - 10 (1, slope a sobre: 0x020a) 60 - 59
@@ -29,10 +29,10 @@ TILES "NORMALS": /[Index Sprite començant per 1] - [Index Sprite començant per
 /46 - 45 - 106 (1, slope a sobre: 0x026A) 115 - 114
 /47 - 46 - 210 (1, slope a sobre: 0x02D2) 116 - 115
 
-ESPECIALS: Ja són slopes de per si, de moment no tenen mascara assignada
-/50 - 49 - (1, sense res a sota a la dreta) 117 - 116
-/53 - 52 - (1, sense res a sota a l'esquerra) 118 - 117
-/54 - 53 - (3, slope a sota o dreta | sense res a sota a l'esquerra) 119 - 118, 120 - 119, 121 - 120
-/55 - 54 - (1, slope a sobre) 122 - 121
-/56 - 55 - (1, slope a sobre) 123 - 122
-/57 - 56 - (3, slope a sota o esquerra | sense res a sota a la dreta) 124 - 123, 125 - 124, 126 - 125
+ESPECIALS: Ja són slopes de per si: /[Index Sprite començant per 1] - [Index Sprite començant per 0] - [Mascara original] (Sprites addicionals i què els fa mostrar-se) [Index nou començant per 1] - [Index nou començant per 0]
+/50 - 49 - 208 (1, sense res a sota a la dreta) 117 - 116
+/53 - 52 - 104 (1, sense res a sota a l'esquerra) 118 - 117
+/54 - 53 - 80 (3, slope a sota o dreta | sense res a sota a l'esquerra) 119 - 118, 120 - 119, 121 - 120
+/55 - 54 - 18 (1, slope a sobre) 122 - 121
+/56 - 55 - 10 (1, slope a sobre) 123 - 122
+/57 - 56 - 72 (3, slope a sota o esquerra | sense res a sota a la dreta) 124 - 123, 125 - 124, 126 - 125
