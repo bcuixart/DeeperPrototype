@@ -110,6 +110,11 @@ LevelObjectTileType LevelManager::GetTileTypeAt(const Vector2& position) const
 	int x = static_cast<int>(position.x);
 	int y = static_cast<int>(position.y);
 
+	return GetTileTypeAt(x, y);
+}
+
+LevelObjectTileType LevelManager::GetTileTypeAt(int x, int y) const
+{
 	if (x >= 0 && x < _levelWidth && y >= 0 && y < _levelHeight && _levelTiles[y][x])
 		return _levelTiles[y][x]->GetTileType();
 
@@ -139,14 +144,32 @@ void LevelManager::UpdateTileAutotile(int x, int y)
             return;
 
         case LevelObjectTileType::Ground:
-        case LevelObjectTileType::Slope:
         case LevelObjectTileType::Sand:
         case LevelObjectTileType::Dirt:
         {
             uint16_t normalized = NormalizeFullMask(ComputeFullMask(x, y));
 
             auto it = groundAutotileMap.find(normalized);
-            _levelTiles[y][x]->SetSpriteIndex(it != groundAutotileMap.end() ? it->second : 127);
+            _levelTiles[y][x]->SetSpriteIndex(it != groundAutotileMap.end() ? it->second : 113);
+            break;
+        }
+        case LevelObjectTileType::Slope:
+        {
+            uint16_t normalized = NormalizeFullMask(ComputeFullMask(x, y));
+            uint16_t variationKey = ComputeSlopeVariationMask(normalized & 0xFF, x, y);
+
+            auto itV = slopeVariationAutotileMap.find(variationKey);
+            auto itS = slopeAutotileMap.find(normalized);
+
+            if (itS != slopeAutotileMap.end()) _levelTiles[y][x]->SetSpriteIndex(itS->second);
+            else 
+            {
+                auto itG = groundAutotileMap.find(normalized);
+                _levelTiles[y][x]->SetSpriteIndex(itG != groundAutotileMap.end() ? itG->second : 113);
+            }
+
+            //if (itV != slopeVariationAutotileMap.end()) _levelTiles[y][x]->SetSpriteIndex(itV->second); 
+
             break;
         }
         case LevelObjectTileType::Bridge:
@@ -154,7 +177,7 @@ void LevelManager::UpdateTileAutotile(int x, int y)
             uint8_t bridgeMask = ComputeTileMaskBridge(x, y);
 
             auto itBridge = bridgeAutotileMap.find(bridgeMask);
-            _levelTiles[y][x]->SetSpriteIndex(itBridge != bridgeAutotileMap.end() ? itBridge->second : 127);  
+            _levelTiles[y][x]->SetSpriteIndex(itBridge != bridgeAutotileMap.end() ? itBridge->second : 0);  
             break;
         }
         default:
@@ -189,8 +212,8 @@ uint16_t LevelManager::ComputeFullMask(int x, int y) const
     if (IsTileSame(x - 1, y, type)) { low |= 8; if (IsTileSlope(x-1,y)) high |= 8; }            // W
     if (IsTileSame(x + 1, y, type)) { low |= 16; if (IsTileSlope(x+1,y)) high |= 16; }          // E
     if (IsTileSame(x - 1, y + 1, type)) { low |= 32; if (IsTileSlope(x-1,y+1)) high |= 32; }    // SW
-    if (IsTileSame(x, y + 1, type)) { low |= 64; if (IsTileSlope(x,y+1)) high |= 64; }         // S
-    if (IsTileSame(x + 1, y + 1, type)) { low |= 128; if (IsTileSlope(x+1,y+1)) high |= 128; } // SE
+    if (IsTileSame(x, y + 1, type)) { low |= 64; if (IsTileSlope(x,y+1)) high |= 64; }          // S
+    if (IsTileSame(x + 1, y + 1, type)) { low |= 128; if (IsTileSlope(x+1,y+1)) high |= 128; }  // SE
 
     return (uint16_t)(low | (high << 8));
 }
@@ -266,6 +289,22 @@ uint8_t LevelManager::CollapseHighByte(uint8_t low, uint8_t high) const
     return high;
 }
 
+uint16_t LevelManager::ComputeSlopeVariationMask(uint8_t maskLow, int x, int y) const
+{
+    if (slopePossibleVariationsMasks.find(maskLow) == slopePossibleVariationsMasks.end())
+        return 0xFFFF; // Definitely invalid
+
+    uint8_t var = 0;
+    if (IsTileSame(x + 1, y + 1, LevelObjectTileType::Ground)) var |= 1;  // SE
+    if (IsTileSame(x - 1, y + 1, LevelObjectTileType::Ground)) var |= 2;  // SW
+    if (IsTileSlope(x, y + 1)) var |= 4;   // S is slope
+    if (IsTileSlope(x + 1, y)) var |= 8;   // E is slope
+    if (IsTileSlope(x - 1, y)) var |= 16;  // W is slope
+    if (IsTileSlope(x, y - 1)) var |= 32;  // N is slope
+
+    return ((uint16_t)maskLow << 8) | var;
+}
+
 uint8_t LevelManager::ComputeTileMaskBridge(int x, int y) const
 {
     auto same = [&](int cx, int cy) -> bool {
@@ -318,5 +357,9 @@ bool LevelManager::IsTileSlope(int x, int y) const
     if (x < 0 || x >= _levelWidth || y < 0 || y >= _levelHeight) return false;
     if (!_levelTiles[y][x]) return false;
 
-    return _levelTiles[y][x]->GetTileType() == LevelObjectTileType::Slope;
+    if (_levelTiles[y][x]->GetTileType() != LevelObjectTileType::Slope) return false;
+
+    // The two slope sprites that are not considered slopes for autotiling purposes
+    uint8_t sprite = _levelTiles[y][x]->GetSpriteIndex();
+    return sprite != 47 && sprite != 48;
 }

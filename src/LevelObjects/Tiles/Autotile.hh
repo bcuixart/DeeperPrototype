@@ -22,10 +22,10 @@ const std::unordered_map<uint16_t, uint8_t> groundAutotileMap =
     { 24,  3 }, // W+E
 
 	// Two cardinals, one corner
-    { 10,  18 }, { 11,  13 },   // N+W,  N+W+NW
-    { 18,  17 }, { 22, 11 },   // N+E,  N+E+NE
+    { 10,  18 }, { 11,  13 }, // N+W,  N+W+NW
+    { 18,  17 }, { 22, 11 },  // N+E,  N+E+NE
     { 72, 19 }, {104, 15 },   // S+W,  S+W+SW
-    { 80, 16 }, {208, 9 },   // S+E,  S+E+SE
+    { 80, 16 }, {208, 9 },    // S+E,  S+E+SE
 
     // Three cardinals (N+S+W: corners NW i SW free)
     { 74, 36 }, { 75, 28 }, {106, 45 }, {107, 14 },
@@ -56,12 +56,12 @@ const std::unordered_map<uint16_t, uint8_t> groundAutotileMap =
     { 0x4056, 81 }, // Mask 86: slope below or right
     { 0x407F, 82 }, // Mask 127: slope below or left
     { 0x4078, 83 }, // Mask 120: slope below or right
-    { 0x021B, 110 }, // Mask 27: slope above
-    { 0x021E, 111 }, // Mask 30: slope above
-    { 0x02FB, 112 }, // Mask 251: slope above
-    { 0x02FE, 113 }, // Mask 254: slope above
-    { 0x026A, 114 }, // Mask 106: slope above
-    { 0x02D2, 115 }, // Mask 210: slope above
+    { 0x021B, 96 }, // Mask 27: slope above
+    { 0x021E, 97 }, // Mask 30: slope above
+    { 0x02FB, 98 }, // Mask 251: slope above
+    { 0x02FE, 99 }, // Mask 254: slope above
+    { 0x026A, 100 }, // Mask 106: slope above
+    { 0x02D2, 101 }, // Mask 210: slope above
 
     // Tiles with 3 variations
 
@@ -113,42 +113,76 @@ const std::unordered_map<uint16_t, uint8_t> groundAutotileMap =
     // Tiles with 7 variations
 
     // mask 94:
-    { 0x025E, 96 }, // N
-    { 0x085E, 97 }, // W
-    { 0x105E, 99 }, // E
-    { 0x0A5E, 98 }, // N+W
-    { 0x125E, 100 }, // N+E
-    { 0x185E, 101 }, // W+E
-    { 0x1A5E, 102 }, // N+W+E
+    { 0x025E, 90 }, // N
+    { 0x105E, 91 }, // E
+    { 0x125E, 92 }, // N+E
 
     // mask 91:
-    { 0x025B, 103 }, // N
-    { 0x085B, 104 }, // W
-    { 0x105B, 106 }, // E
-    { 0x0A5B, 105 }, // N+W
-    { 0x125B, 107 }, // N+E
-    { 0x185B, 108 }, // W+E
-    { 0x1A5B, 109 }, // N+W+E
+    { 0x025B, 93 }, // N
+    { 0x085B, 94 }, // W
+    { 0x0A5B, 95 }, // N+W
 };
 
-const std::unordered_set<uint8_t> slopedTiles =
+const std::unordered_map<uint16_t, uint8_t> slopeAutotileMap = 
 {
-    2, 4,
-    9, 11, 13, 15, 16, 17, 18, 19
+    {  8, 48 }, // W
+    { 16, 47 }, // E
+
+    { 10, 55 }, { 11, 51 },  // N+W,  N+W+NW
+    { 18, 54 }, { 22, 50 },  // N+E,  N+E+NE
+    { 72, 56 }, {104, 52 },  // S+W,  S+W+SW
+    { 80, 53 }, {208, 49 },  // S+E,  S+E+SE
+
+    { 0x4050, 53 }, // Mask 80: slope below or right
+    { 0x4048, 56 }, // Mask 72: slope below or left
+
+    { 0x0212, 54 }, // Mask 18: slope above
+    { 0x020A, 55 }, // Mask 10: slope above
 };
 
-const std::unordered_map<uint8_t, uint8_t> slopesSpriteMap = 
+const std::unordered_set<uint8_t> slopedSpriteIndexes=
 {
-    {  2,  47 },
-    {  4,  48 },
-    {  9,  49 },
-    {  11,  50 },
-    {  13,  51 },
-    {  15,  52 },
-    {  16,  53 },
-    {  17,  54 },
-    {  18,  55 },
-    {  19,  56 },
+    47, 48, 
+    49, 50, 51, 52, 53, 54, 55, 56, 
+    102, 103, 104, 105, 106, 107, 108, 109, 110, 111
+};
+
+const std::unordered_set<uint8_t> slopePossibleVariationsMasks =
+{
+    0xD0, 0x68, 0x12, 0x0A, 0x50, 0x48
+};
+
+const std::unordered_map<uint16_t, uint8_t> slopeVariationAutotileMap =
+{
+    // 208 (0xD0): SW buit
+    { (0xD0 << 8) | 2, 112 },
+
+    // 104 (0x68): SE buit
+    { (0x68 << 8) | 1, 112 },
+
+    // 18 (0x12): N és slope
+    { (0x12 << 8) | 32, 112 },
+
+    // 10 (0x0A): N és slope
+    { (0x0A << 8) | 32, 112 },
+
+    // 80 (0x50): slope a S o E (dreta) | SW buit — verifica quin sprite va amb quin
+    { (0x50 << 8) | 4,  112 }, // S-slope
+    { (0x50 << 8) | 8,  112 }, // E-slope (dreta)
+    { (0x50 << 8) | 12, 112 }, // S+E slope
+    { (0x50 << 8) | 2,  112 }, // SW buit
+    { (0x50 << 8) | 6,  112 }, // SW buit + S-slope
+    { (0x50 << 8) | 10, 112 }, // SW buit + E-slope
+    { (0x50 << 8) | 14, 112 }, // SW buit + S+E
+
+    // 72 (0x48): slope a S o W (esquerra) | SE buit
+    { (0x48 << 8) | 4,  112 }, // S-slope
+    { (0x48 << 8) | 16, 112 }, // W-slope (esquerra)
+    { (0x48 << 8) | 20, 112 }, // S+W slope
+    { (0x48 << 8) | 1,  112 }, // SE buit
+    { (0x48 << 8) | 5,  112 }, // SE buit + S-slope
+    { (0x48 << 8) | 17, 112 }, // SE buit + W-slope
+    { (0x48 << 8) | 21, 112 }, // SE buit + S+W
 };
 
 const std::unordered_map<uint8_t, uint8_t> bridgeAutotileMap = 

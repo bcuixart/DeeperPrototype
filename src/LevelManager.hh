@@ -31,6 +31,7 @@ public:
 	int GetLevelHeight() const;
 
 	LevelObjectTileType GetTileTypeAt(const Vector2& position) const;
+	LevelObjectTileType GetTileTypeAt(int x, int y) const;
 
 protected:
 
@@ -44,6 +45,7 @@ private:
 	uint16_t ComputeFullMask(int x, int y) const;
 	uint16_t NormalizeFullMask(uint16_t mask) const;
 	uint8_t CollapseHighByte(uint8_t low, uint8_t high) const;
+	uint16_t ComputeSlopeVariationMask(uint8_t maskLow, int x, int y) const;
 	uint8_t ComputeTileMaskBridge(int x, int y) const;
 
 	bool IsTileSame(int x, int y, LevelObjectTileType type) const;

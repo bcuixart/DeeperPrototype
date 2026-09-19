@@ -38,9 +38,5 @@ void LevelObjectTileSlope::SetSpriteIndex(uint8_t idx)
 {
 	_spriteIndex = idx;
 
-    _isSlopedTile = (slopedTiles.find(idx) != slopedTiles.end());
-    if (_isSlopedTile)
-    {
-        _spriteIndex = slopesSpriteMap.at(idx);
-    }
+    _isSlopedTile = (slopedSpriteIndexes.find(idx) != slopedSpriteIndexes.end());
 }

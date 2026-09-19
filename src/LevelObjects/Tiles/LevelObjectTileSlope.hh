@@ -18,7 +18,9 @@ public:
 protected:
 
 private:
-	bool _isSlopedTile{false};
+	// Initialized as true because autotile needs to assume it is a slope for the first pass,
+	// and then it will be set to false if the sprite index is not a slope.
+	bool _isSlopedTile{true};
 };
 
 #endif
