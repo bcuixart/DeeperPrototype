@@ -89,10 +89,6 @@ void LevelManager::LoadLevel(const std::string& levelName)
     for (int y = 0; y < _levelHeight; ++y)
         for (int x = 0; x < _levelWidth; ++x)
             if (_levelTiles[y][x]) UpdateTileAutotile(x, y);
-
-    for (int y = 0; y < _levelHeight; ++y)
-        for (int x = 0; x < _levelWidth; ++x)
-            if (_levelTiles[y][x]) UpdateTileAutotile(x, y);
 }
 
 int LevelManager::GetLevelWidth() const
@@ -156,9 +152,7 @@ void LevelManager::UpdateTileAutotile(int x, int y)
         case LevelObjectTileType::Slope:
         {
             uint16_t normalized = NormalizeFullMask(ComputeFullMask(x, y));
-            uint16_t variationKey = ComputeSlopeVariationMask(normalized & 0xFF, x, y);
 
-            auto itV = slopeVariationAutotileMap.find(variationKey);
             auto itS = slopeAutotileMap.find(normalized);
 
             if (itS != slopeAutotileMap.end()) _levelTiles[y][x]->SetSpriteIndex(itS->second);
@@ -168,7 +162,13 @@ void LevelManager::UpdateTileAutotile(int x, int y)
                 _levelTiles[y][x]->SetSpriteIndex(itG != groundAutotileMap.end() ? itG->second : 113);
             }
 
-            //if (itV != slopeVariationAutotileMap.end()) _levelTiles[y][x]->SetSpriteIndex(itV->second); 
+            uint16_t variationKey = ComputeSlopeVariationMask(normalized & 0xFF, x, y);
+
+            auto itV = slopeVariationAutotileMap.find(variationKey);
+            if (itV != slopeVariationAutotileMap.end()) {
+                std::cout << "[LevelManager] Slope variation found at (" << x << ", " << y << ") with key " << std::hex << variationKey << std::dec << " and value " << (int)itV->second << "\n";
+                _levelTiles[y][x]->SetSpriteIndex(itV->second); 
+            }
 
             break;
         }
@@ -201,19 +201,42 @@ void LevelManager::UpdateAutotileNeighbors(int x, int y)
     }
 }
 
-uint16_t LevelManager::ComputeFullMask(int x, int y) const
+uint8_t LevelManager::ComputeRawLowMask(int x, int y) const
 {
     LevelObjectTileType type = _levelTiles[y][x]->GetTileType();
 
-    uint8_t low = 0, high = 0;
-    if (IsTileSame(x - 1, y - 1, type)) { low |= 1; if (IsTileSlope(x-1,y-1)) high |= 1; }      // NW
-    if (IsTileSame(x, y - 1, type)) { low |= 2; if (IsTileSlope(x,y-1)) high |= 2; }            // N
-    if (IsTileSame(x + 1, y - 1, type)) { low |= 4; if (IsTileSlope(x+1,y-1)) high |= 4; }      // NE
-    if (IsTileSame(x - 1, y, type)) { low |= 8; if (IsTileSlope(x-1,y)) high |= 8; }            // W
-    if (IsTileSame(x + 1, y, type)) { low |= 16; if (IsTileSlope(x+1,y)) high |= 16; }          // E
-    if (IsTileSame(x - 1, y + 1, type)) { low |= 32; if (IsTileSlope(x-1,y+1)) high |= 32; }    // SW
-    if (IsTileSame(x, y + 1, type)) { low |= 64; if (IsTileSlope(x,y+1)) high |= 64; }          // S
-    if (IsTileSame(x + 1, y + 1, type)) { low |= 128; if (IsTileSlope(x+1,y+1)) high |= 128; }  // SE
+    uint8_t low = 0;
+    if (IsTileSame(x - 1, y - 1, type)) low |= 1;       // NW
+    if (IsTileSame(x, y - 1, type)) low |= 2;           // N
+    if (IsTileSame(x + 1, y - 1, type)) low |= 4;       // NE
+    if (IsTileSame(x - 1, y, type)) low |= 8;           // W
+    if (IsTileSame(x + 1, y, type)) low |= 16;          // E
+    if (IsTileSame(x - 1, y + 1, type)) low |= 32;      // SW
+    if (IsTileSame(x, y + 1, type)) low |= 64;          // S
+    if (IsTileSame(x + 1, y + 1, type)) low |= 128;     // SE
+
+    return low;
+}
+
+uint8_t LevelManager::ComputeRawHighMask(int x, int y) const
+{
+    uint8_t high = 0;
+    if (IsTileSlope(x-1,y-1)) high |= 1;       // NW
+    if (IsTileSlope(x,y-1)) high |= 2;         // N
+    if (IsTileSlope(x+1,y-1)) high |= 4;       // NE
+    if (IsTileSlope(x-1,y)) high |= 8;         // W
+    if (IsTileSlope(x+1,y)) high |= 16;        // E
+    if (IsTileSlope(x-1,y+1)) high |= 32;      // SW
+    if (IsTileSlope(x,y+1)) high |= 64;        // S
+    if (IsTileSlope(x+1,y+1)) high |= 128;     // SE
+
+    return high;
+}
+
+uint16_t LevelManager::ComputeFullMask(int x, int y) const
+{
+    uint8_t low  = ComputeRawLowMask(x, y);
+    uint8_t high = ComputeRawHighMask(x, y);
 
     return (uint16_t)(low | (high << 8));
 }
@@ -289,11 +312,9 @@ uint8_t LevelManager::CollapseHighByte(uint8_t low, uint8_t high) const
     return high;
 }
 
-uint16_t LevelManager::ComputeSlopeVariationMask(uint8_t maskLow, int x, int y) const
-{
-    if (slopePossibleVariationsMasks.find(maskLow) == slopePossibleVariationsMasks.end())
-        return 0xFFFF; // Definitely invalid
 
+
+/*
     uint8_t var = 0;
     if (IsTileSame(x + 1, y + 1, LevelObjectTileType::Ground)) var |= 1;  // SE
     if (IsTileSame(x - 1, y + 1, LevelObjectTileType::Ground)) var |= 2;  // SW
@@ -301,6 +322,46 @@ uint16_t LevelManager::ComputeSlopeVariationMask(uint8_t maskLow, int x, int y) 
     if (IsTileSlope(x + 1, y)) var |= 8;   // E is slope
     if (IsTileSlope(x - 1, y)) var |= 16;  // W is slope
     if (IsTileSlope(x, y - 1)) var |= 32;  // N is slope
+
+    return ((uint16_t)maskLow << 8) | var;
+*/
+
+uint16_t LevelManager::ComputeSlopeVariationMask(uint8_t maskLow, int x, int y) const
+{
+    uint8_t var = 0;
+
+    switch (maskLow)
+    {
+        // S+E+SE — la cantonada desconeguda és la SW (la W no forma part del mask)
+        case 208:
+            if (!IsTileSame(x - 1, y + 1, LevelObjectTileType::Ground)) var |= 1; // SW buida
+            break;
+
+        // S+W+SW — la cantonada desconeguda és la SE (la E no forma part del mask)
+        case 104:
+            if (!IsTileSame(x + 1, y + 1, LevelObjectTileType::Ground)) var |= 1; // SE buida
+            break;
+
+        // S+E — mateixa cantonada lliure que el 208 (SW), més si S o E són ells mateixos un slope
+        case 80:
+            if (IsTileSlope(x, y + 1) || IsTileSlope(x + 1, y)) var |= 1; // S o E és slope
+            if (!IsTileSame(x - 1, y + 1, LevelObjectTileType::Ground)) var |= 2; // SW buida
+            break;
+
+        // S+W — mateixa cantonada lliure que el 104 (SE), més si S o W són ells mateixos un slope
+        case 72:
+            if (IsTileSlope(x, y + 1) || IsTileSlope(x - 1, y)) var |= 1; // S o W és slope
+            if (!IsTileSame(x + 1, y + 1, LevelObjectTileType::Ground)) var |= 2; // SE buida
+            break;
+
+        case 18:
+        case 10:
+            if (IsTileSlope(x, y - 1)) var |= 1; // N és slope
+            break;
+
+        default:
+            return 0xFFFF; // no és cap de les 6 formes ESPECIALS
+    }
 
     return ((uint16_t)maskLow << 8) | var;
 }
@@ -356,10 +417,12 @@ bool LevelManager::IsTileSlope(int x, int y) const
 {
     if (x < 0 || x >= _levelWidth || y < 0 || y >= _levelHeight) return false;
     if (!_levelTiles[y][x]) return false;
-
     if (_levelTiles[y][x]->GetTileType() != LevelObjectTileType::Slope) return false;
 
+    uint8_t low = ComputeRawLowMask(x, y);
+    return low != 8 && low != 16;
+
     // The two slope sprites that are not considered slopes for autotiling purposes
-    uint8_t sprite = _levelTiles[y][x]->GetSpriteIndex();
-    return sprite != 47 && sprite != 48;
+    //uint8_t sprite = _levelTiles[y][x]->GetSpriteIndex();
+    //return sprite != 47 && sprite != 48;
 }

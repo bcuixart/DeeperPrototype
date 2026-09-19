@@ -31,7 +31,7 @@ void LevelObjectTileSlope::Render(const float deltaTime) const
 
 LevelObjectTileType LevelObjectTileSlope::GetTileType() const
 {
-	return (_isSlopedTile ? LevelObjectTileType::Slope : LevelObjectTileType::Ground);
+	return LevelObjectTileType::Slope;
 }
 
 void LevelObjectTileSlope::SetSpriteIndex(uint8_t idx)

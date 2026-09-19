@@ -42,6 +42,8 @@ private:
 	void UpdateTileAutotile(int x, int y);
 	void UpdateAutotileNeighbors(int x, int y);
 
+	uint8_t ComputeRawLowMask(int x, int y) const;
+	uint8_t ComputeRawHighMask(int x, int y) const;
 	uint16_t ComputeFullMask(int x, int y) const;
 	uint16_t NormalizeFullMask(uint16_t mask) const;
 	uint8_t CollapseHighByte(uint8_t low, uint8_t high) const;

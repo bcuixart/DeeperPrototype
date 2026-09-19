@@ -154,35 +154,21 @@ const std::unordered_set<uint8_t> slopePossibleVariationsMasks =
 
 const std::unordered_map<uint16_t, uint8_t> slopeVariationAutotileMap =
 {
-    // 208 (0xD0): SW buit
-    { (0xD0 << 8) | 2, 112 },
+    { (208 << 8) | 1, 102 },
 
-    // 104 (0x68): SE buit
-    { (0x68 << 8) | 1, 112 },
+    { (104 << 8) | 1, 103 },
 
-    // 18 (0x12): N és slope
-    { (0x12 << 8) | 32, 112 },
+    { (80 << 8) | 1, 105 },
+    { (80 << 8) | 2, 104 },
+    { (80 << 8) | 3, 106 },
 
-    // 10 (0x0A): N és slope
-    { (0x0A << 8) | 32, 112 },
+    { (18 << 8) | 1, 107 },
 
-    // 80 (0x50): slope a S o E (dreta) | SW buit — verifica quin sprite va amb quin
-    { (0x50 << 8) | 4,  112 }, // S-slope
-    { (0x50 << 8) | 8,  112 }, // E-slope (dreta)
-    { (0x50 << 8) | 12, 112 }, // S+E slope
-    { (0x50 << 8) | 2,  112 }, // SW buit
-    { (0x50 << 8) | 6,  112 }, // SW buit + S-slope
-    { (0x50 << 8) | 10, 112 }, // SW buit + E-slope
-    { (0x50 << 8) | 14, 112 }, // SW buit + S+E
+    { (10 << 8) | 1, 108 },
 
-    // 72 (0x48): slope a S o W (esquerra) | SE buit
-    { (0x48 << 8) | 4,  112 }, // S-slope
-    { (0x48 << 8) | 16, 112 }, // W-slope (esquerra)
-    { (0x48 << 8) | 20, 112 }, // S+W slope
-    { (0x48 << 8) | 1,  112 }, // SE buit
-    { (0x48 << 8) | 5,  112 }, // SE buit + S-slope
-    { (0x48 << 8) | 17, 112 }, // SE buit + W-slope
-    { (0x48 << 8) | 21, 112 }, // SE buit + S+W
+    { (72 << 8) | 1, 110 },
+    { (72 << 8) | 2, 109 },
+    { (72 << 8) | 3, 111 },
 };
 
 const std::unordered_map<uint8_t, uint8_t> bridgeAutotileMap = 
