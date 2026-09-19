@@ -166,7 +166,6 @@ void LevelManager::UpdateTileAutotile(int x, int y)
 
             auto itV = slopeVariationAutotileMap.find(variationKey);
             if (itV != slopeVariationAutotileMap.end()) {
-                std::cout << "[LevelManager] Slope variation found at (" << x << ", " << y << ") with key " << std::hex << variationKey << std::dec << " and value " << (int)itV->second << "\n";
                 _levelTiles[y][x]->SetSpriteIndex(itV->second); 
             }
 
