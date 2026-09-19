@@ -20,8 +20,8 @@ TILES "NORMALS": /[Index Sprite començant per 1] - [Index Sprite començant per
 /37 - 36 - 74 (3, slope a sobre | sota: 0x024A, 0x404A, 0x424A) 88 - 87, 89 - 88, 90 - 89
 /38 - 37 - 90 (0, ja no pot tenir variants)
 /39 - 38 - 88 (0, ja no pot tenir variants)
-///40 - 39 - 94 (3, slope a sobre | dreta; no hi pot haver a sota: 0x025E, 0x105E, 0x125E) 91 - 90, 92 - 91, 93 - 92
-///41 - 40 - 91 (3, slope a sobre | esquerra; no hi pot haver a sota: 0x025B, 0x085E, 0x0A5B) 94 - 93, 95 - 94, 96 - 95
+/40 - 39 - 94 (3, slope a sobre | dreta; no hi pot haver a sota: 0x025E, 0x105E, 0x125E) 91 - 90, 92 - 91, 93 - 92
+/41 - 40 - 91 (3, slope a sobre | esquerra; no hi pot haver a sota: 0x025B, 0x085E, 0x0A5B) 94 - 93, 95 - 94, 96 - 95
 /42 - 41 - 27 (1, slope a sobre: 0x021B) 97 - 96
 /43 - 42 - 30 (1, slope a sobre: 0x021E) 98 - 97
 /44 - 43 - 251 (1, slope a sobre: 0x02FB) 99 - 98

@@ -100,16 +100,6 @@ const std::unordered_map<uint16_t, uint8_t> groundAutotileMap =
     { 0x085F, 73 }, // W slope
     { 0x185F, 75 }, // E + W slope
 
-    // mask 90:  left | right
-    { 0x105A, 91 }, // E slope
-    { 0x085A, 90 }, // W slope
-    { 0x185A, 92 }, // E + W slope
-
-    // mask 88:  left | right
-    { 0x1058, 94 }, // E slope
-    { 0x0858, 93 }, // W slope
-    { 0x1858, 95 }, // E + W slope
-
     // Tiles with 7 variations
 
     // mask 94:
@@ -140,7 +130,7 @@ const std::unordered_map<uint16_t, uint8_t> slopeAutotileMap =
     { 0x020A, 55 }, // Mask 10: slope above
 };
 
-const std::unordered_set<uint8_t> slopedSpriteIndexes=
+const std::unordered_set<uint8_t> slopedSpriteIndexes =
 {
     47, 48, 
     49, 50, 51, 52, 53, 54, 55, 56, 

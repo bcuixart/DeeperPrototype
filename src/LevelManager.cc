@@ -241,19 +241,23 @@ uint16_t LevelManager::ComputeFullMask(int x, int y) const
     return (uint16_t)(low | (high << 8));
 }
 
+uint8_t LevelManager::NormalizeLowMask(uint8_t low) const
+{
+    if (!(low & 2) || !(low & 8)) low &= ~1;     // NW needs N & W
+    if (!(low & 2) || !(low & 16)) low &= ~4;    // NE needs N & E
+    if (!(low & 64) || !(low & 8)) low &= ~32;   // SW needs S & W
+    if (!(low & 64) || !(low & 16)) low &= ~128; // SE needs S & E
+    return low;
+}
+
 uint16_t LevelManager::NormalizeFullMask(uint16_t mask) const
 {
-    uint8_t low  = mask & 0xFF;
+    uint8_t low  = NormalizeLowMask(mask & 0xFF);
     uint8_t high = (mask >> 8) & 0xFF;
 
-    if (!(low & 2) || !(low & 8)) low &= ~1;     // NW  needs N & W
-    if (!(low & 2) || !(low & 16)) low &= ~4;    // NE  needs N & E
-    if (!(low & 64) || !(low & 8)) low &= ~32;   // SW  needs S & W
-    if (!(low & 64) || !(low & 16)) low &= ~128; // SE  needs S & E
-
-    high &= 0b01011010;                           // Eliminate corners that are not needed for slopes
+    high &= 0b01011010;
     for (int b = 0; b < 8; ++b)
-        if (!(low & (1 << b))) high &= ~(1 << b); // Eliminate slope from a corner if the corresponding cardinal is not present
+        if (!(low & (1 << b))) high &= ~(1 << b);
 
     high = CollapseHighByte(low, high);
 
@@ -311,20 +315,6 @@ uint8_t LevelManager::CollapseHighByte(uint8_t low, uint8_t high) const
     }
     return high;
 }
-
-
-
-/*
-    uint8_t var = 0;
-    if (IsTileSame(x + 1, y + 1, LevelObjectTileType::Ground)) var |= 1;  // SE
-    if (IsTileSame(x - 1, y + 1, LevelObjectTileType::Ground)) var |= 2;  // SW
-    if (IsTileSlope(x, y + 1)) var |= 4;   // S is slope
-    if (IsTileSlope(x + 1, y)) var |= 8;   // E is slope
-    if (IsTileSlope(x - 1, y)) var |= 16;  // W is slope
-    if (IsTileSlope(x, y - 1)) var |= 32;  // N is slope
-
-    return ((uint16_t)maskLow << 8) | var;
-*/
 
 uint16_t LevelManager::ComputeSlopeVariationMask(uint8_t maskLow, int x, int y) const
 {
@@ -419,10 +409,8 @@ bool LevelManager::IsTileSlope(int x, int y) const
     if (!_levelTiles[y][x]) return false;
     if (_levelTiles[y][x]->GetTileType() != LevelObjectTileType::Slope) return false;
 
-    uint8_t low = ComputeRawLowMask(x, y);
-    return low != 8 && low != 16;
+    uint8_t low = NormalizeLowMask(ComputeRawLowMask(x, y));
 
-    // The two slope sprites that are not considered slopes for autotiling purposes
-    //uint8_t sprite = _levelTiles[y][x]->GetSpriteIndex();
-    //return sprite != 47 && sprite != 48;
+    if (low == 8 || low == 16) return false;
+    return slopeAutotileMap.find(low) != slopeAutotileMap.end();
 }
