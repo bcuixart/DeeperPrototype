@@ -41,7 +41,7 @@ void LevelManager::RenderBounds(const float deltaTime) const
         {
             if (_levelTiles[i][j])
             {
-                _levelTiles[i][j]->RenderBounds(deltaTime, BLACK);
+                _levelTiles[i][j]->RenderBounds(deltaTime, RED);
 
                 //DrawTextEx(GetFontDefault(), TextFormat("%d", _levelTiles[i][j]->GetSpriteIndex()), { (float)j, (float)i }, 0.5f, 0.025f, WHITE);
                 DrawTextEx(GetFontDefault(), TextFormat("%x", NormalizeFullMask(ComputeFullMask(j, i))), { (float)j, (float)i }, 0.5f, 0.025f, WHITE);

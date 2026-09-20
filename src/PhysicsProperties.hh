@@ -3,6 +3,7 @@
 
 enum class HitboxType {
 	Solid,				// Fully solid, does not move (Tiles)
+	SolidSloped,        // Fully solid, does not move (Sloped tiles)
 	SemisolidTotal,     // Only solid from top for all objects, does not move (Semisolid tiles)
 	SemisolidPartial,   // Only solid from top for entities, also solid from sides for dynamic objects, does not move (Most decorative objects)
 	Entity,             // Only solid from top, can move and be affected by forces, but not solid (Dogs, cats, etc.)

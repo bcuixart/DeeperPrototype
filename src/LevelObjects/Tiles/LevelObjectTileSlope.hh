@@ -10,6 +10,9 @@ public:
 
 	void Update(const float deltaTime) override;
 	void Render(const float deltaTime) const override;
+	void RenderBounds(const float deltaTime, const Color& color) const override;
+
+	HitboxType GetHitboxType() const override { return HitboxType::SolidSloped; }
 
 	LevelObjectTileType GetTileType() const override;
 
@@ -21,6 +24,8 @@ private:
 	// Initialized as true because autotile needs to assume it is a slope,
 	// and then it will be set to false if the sprite index is not a slope.
 	bool _isSlopedTile{true};
+
+	SlopeOrientation _slopeOrientation{SlopeOrientation::None};
 };
 
 #endif

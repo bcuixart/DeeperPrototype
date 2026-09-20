@@ -5,6 +5,8 @@
 #include <unordered_set>
 #include <unordered_map>
 
+#include "LevelObjects/Tiles/LevelObjectTile.hh"
+
 const std::unordered_map<uint16_t, uint8_t> groundAutotileMap = 
 {
     // ---=== BASE TILES === ---
@@ -135,6 +137,30 @@ const std::unordered_set<uint8_t> slopedSpriteIndexes =
     47, 48, 
     49, 50, 51, 52, 53, 54, 55, 56, 
     102, 103, 104, 105, 106, 107, 108, 109, 110, 111
+};
+
+const std::unordered_map<uint8_t, SlopeOrientation> slopeSpriteIndexToOrientation =
+{
+    { 47, SlopeOrientation::RisingRight },
+    { 48, SlopeOrientation::RisingLeft },
+    { 49, SlopeOrientation::RisingRight },
+    { 50, SlopeOrientation::FallingRight },
+    { 51, SlopeOrientation::FallingLeft },
+    { 52, SlopeOrientation::RisingLeft },
+    { 53, SlopeOrientation::RisingRight },
+    { 54, SlopeOrientation::FallingRight },
+    { 55, SlopeOrientation::FallingLeft },
+    { 56, SlopeOrientation::RisingLeft },
+    { 102, SlopeOrientation::RisingRight },
+    { 103, SlopeOrientation::RisingLeft },
+    { 104, SlopeOrientation::RisingRight },
+    { 105, SlopeOrientation::RisingRight },
+    { 106, SlopeOrientation::RisingRight },
+    { 107, SlopeOrientation::FallingRight },
+    { 108, SlopeOrientation::FallingLeft },
+    { 109, SlopeOrientation::RisingLeft },
+    { 110, SlopeOrientation::RisingLeft },
+    { 111, SlopeOrientation::RisingLeft },
 };
 
 const std::unordered_set<uint8_t> slopePossibleVariationsMasks =

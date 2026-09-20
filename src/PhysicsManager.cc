@@ -144,6 +144,7 @@ void PhysicsManager::RegisterObject(LevelObject* object)
 	switch (hitboxType) 
 	{
 		case HitboxType::Solid:				_solidObjects.push_back(object); break;
+		case HitboxType::SolidSloped:		_solidSlopedObjects.push_back(object); break;
 		case HitboxType::SemisolidTotal:	_semisolidTotalObjects.push_back(object); break;
 		case HitboxType::SemisolidPartial:	_semisolidPartialObjects.push_back(object); break;
 		case HitboxType::Entity:			_entityObjects.push_back(object); break;
@@ -162,6 +163,7 @@ void PhysicsManager::UnregisterObject(LevelObject* object)
 	switch (hitboxType) 
 	{
 		case HitboxType::Solid:				RemoveObjectFromList(_solidObjects, object); break;
+		case HitboxType::SolidSloped:		RemoveObjectFromList(_solidSlopedObjects, object); break;
 		case HitboxType::SemisolidTotal:	RemoveObjectFromList(_semisolidTotalObjects, object); break;
 		case HitboxType::SemisolidPartial:	RemoveObjectFromList(_semisolidPartialObjects, object); break;
 		case HitboxType::Entity:			RemoveObjectFromList(_entityObjects, object); break;

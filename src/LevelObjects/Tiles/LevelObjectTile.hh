@@ -6,6 +6,7 @@
 #include "LevelObject.hh"
 
 enum class LevelObjectTileType { None, Ground, Slope, Sand, Dirt, Bridge };
+enum class SlopeOrientation { None, RisingRight, RisingLeft, FallingRight, FallingLeft };
 
 class LevelObjectTile : public LevelObject {
 public:
