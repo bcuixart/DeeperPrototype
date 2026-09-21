@@ -53,7 +53,7 @@ void PhysicsManager::MoveAndResolveCollisionsX(const std::vector<LevelObject*>& 
 		Rectangle bounds = o->GetBounds();
 		for (LevelObject* solid : _solidObjects) 
 		{
-			if (CheckAndResolveCollisionX(solid, o)) bounds = o->GetBounds();
+			if (CheckAndResolveCollisionXGround(solid, o, blockedByRealSlopes)) bounds = o->GetBounds();
 		}
 
 		for (LevelObject* solidMaybeSloped : _solidMaybeSlopedObjects) 
@@ -76,6 +76,18 @@ bool PhysicsManager::CheckAndResolveCollisionX(LevelObject* stillObject, LevelOb
 
 	movingObject->SetVelocityX(0.0f);
 	return true;
+}
+
+bool PhysicsManager::CheckAndResolveCollisionXGround(LevelObject* stillObject, LevelObject* movingObject, bool blockedByRealSlopes)
+{
+	// Un tile de Ground que toca una rampa real fa de continuació plana d'aquesta
+	// rampa (igual que un Slope fals), encara que ningú l'hagi "pensat" així en
+	// dissenyar el nivell. Per tant, per als entities, no bloqueja horitzontalment.
+	// Els dynamics sí que hi xoquen sempre, com fins ara.
+	if (!blockedByRealSlopes && IsGroundActingAsRampBacking(stillObject))
+		return false;
+
+	return CheckAndResolveCollisionX(stillObject, movingObject);
 }
 
 bool PhysicsManager::CheckAndResolveCollisionXSlope(LevelObject* slopeObject, LevelObject* movingObject, bool blockedByRealSlopes)
@@ -148,7 +160,7 @@ void PhysicsManager::MoveAndResolveCollisionsY(const std::vector<LevelObject*>& 
 		Rectangle bounds = o->GetBounds();
 		for (LevelObject* solid : _solidObjects) 
 		{
-			if (CheckAndResolveCollisionY(solid, o)) bounds = o->GetBounds();
+			if (CheckAndResolveCollisionYGround(solid, o)) bounds = o->GetBounds();
 		}
 
 		for (LevelObject* solidMaybeSloped : _solidMaybeSlopedObjects) 
@@ -183,6 +195,18 @@ bool PhysicsManager::CheckAndResolveCollisionY(LevelObject* stillObject, LevelOb
 
 	movingObject->SetVelocityY(0.0f);
 	return true;
+}
+
+bool PhysicsManager::CheckAndResolveCollisionYGround(LevelObject* stillObject, LevelObject* movingObject)
+{
+	// Igual que en X: un Ground que toca una rampa real és, de fet, la seva
+	// continuació plana. Es resol amb el mateix mètode que un Slope (mostreig
+	// continu de top/bottom), no amb el bloqueig ple de tile, perquè la
+	// transició sigui tan suau com la de la pròpia rampa.
+	if (IsGroundActingAsRampBacking(stillObject))
+		return CheckAndResolveCollisionYSlope(stillObject, movingObject);
+
+	return CheckAndResolveCollisionY(stillObject, movingObject);
 }
 
 bool PhysicsManager::CheckAndResolveCollisionYOnlyFromTop(LevelObject* stillObject, LevelObject* movingObject)
@@ -246,6 +270,36 @@ bool PhysicsManager::CheckAndResolveCollisionYSlope(LevelObject* slopeObject, Le
 
     movingObject->SetVelocityY(0.0f);
     return true;
+}
+
+bool PhysicsManager::IsGroundActingAsRampBacking(LevelObject* groundTile) const
+{
+	constexpr float kAdjacencyEpsilon = 1.0f;
+
+	Rectangle groundBounds = groundTile->GetBounds();
+
+	for (LevelObject* slope : _solidMaybeSlopedObjects)
+	{
+		if (!slope->HasActualSlopedHitbox()) continue;
+
+		Rectangle slopeBounds = slope->GetBounds();
+
+		bool touchesHorizontally =
+			(fabsf(groundBounds.x - (slopeBounds.x + slopeBounds.width)) < kAdjacencyEpsilon ||
+			 fabsf((groundBounds.x + groundBounds.width) - slopeBounds.x) < kAdjacencyEpsilon) &&
+			groundBounds.y < slopeBounds.y + slopeBounds.height &&
+			groundBounds.y + groundBounds.height > slopeBounds.y;
+
+		bool touchesVertically =
+			(fabsf(groundBounds.y - (slopeBounds.y + slopeBounds.height)) < kAdjacencyEpsilon ||
+			 fabsf((groundBounds.y + groundBounds.height) - slopeBounds.y) < kAdjacencyEpsilon) &&
+			groundBounds.x < slopeBounds.x + slopeBounds.width &&
+			groundBounds.x + groundBounds.width > slopeBounds.x;
+
+		if (touchesHorizontally || touchesVertically) return true;
+	}
+
+	return false;
 }
 
 void PhysicsManager::RegisterObject(LevelObject* object)

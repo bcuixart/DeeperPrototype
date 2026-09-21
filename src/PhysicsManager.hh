@@ -24,10 +24,14 @@ private:
     void MoveAndResolveCollisionsX(const std::vector<LevelObject*>& objects, const float deltaTime, bool blockedByRealSlopes);
     void MoveAndResolveCollisionsY(const std::vector<LevelObject*>& objects, const float deltaTime);
     bool CheckAndResolveCollisionX(LevelObject* stillObject, LevelObject* movingObject);
+    bool CheckAndResolveCollisionXGround(LevelObject* stillObject, LevelObject* movingObject, bool blockedByRealSlopes);
     bool CheckAndResolveCollisionXSlope(LevelObject* slopeObject, LevelObject* movingObject, bool blockedByRealSlopes);
     bool CheckAndResolveCollisionY(LevelObject* stillObject, LevelObject* movingObject);
+    bool CheckAndResolveCollisionYGround(LevelObject* stillObject, LevelObject* movingObject);
     bool CheckAndResolveCollisionYOnlyFromTop(LevelObject* stillObject, LevelObject* movingObject);
     bool CheckAndResolveCollisionYSlope(LevelObject* slopeObject, LevelObject* movingObject);
+
+    bool IsGroundActingAsRampBacking(LevelObject* groundTile) const;
 
     void RemoveObjectFromList(std::vector<LevelObject*>& list, LevelObject* obj);
 
