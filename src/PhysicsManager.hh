@@ -21,11 +21,13 @@ protected:
     
 private:
     void ApplyGravity(const std::vector<LevelObject*>& objects, const float deltaTime);
-    void MoveAndResolveCollisionsX(const std::vector<LevelObject*>& objects, const float deltaTime);
+    void MoveAndResolveCollisionsX(const std::vector<LevelObject*>& objects, const float deltaTime, bool blockedByRealSlopes);
     void MoveAndResolveCollisionsY(const std::vector<LevelObject*>& objects, const float deltaTime);
     bool CheckAndResolveCollisionX(LevelObject* stillObject, LevelObject* movingObject);
+    bool CheckAndResolveCollisionXSlope(LevelObject* slopeObject, LevelObject* movingObject, bool blockedByRealSlopes);
     bool CheckAndResolveCollisionY(LevelObject* stillObject, LevelObject* movingObject);
     bool CheckAndResolveCollisionYOnlyFromTop(LevelObject* stillObject, LevelObject* movingObject);
+    bool CheckAndResolveCollisionYSlope(LevelObject* slopeObject, LevelObject* movingObject);
 
     void RemoveObjectFromList(std::vector<LevelObject*>& list, LevelObject* obj);
 

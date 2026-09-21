@@ -25,8 +25,8 @@ void PhysicsManager::Update(const float deltaTime, const LevelManager& levelMana
 
 
 	// Move objects on X and resolve collisions
-	MoveAndResolveCollisionsX(_entityObjects, deltaTime);
-	MoveAndResolveCollisionsX(_dynamicObjects, deltaTime);
+	MoveAndResolveCollisionsX(_entityObjects, deltaTime, false);
+	MoveAndResolveCollisionsX(_dynamicObjects, deltaTime, true);
 
 	// Move objects on Y and resolve collisions
 	MoveAndResolveCollisionsY(_entityObjects, deltaTime);
@@ -38,7 +38,7 @@ void PhysicsManager::ApplyGravity(const std::vector<LevelObject*>& objects, cons
 	for (LevelObject* o : objects) o->AddVelocityY(kGravity * deltaTime);
 }
 
-void PhysicsManager::MoveAndResolveCollisionsX(const std::vector<LevelObject*>& objects, const float deltaTime)
+void PhysicsManager::MoveAndResolveCollisionsX(const std::vector<LevelObject*>& objects, const float deltaTime, bool blockedByRealSlopes)
 {
 	for (LevelObject* o : objects)
 	{
@@ -46,6 +46,7 @@ void PhysicsManager::MoveAndResolveCollisionsX(const std::vector<LevelObject*>& 
 		float vel = o->GetVelocityX();
 		if (vel == 0.0f) continue;
 
+		// Apply horizontal movement
 		o->ApplyVelocityX(deltaTime);
 
 		// Check for collisions
@@ -53,6 +54,11 @@ void PhysicsManager::MoveAndResolveCollisionsX(const std::vector<LevelObject*>& 
 		for (LevelObject* solid : _solidObjects) 
 		{
 			if (CheckAndResolveCollisionX(solid, o)) bounds = o->GetBounds();
+		}
+
+		for (LevelObject* solidMaybeSloped : _solidMaybeSlopedObjects) 
+		{
+			if (CheckAndResolveCollisionXSlope(solidMaybeSloped, o, blockedByRealSlopes)) bounds = o->GetBounds();
 		}
 	}
 }
@@ -72,6 +78,62 @@ bool PhysicsManager::CheckAndResolveCollisionX(LevelObject* stillObject, LevelOb
 	return true;
 }
 
+bool PhysicsManager::CheckAndResolveCollisionXSlope(LevelObject* slopeObject, LevelObject* movingObject, bool blockedByRealSlopes)
+{
+    if (!blockedByRealSlopes)
+        return false;
+
+    if (!slopeObject->HasActualSlopedHitbox())
+        return CheckAndResolveCollisionX(slopeObject, movingObject);
+
+    Rectangle bounds = movingObject->GetBounds();
+    Rectangle slopeBounds = slopeObject->GetBounds();
+
+    if (bounds.y + bounds.height < slopeBounds.y || bounds.y > slopeBounds.y + slopeBounds.height) return false;
+    if (bounds.x + bounds.width < slopeBounds.x || bounds.x > slopeBounds.x + slopeBounds.width) return false;
+
+    float topY    = Clamp(bounds.y,                slopeBounds.y, slopeBounds.y + slopeBounds.height);
+    float bottomY = Clamp(bounds.y + bounds.height, slopeBounds.y, slopeBounds.y + slopeBounds.height);
+
+    Vector2 sampleTop    = slopeObject->SampleLeftRightAtY(topY);    // x = left, y = right
+    Vector2 sampleBottom = slopeObject->SampleLeftRightAtY(bottomY);
+
+    const float rightEdge = bounds.x + bounds.width;
+    const float leftEdge  = bounds.x;
+
+    // La vora dreta ha entrat a la franja sòlida -> t'hi has ficat per l'esquerra.
+    const bool rightInTop    = rightEdge >= sampleTop.x    && rightEdge <= sampleTop.y;
+    const bool rightInBottom = rightEdge >= sampleBottom.x && rightEdge <= sampleBottom.y;
+
+    if (rightInTop || rightInBottom)
+    {
+        float leftBoundary = 0.0f;
+        if (rightInTop)    leftBoundary = sampleTop.x;
+        if (rightInBottom) leftBoundary = rightInTop ? fminf(leftBoundary, sampleBottom.x) : sampleBottom.x;
+
+        movingObject->SetBoundsX(leftBoundary - bounds.width);
+        movingObject->SetVelocityX(0.0f);
+        return true;
+    }
+
+    // La vora esquerra ha entrat a la franja sòlida -> t'hi has ficat per la dreta.
+    const bool leftInTop    = leftEdge >= sampleTop.x    && leftEdge <= sampleTop.y;
+    const bool leftInBottom = leftEdge >= sampleBottom.x && leftEdge <= sampleBottom.y;
+
+    if (leftInTop || leftInBottom)
+    {
+        float rightBoundary = 0.0f;
+        if (leftInTop)    rightBoundary = sampleTop.y;
+        if (leftInBottom) rightBoundary = leftInTop ? fmaxf(rightBoundary, sampleBottom.y) : sampleBottom.y;
+
+        movingObject->SetBoundsX(rightBoundary);
+        movingObject->SetVelocityX(0.0f);
+        return true;
+    }
+
+    return false;
+}
+
 void PhysicsManager::MoveAndResolveCollisionsY(const std::vector<LevelObject*>& objects, const float deltaTime)
 {
 	for (LevelObject* o : objects)
@@ -89,6 +151,11 @@ void PhysicsManager::MoveAndResolveCollisionsY(const std::vector<LevelObject*>& 
 			if (CheckAndResolveCollisionY(solid, o)) bounds = o->GetBounds();
 		}
 
+		for (LevelObject* solidMaybeSloped : _solidMaybeSlopedObjects) 
+		{
+			if (CheckAndResolveCollisionYSlope(solidMaybeSloped, o)) bounds = o->GetBounds();
+		}
+
 		for (LevelObject* semisolidTotal : _semisolidTotalObjects) 
 		{
 			if (CheckAndResolveCollisionYOnlyFromTop(semisolidTotal, o)) bounds = o->GetBounds();
@@ -103,6 +170,8 @@ void PhysicsManager::MoveAndResolveCollisionsY(const std::vector<LevelObject*>& 
 
 bool PhysicsManager::CheckAndResolveCollisionY(LevelObject* stillObject, LevelObject* movingObject)
 {
+	if (movingObject->GetVelocityY() == 0.0f) return false;
+
 	// Check collision
 	Rectangle bounds = movingObject->GetBounds();
 	Rectangle overlap = GetCollisionRec(bounds, stillObject->GetBounds());
@@ -119,7 +188,7 @@ bool PhysicsManager::CheckAndResolveCollisionY(LevelObject* stillObject, LevelOb
 bool PhysicsManager::CheckAndResolveCollisionYOnlyFromTop(LevelObject* stillObject, LevelObject* movingObject)
 {
 	// Check collision (Only from top)
-	if (movingObject->GetVelocityY() < 0.0f) return false;
+	if (movingObject->GetVelocityY() <= 0.0f) return false;
 
 	Rectangle bounds = movingObject->GetBounds();
 	Rectangle overlap = GetCollisionRec(bounds, stillObject->GetBounds());
@@ -134,6 +203,49 @@ bool PhysicsManager::CheckAndResolveCollisionYOnlyFromTop(LevelObject* stillObje
 	movingObject->SetVelocityY(0.0f);
 
 	return true;
+}
+
+bool PhysicsManager::CheckAndResolveCollisionYSlope(LevelObject* slopeObject, LevelObject* movingObject)
+{
+    Rectangle bounds = movingObject->GetBounds();
+    Rectangle slopeBounds = slopeObject->GetBounds();
+
+    float centerX = bounds.x + bounds.width * 0.5f;
+    if (centerX < slopeBounds.x || centerX > slopeBounds.x + slopeBounds.width) return false;
+    if (bounds.y + bounds.height < slopeBounds.y || bounds.y > slopeBounds.y + slopeBounds.height) return false;
+
+    Vector2 sample = slopeObject->SampleTopBottomAtX(centerX);  // x = top, y = bottom
+    const float top = sample.x;
+    const float bottom = sample.y;
+
+    const float feetY = bounds.y + bounds.height;
+    const float headY = bounds.y;
+
+    const bool feetInSlice = feetY >= top && feetY <= bottom;
+    const bool headInSlice = headY >= top && headY <= bottom;
+    const bool swallowed   = top >= headY && bottom <= feetY;
+
+    bool isFloor;
+    if (swallowed)
+    {
+        isFloor = (feetY - top) <= (bottom - headY);
+    }
+    else if (feetInSlice) isFloor = true;
+    else if (headInSlice) isFloor = false;
+    else return false;
+
+    if (isFloor)
+    {
+        movingObject->SetBoundsY(top - bounds.height);
+        movingObject->SetIsGrounded(true);
+    }
+    else
+    {
+        movingObject->SetBoundsY(bottom);
+    }
+
+    movingObject->SetVelocityY(0.0f);
+    return true;
 }
 
 void PhysicsManager::RegisterObject(LevelObject* object)

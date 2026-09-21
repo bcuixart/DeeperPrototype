@@ -17,6 +17,8 @@ public:
 
 	HitboxType GetHitboxType() const override { return HitboxType::SolidMaybeSloped; }
 
+	bool HasActualSlopedHitbox() const override { return _isSlopedTile; }
+
 	LevelObjectTileType GetTileType() const override;
 
 	virtual void SetSpriteIndex(uint8_t idx) override;

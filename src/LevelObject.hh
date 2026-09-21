@@ -42,6 +42,8 @@ public:
 
 	virtual HitboxType GetHitboxType() const = 0;
 
+	virtual bool HasActualSlopedHitbox() const { return false; }
+
 protected:
 	Rectangle _bounds{};
 	Vector2   _velocity{};
