@@ -24,8 +24,6 @@ public:
 	uint8_t GetSpriteIndex() const;
 
 protected:
-	Vector2 _position{};
-
 	int _groundTileType = 0;
 
 	uint8_t _spriteIndex = 0;

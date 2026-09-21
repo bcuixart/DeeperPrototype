@@ -4,7 +4,6 @@
 LevelObjectTile::LevelObjectTile(const Vector2& position)
 {
 	_bounds = { position.x, position.y, 1.0f, 1.0f };
-	_position = position;
 }
 
 LevelObjectTile::~LevelObjectTile()

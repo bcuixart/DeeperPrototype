@@ -30,7 +30,7 @@ private:
     void RemoveObjectFromList(std::vector<LevelObject*>& list, LevelObject* obj);
 
     std::vector<LevelObject*> _solidObjects;
-    std::vector<LevelObject*> _solidSlopedObjects;
+    std::vector<LevelObject*> _solidMaybeSlopedObjects;
     std::vector<LevelObject*> _semisolidTotalObjects;
     std::vector<LevelObject*> _semisolidPartialObjects;
     std::vector<LevelObject*> _entityObjects;

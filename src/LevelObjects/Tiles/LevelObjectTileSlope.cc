@@ -24,7 +24,7 @@ void LevelObjectTileSlope::Render(const float deltaTime) const
 
     const float tile_size = 16;
     Rectangle src = { col * tile_size, row * tile_size, tile_size, tile_size };
-    Rectangle dst = { _position.x, _position.y, 1.0f, 1.0f };
+    Rectangle dst = { _bounds.x, _bounds.y, 1.0f, 1.0f };
 
     DrawTexturePro(tex, src, dst, { 0.0f, 0.0f }, 0.0f, WHITE);
 }
@@ -34,20 +34,54 @@ void LevelObjectTileSlope::RenderBounds(const float deltaTime, const Color& colo
     switch(_slopeOrientation)
     {
         case SlopeOrientation::RisingRight:
-            DrawTriangleLines({ _position.x + 1.0f, _position.y }, { _position.x, _position.y + 1.0f }, { _position.x + 1.0f, _position.y + 1.0f }, color);
+            DrawTriangleLines({ _bounds.x + 1.0f, _bounds.y }, { _bounds.x, _bounds.y + 1.0f }, { _bounds.x + 1.0f, _bounds.y + 1.0f }, color);
             break;
         case SlopeOrientation::RisingLeft:
-            DrawTriangleLines({ _position.x, _position.y }, { _position.x, _position.y + 1.0f }, { _position.x + 1.0f, _position.y + 1.0f }, color);
+            DrawTriangleLines({ _bounds.x, _bounds.y }, { _bounds.x, _bounds.y + 1.0f }, { _bounds.x + 1.0f, _bounds.y + 1.0f }, color);
             break;
         case SlopeOrientation::FallingRight:
-            DrawTriangleLines({ _position.x + 1.0f, _position.y + 1.0f }, { _position.x, _position.y }, { _position.x + 1.0f, _position.y }, color);
+            DrawTriangleLines({ _bounds.x + 1.0f, _bounds.y + 1.0f }, { _bounds.x, _bounds.y }, { _bounds.x + 1.0f, _bounds.y }, color);
             break;
         case SlopeOrientation::FallingLeft:
-            DrawTriangleLines({ _position.x, _position.y + 1.0f }, { _position.x, _position.y }, { _position.x + 1.0f, _position.y }, color);
+            DrawTriangleLines({ _bounds.x, _bounds.y + 1.0f }, { _bounds.x, _bounds.y }, { _bounds.x + 1.0f, _bounds.y }, color);
             break;
         default:
             DrawRectangleLinesEx(_bounds, 0.025f, color);
             break;
+    }
+}
+
+Vector2 LevelObjectTileSlope::SampleTopBottomAtX(const float x) const
+{
+    switch (_slopeOrientation)
+    {
+        case SlopeOrientation::RisingRight:
+            return { _bounds.y + _bounds.height * (1.0f - (x - _bounds.x) / _bounds.width), _bounds.y + _bounds.height };
+        case SlopeOrientation::RisingLeft:
+            return { _bounds.y + _bounds.height * (x - _bounds.x) / _bounds.width, _bounds.y + _bounds.height };
+        case SlopeOrientation::FallingRight:
+            return { _bounds.y, _bounds.y + _bounds.height * (x - _bounds.x) / _bounds.width };
+        case SlopeOrientation::FallingLeft:
+            return { _bounds.y, _bounds.y + _bounds.height * (1.0f - (x - _bounds.x) / _bounds.width) };
+        default:
+            return { _bounds.y, _bounds.y + _bounds.height };
+    }
+}
+
+Vector2 LevelObjectTileSlope::SampleLeftRightAtY(const float y) const
+{
+    switch (_slopeOrientation)
+    {
+        case SlopeOrientation::RisingRight:
+            return { _bounds.x + _bounds.width * (1.0f - (y - _bounds.y) / _bounds.height), _bounds.x + _bounds.width };
+        case SlopeOrientation::RisingLeft:
+            return { _bounds.x, _bounds.x + _bounds.width * (y - _bounds.y) / _bounds.height };
+        case SlopeOrientation::FallingRight:
+            return { _bounds.x + _bounds.width * (y - _bounds.y) / _bounds.height, _bounds.x + _bounds.width };
+        case SlopeOrientation::FallingLeft:
+            return { _bounds.x, _bounds.x + _bounds.width * (1.0f - (y - _bounds.y) / _bounds.height) };
+        default:
+            return { _bounds.x, _bounds.x + _bounds.width };
     }
 }
 

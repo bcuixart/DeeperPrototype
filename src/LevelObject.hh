@@ -23,6 +23,8 @@ public:
 	Vector2 GetPosition() const { return { _bounds.x, _bounds.y }; }
 	void SetBoundsX(const float x) { _bounds.x = x; }
 	void SetBoundsY(const float y) { _bounds.y = y; }
+	virtual Vector2 SampleLeftRightAtY(const float y) const { return { _bounds.x, _bounds.x + _bounds.width }; }
+	virtual Vector2 SampleTopBottomAtX(const float x) const { return { _bounds.y, _bounds.y + _bounds.height }; }
 
 	Vector2 GetVelocity() const { return _velocity; }
 	float GetVelocityX() const { return _velocity.x; }

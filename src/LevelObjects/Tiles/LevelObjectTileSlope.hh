@@ -12,7 +12,10 @@ public:
 	void Render(const float deltaTime) const override;
 	void RenderBounds(const float deltaTime, const Color& color) const override;
 
-	HitboxType GetHitboxType() const override { return HitboxType::SolidSloped; }
+	Vector2 SampleLeftRightAtY(const float y) const override;
+	Vector2 SampleTopBottomAtX(const float x) const override;
+
+	HitboxType GetHitboxType() const override { return HitboxType::SolidMaybeSloped; }
 
 	LevelObjectTileType GetTileType() const override;
 

@@ -24,7 +24,7 @@ void LevelObjectTileGround::Render(const float deltaTime) const
 
     const float tile_size = 16;
     Rectangle src = { col * tile_size, row * tile_size, tile_size, tile_size };
-    Rectangle dst = { _position.x, _position.y, 1.0f, 1.0f };
+    Rectangle dst = { _bounds.x, _bounds.y, 1.0f, 1.0f };
 
     DrawTexturePro(tex, src, dst, { 0.0f, 0.0f }, 0.0f, WHITE);
 }
