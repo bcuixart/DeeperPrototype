@@ -80,11 +80,7 @@ bool PhysicsManager::CheckAndResolveCollisionX(LevelObject* stillObject, LevelOb
 
 bool PhysicsManager::CheckAndResolveCollisionXGround(LevelObject* stillObject, LevelObject* movingObject, bool blockedByRealSlopes)
 {
-	// Un tile de Ground que toca una rampa real fa de continuació plana d'aquesta
-	// rampa (igual que un Slope fals), encara que ningú l'hagi "pensat" així en
-	// dissenyar el nivell. Per tant, per als entities, no bloqueja horitzontalment.
-	// Els dynamics sí que hi xoquen sempre, com fins ara.
-	if (!blockedByRealSlopes && IsGroundActingAsRampBacking(stillObject))
+	if (!blockedByRealSlopes && IsRampBacking(stillObject))
 		return false;
 
 	return CheckAndResolveCollisionX(stillObject, movingObject);
@@ -92,58 +88,63 @@ bool PhysicsManager::CheckAndResolveCollisionXGround(LevelObject* stillObject, L
 
 bool PhysicsManager::CheckAndResolveCollisionXSlope(LevelObject* slopeObject, LevelObject* movingObject, bool blockedByRealSlopes)
 {
-    if (!blockedByRealSlopes)
+    if (slopeObject->HasActualSlopedHitbox())
+    {
+        if (!blockedByRealSlopes) return false;
+
+        Rectangle bounds = movingObject->GetBounds();
+        Rectangle slopeBounds = slopeObject->GetBounds();
+
+        if (bounds.y + bounds.height < slopeBounds.y || bounds.y > slopeBounds.y + slopeBounds.height) return false;
+        if (bounds.x + bounds.width < slopeBounds.x || bounds.x > slopeBounds.x + slopeBounds.width) return false;
+
+        float topY    = Clamp(bounds.y,                slopeBounds.y, slopeBounds.y + slopeBounds.height);
+        float bottomY = Clamp(bounds.y + bounds.height, slopeBounds.y, slopeBounds.y + slopeBounds.height);
+
+        Vector2 sampleTop    = slopeObject->SampleLeftRightAtY(topY);
+        Vector2 sampleBottom = slopeObject->SampleLeftRightAtY(bottomY);
+
+        const float rightEdge = bounds.x + bounds.width;
+        const float leftEdge  = bounds.x;
+
+        const bool rightInTop    = rightEdge >= sampleTop.x    && rightEdge <= sampleTop.y;
+        const bool rightInBottom = rightEdge >= sampleBottom.x && rightEdge <= sampleBottom.y;
+
+        if (rightInTop || rightInBottom)
+        {
+            float leftBoundary = 0.0f;
+            if (rightInTop)    leftBoundary = sampleTop.x;
+            if (rightInBottom) leftBoundary = rightInTop ? fminf(leftBoundary, sampleBottom.x) : sampleBottom.x;
+
+            movingObject->SetBoundsX(leftBoundary - bounds.width);
+            movingObject->SetVelocityX(0.0f);
+            return true;
+        }
+
+        const bool leftInTop    = leftEdge >= sampleTop.x    && leftEdge <= sampleTop.y;
+        const bool leftInBottom = leftEdge >= sampleBottom.x && leftEdge <= sampleBottom.y;
+
+        if (leftInTop || leftInBottom)
+        {
+            float rightBoundary = 0.0f;
+            if (leftInTop)    rightBoundary = sampleTop.y;
+            if (leftInBottom) rightBoundary = leftInTop ? fmaxf(rightBoundary, sampleBottom.y) : sampleBottom.y;
+
+            movingObject->SetBoundsX(rightBoundary);
+            movingObject->SetVelocityX(0.0f);
+            return true;
+        }
+
+        return false;
+    }
+
+    // Slope fals (pla): es comporta com un Ground normal. Només deixa passar
+    // de llarg els entities si fa de replà net vora una rampa de veritat —
+    // si no aporta res a cap rampa, bloqueja igual que qualsevol altre sòlid.
+    if (!blockedByRealSlopes && IsRampBacking(slopeObject))
         return false;
 
-    if (!slopeObject->HasActualSlopedHitbox())
-        return CheckAndResolveCollisionX(slopeObject, movingObject);
-
-    Rectangle bounds = movingObject->GetBounds();
-    Rectangle slopeBounds = slopeObject->GetBounds();
-
-    if (bounds.y + bounds.height < slopeBounds.y || bounds.y > slopeBounds.y + slopeBounds.height) return false;
-    if (bounds.x + bounds.width < slopeBounds.x || bounds.x > slopeBounds.x + slopeBounds.width) return false;
-
-    float topY    = Clamp(bounds.y,                slopeBounds.y, slopeBounds.y + slopeBounds.height);
-    float bottomY = Clamp(bounds.y + bounds.height, slopeBounds.y, slopeBounds.y + slopeBounds.height);
-
-    Vector2 sampleTop    = slopeObject->SampleLeftRightAtY(topY);    // x = left, y = right
-    Vector2 sampleBottom = slopeObject->SampleLeftRightAtY(bottomY);
-
-    const float rightEdge = bounds.x + bounds.width;
-    const float leftEdge  = bounds.x;
-
-    // La vora dreta ha entrat a la franja sòlida -> t'hi has ficat per l'esquerra.
-    const bool rightInTop    = rightEdge >= sampleTop.x    && rightEdge <= sampleTop.y;
-    const bool rightInBottom = rightEdge >= sampleBottom.x && rightEdge <= sampleBottom.y;
-
-    if (rightInTop || rightInBottom)
-    {
-        float leftBoundary = 0.0f;
-        if (rightInTop)    leftBoundary = sampleTop.x;
-        if (rightInBottom) leftBoundary = rightInTop ? fminf(leftBoundary, sampleBottom.x) : sampleBottom.x;
-
-        movingObject->SetBoundsX(leftBoundary - bounds.width);
-        movingObject->SetVelocityX(0.0f);
-        return true;
-    }
-
-    // La vora esquerra ha entrat a la franja sòlida -> t'hi has ficat per la dreta.
-    const bool leftInTop    = leftEdge >= sampleTop.x    && leftEdge <= sampleTop.y;
-    const bool leftInBottom = leftEdge >= sampleBottom.x && leftEdge <= sampleBottom.y;
-
-    if (leftInTop || leftInBottom)
-    {
-        float rightBoundary = 0.0f;
-        if (leftInTop)    rightBoundary = sampleTop.y;
-        if (leftInBottom) rightBoundary = leftInTop ? fmaxf(rightBoundary, sampleBottom.y) : sampleBottom.y;
-
-        movingObject->SetBoundsX(rightBoundary);
-        movingObject->SetVelocityX(0.0f);
-        return true;
-    }
-
-    return false;
+    return CheckAndResolveCollisionX(slopeObject, movingObject);
 }
 
 void PhysicsManager::MoveAndResolveCollisionsY(const std::vector<LevelObject*>& objects, const float deltaTime)
@@ -203,7 +204,7 @@ bool PhysicsManager::CheckAndResolveCollisionYGround(LevelObject* stillObject, L
 	// continuació plana. Es resol amb el mateix mètode que un Slope (mostreig
 	// continu de top/bottom), no amb el bloqueig ple de tile, perquè la
 	// transició sigui tan suau com la de la pròpia rampa.
-	if (IsGroundActingAsRampBacking(stillObject))
+	if (IsRampBacking(stillObject))
 		return CheckAndResolveCollisionYSlope(stillObject, movingObject);
 
 	return CheckAndResolveCollisionY(stillObject, movingObject);
@@ -272,31 +273,50 @@ bool PhysicsManager::CheckAndResolveCollisionYSlope(LevelObject* slopeObject, Le
     return true;
 }
 
-bool PhysicsManager::IsGroundActingAsRampBacking(LevelObject* groundTile) const
+bool PhysicsManager::AreTilesHorizontallyAdjacent(LevelObject* a, LevelObject* b) const
 {
 	constexpr float kAdjacencyEpsilon = 1.0f;
 
-	Rectangle groundBounds = groundTile->GetBounds();
+	Rectangle boundsA = a->GetBounds();
+	Rectangle boundsB = b->GetBounds();
+
+	return (fabsf(boundsA.x - (boundsB.x + boundsB.width)) < kAdjacencyEpsilon ||
+	        fabsf((boundsA.x + boundsA.width) - boundsB.x) < kAdjacencyEpsilon) &&
+	       boundsA.y < boundsB.y + boundsB.height &&
+	       boundsA.y + boundsA.height > boundsB.y;
+}
+
+bool PhysicsManager::HasWallDirectlyAbove(LevelObject* tile) const
+{
+	// Només compta Ground com a "mur a sobre". Un Slope (real o fals) a sobre
+	// mai compta — és la pròpia estructura de la rampa continuant cap amunt
+	// (el següent esglaó d'una rampa prima en forma d'escala, per exemple),
+	// no un obstacle aliè.
+	constexpr float kAdjacencyEpsilon = 1.0f;
+	Rectangle bounds = tile->GetBounds();
+
+	for (LevelObject* solid : _solidObjects)
+	{
+		if (solid == tile) continue;
+
+		Rectangle otherBounds = solid->GetBounds();
+		bool sameColumn = otherBounds.x < bounds.x + bounds.width && otherBounds.x + otherBounds.width > bounds.x;
+		bool touchesTop = fabsf((otherBounds.y + otherBounds.height) - bounds.y) < kAdjacencyEpsilon;
+
+		if (sameColumn && touchesTop) return true;
+	}
+
+	return false;
+}
+
+bool PhysicsManager::IsRampBacking(LevelObject* tile) const
+{
+	if (HasWallDirectlyAbove(tile)) return false;
 
 	for (LevelObject* slope : _solidMaybeSlopedObjects)
 	{
 		if (!slope->HasActualSlopedHitbox()) continue;
-
-		Rectangle slopeBounds = slope->GetBounds();
-
-		bool touchesHorizontally =
-			(fabsf(groundBounds.x - (slopeBounds.x + slopeBounds.width)) < kAdjacencyEpsilon ||
-			 fabsf((groundBounds.x + groundBounds.width) - slopeBounds.x) < kAdjacencyEpsilon) &&
-			groundBounds.y < slopeBounds.y + slopeBounds.height &&
-			groundBounds.y + groundBounds.height > slopeBounds.y;
-
-		bool touchesVertically =
-			(fabsf(groundBounds.y - (slopeBounds.y + slopeBounds.height)) < kAdjacencyEpsilon ||
-			 fabsf((groundBounds.y + groundBounds.height) - slopeBounds.y) < kAdjacencyEpsilon) &&
-			groundBounds.x < slopeBounds.x + slopeBounds.width &&
-			groundBounds.x + groundBounds.width > slopeBounds.x;
-
-		if (touchesHorizontally || touchesVertically) return true;
+		if (AreTilesHorizontallyAdjacent(tile, slope)) return true;
 	}
 
 	return false;

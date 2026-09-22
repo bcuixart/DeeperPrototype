@@ -31,7 +31,9 @@ private:
     bool CheckAndResolveCollisionYOnlyFromTop(LevelObject* stillObject, LevelObject* movingObject);
     bool CheckAndResolveCollisionYSlope(LevelObject* slopeObject, LevelObject* movingObject);
 
-    bool IsGroundActingAsRampBacking(LevelObject* groundTile) const;
+    bool AreTilesHorizontallyAdjacent(LevelObject* a, LevelObject* b) const;
+    bool HasWallDirectlyAbove(LevelObject* tile) const;
+    bool IsRampBacking(LevelObject* tile) const;
 
     void RemoveObjectFromList(std::vector<LevelObject*>& list, LevelObject* obj);
 

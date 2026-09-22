@@ -13,7 +13,7 @@ public:
     HitboxType GetHitboxType() const override { return HitboxType::Entity; }
 
 private:
-    static constexpr float kWidth = 0.95f;
+    static constexpr float kWidth = 0.7f;
     static constexpr float kHeight = 0.5f;
 };
 
