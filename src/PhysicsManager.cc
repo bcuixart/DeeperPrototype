@@ -42,18 +42,15 @@ void PhysicsManager::MoveAndResolveCollisionsX(const std::vector<LevelObject*>& 
 {
 	for (LevelObject* o : objects)
 	{
-		// If not moving horizontally, skip
 		float vel = o->GetVelocityX();
 		if (vel == 0.0f) continue;
 
-		// Apply horizontal movement
 		o->ApplyVelocityX(deltaTime);
 
-		// Check for collisions
 		Rectangle bounds = o->GetBounds();
 		for (LevelObject* solid : _solidObjects) 
 		{
-			if (CheckAndResolveCollisionXGround(solid, o, blockedByRealSlopes)) bounds = o->GetBounds();
+			if (CheckAndResolveCollisionX(solid, o)) bounds = o->GetBounds();
 		}
 
 		for (LevelObject* solidMaybeSloped : _solidMaybeSlopedObjects) 
@@ -76,14 +73,6 @@ bool PhysicsManager::CheckAndResolveCollisionX(LevelObject* stillObject, LevelOb
 
 	movingObject->SetVelocityX(0.0f);
 	return true;
-}
-
-bool PhysicsManager::CheckAndResolveCollisionXGround(LevelObject* stillObject, LevelObject* movingObject, bool blockedByRealSlopes)
-{
-	if (!blockedByRealSlopes && IsRampBacking(stillObject))
-		return false;
-
-	return CheckAndResolveCollisionX(stillObject, movingObject);
 }
 
 bool PhysicsManager::CheckAndResolveCollisionXSlope(LevelObject* slopeObject, LevelObject* movingObject, bool blockedByRealSlopes)
@@ -138,12 +127,9 @@ bool PhysicsManager::CheckAndResolveCollisionXSlope(LevelObject* slopeObject, Le
         return false;
     }
 
-    // Slope fals (pla): es comporta com un Ground normal. Només deixa passar
-    // de llarg els entities si fa de replà net vora una rampa de veritat —
-    // si no aporta res a cap rampa, bloqueja igual que qualsevol altre sòlid.
-    if (!blockedByRealSlopes && IsRampBacking(slopeObject))
-        return false;
-
+    // Slope fals (pla): es comporta exactament com un Ground normal, sense
+    // cap excepció. La hitbox estreta és qui s'encarrega que pujar rampes
+    // primes segueixi funcionant, no cap heurística d'adjacència.
     return CheckAndResolveCollisionX(slopeObject, movingObject);
 }
 
@@ -151,17 +137,15 @@ void PhysicsManager::MoveAndResolveCollisionsY(const std::vector<LevelObject*>& 
 {
 	for (LevelObject* o : objects)
 	{
-		// If not moving vertically, skip
 		float vel = o->GetVelocityY();
 		if (vel == 0.0f) continue;
 
 		o->ApplyVelocityY(deltaTime);
 
-		// Check for collisions
 		Rectangle bounds = o->GetBounds();
 		for (LevelObject* solid : _solidObjects) 
 		{
-			if (CheckAndResolveCollisionYGround(solid, o)) bounds = o->GetBounds();
+			if (CheckAndResolveCollisionY(solid, o)) bounds = o->GetBounds();
 		}
 
 		for (LevelObject* solidMaybeSloped : _solidMaybeSlopedObjects) 
@@ -198,18 +182,6 @@ bool PhysicsManager::CheckAndResolveCollisionY(LevelObject* stillObject, LevelOb
 	return true;
 }
 
-bool PhysicsManager::CheckAndResolveCollisionYGround(LevelObject* stillObject, LevelObject* movingObject)
-{
-	// Igual que en X: un Ground que toca una rampa real és, de fet, la seva
-	// continuació plana. Es resol amb el mateix mètode que un Slope (mostreig
-	// continu de top/bottom), no amb el bloqueig ple de tile, perquè la
-	// transició sigui tan suau com la de la pròpia rampa.
-	if (IsRampBacking(stillObject))
-		return CheckAndResolveCollisionYSlope(stillObject, movingObject);
-
-	return CheckAndResolveCollisionY(stillObject, movingObject);
-}
-
 bool PhysicsManager::CheckAndResolveCollisionYOnlyFromTop(LevelObject* stillObject, LevelObject* movingObject)
 {
 	// Check collision (Only from top)
@@ -232,6 +204,9 @@ bool PhysicsManager::CheckAndResolveCollisionYOnlyFromTop(LevelObject* stillObje
 
 bool PhysicsManager::CheckAndResolveCollisionYSlope(LevelObject* slopeObject, LevelObject* movingObject)
 {
+    if (!slopeObject->HasActualSlopedHitbox())
+        return CheckAndResolveCollisionY(slopeObject, movingObject);
+
     Rectangle bounds = movingObject->GetBounds();
     Rectangle slopeBounds = slopeObject->GetBounds();
 
@@ -239,7 +214,7 @@ bool PhysicsManager::CheckAndResolveCollisionYSlope(LevelObject* slopeObject, Le
     if (centerX < slopeBounds.x || centerX > slopeBounds.x + slopeBounds.width) return false;
     if (bounds.y + bounds.height < slopeBounds.y || bounds.y > slopeBounds.y + slopeBounds.height) return false;
 
-    Vector2 sample = slopeObject->SampleTopBottomAtX(centerX);  // x = top, y = bottom
+    Vector2 sample = slopeObject->SampleTopBottomAtX(centerX);
     const float top = sample.x;
     const float bottom = sample.y;
 
@@ -251,10 +226,7 @@ bool PhysicsManager::CheckAndResolveCollisionYSlope(LevelObject* slopeObject, Le
     const bool swallowed   = top >= headY && bottom <= feetY;
 
     bool isFloor;
-    if (swallowed)
-    {
-        isFloor = (feetY - top) <= (bottom - headY);
-    }
+    if (swallowed) isFloor = (feetY - top) <= (bottom - headY);
     else if (feetInSlice) isFloor = true;
     else if (headInSlice) isFloor = false;
     else return false;
@@ -271,55 +243,6 @@ bool PhysicsManager::CheckAndResolveCollisionYSlope(LevelObject* slopeObject, Le
 
     movingObject->SetVelocityY(0.0f);
     return true;
-}
-
-bool PhysicsManager::AreTilesHorizontallyAdjacent(LevelObject* a, LevelObject* b) const
-{
-	constexpr float kAdjacencyEpsilon = 1.0f;
-
-	Rectangle boundsA = a->GetBounds();
-	Rectangle boundsB = b->GetBounds();
-
-	return (fabsf(boundsA.x - (boundsB.x + boundsB.width)) < kAdjacencyEpsilon ||
-	        fabsf((boundsA.x + boundsA.width) - boundsB.x) < kAdjacencyEpsilon) &&
-	       boundsA.y < boundsB.y + boundsB.height &&
-	       boundsA.y + boundsA.height > boundsB.y;
-}
-
-bool PhysicsManager::HasWallDirectlyAbove(LevelObject* tile) const
-{
-	// Només compta Ground com a "mur a sobre". Un Slope (real o fals) a sobre
-	// mai compta — és la pròpia estructura de la rampa continuant cap amunt
-	// (el següent esglaó d'una rampa prima en forma d'escala, per exemple),
-	// no un obstacle aliè.
-	constexpr float kAdjacencyEpsilon = 1.0f;
-	Rectangle bounds = tile->GetBounds();
-
-	for (LevelObject* solid : _solidObjects)
-	{
-		if (solid == tile) continue;
-
-		Rectangle otherBounds = solid->GetBounds();
-		bool sameColumn = otherBounds.x < bounds.x + bounds.width && otherBounds.x + otherBounds.width > bounds.x;
-		bool touchesTop = fabsf((otherBounds.y + otherBounds.height) - bounds.y) < kAdjacencyEpsilon;
-
-		if (sameColumn && touchesTop) return true;
-	}
-
-	return false;
-}
-
-bool PhysicsManager::IsRampBacking(LevelObject* tile) const
-{
-	if (HasWallDirectlyAbove(tile)) return false;
-
-	for (LevelObject* slope : _solidMaybeSlopedObjects)
-	{
-		if (!slope->HasActualSlopedHitbox()) continue;
-		if (AreTilesHorizontallyAdjacent(tile, slope)) return true;
-	}
-
-	return false;
 }
 
 void PhysicsManager::RegisterObject(LevelObject* object)
