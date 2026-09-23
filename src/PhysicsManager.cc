@@ -38,83 +38,6 @@ void PhysicsManager::ApplyGravity(const std::vector<LevelObject*>& objects, cons
 	for (LevelObject* o : objects) o->AddVelocityY(kGravity * deltaTime);
 }
 
-bool PhysicsManager::SweepY(const Rectangle& bounds, float dy, LevelObject* stillObject, float& tOut)
-{
-	if (dy == 0.0f) return false;
-
-	Rectangle stillBounds = stillObject->GetBounds();
-	if (bounds.x + bounds.width <= stillBounds.x || bounds.x >= stillBounds.x + stillBounds.width) return false;
-
-	const bool movingDown = dy > 0.0f;
-	const uint8_t relevantSide = movingDown ? SOLID_SIDE_TOP : SOLID_SIDE_BOTTOM;
-	if (!stillObject->GetSolidSideCollisionMask(relevantSide)) return false;
-
-	float leadingEdge, targetEdge;
-	if (movingDown) { leadingEdge = bounds.y + bounds.height; targetEdge = stillBounds.y; }
-	else            { leadingEdge = bounds.y;                 targetEdge = stillBounds.y + stillBounds.height; }
-
-	// Si aquest tile toca una rampa real pel costat, la rampa pot haver-lo
-	// deixat una mica per sota/sobre de l'alçada exacta just en creuar
-	// (sobretot movent-se ràpid en X, que ja ha fet tot el pas aquest
-	// frame). Admetem un marge molt més gran només en aquest cas.
-	const bool nearRamp = !stillObject->GetSolidSideCollisionMask(SOLID_SIDE_LEFT) ||
-	                       !stillObject->GetSolidSideCollisionMask(SOLID_SIDE_RIGHT);
-	const float penetrationEpsilon = nearRamp ? 1.0f : 0.01f;
-
-	const float gap = movingDown ? (targetEdge - leadingEdge) : (leadingEdge - targetEdge);
-
-	float t;
-	if (gap <= 0.0f)
-	{
-		if (gap < -penetrationEpsilon) return false;
-		t = 0.0f;
-	}
-	else
-	{
-		t = gap / fabsf(dy);
-	}
-
-	if (t < 0.0f || t > 1.0f) return false;
-
-	tOut = t;
-	return true;
-}
-
-bool PhysicsManager::SweepX(const Rectangle& bounds, float dx, LevelObject* stillObject, float& tOut)
-{
-	if (dx == 0.0f) return false;
-
-	Rectangle stillBounds = stillObject->GetBounds();
-	if (bounds.y + bounds.height <= stillBounds.y || bounds.y >= stillBounds.y + stillBounds.height) return false;
-
-	const bool movingRight = dx > 0.0f;
-	const uint8_t relevantSide = movingRight ? SOLID_SIDE_LEFT : SOLID_SIDE_RIGHT;
-	if (!stillObject->GetSolidSideCollisionMask(relevantSide)) return false;
-
-	float leadingEdge, targetEdge;
-	if (movingRight) { leadingEdge = bounds.x + bounds.width; targetEdge = stillBounds.x; }
-	else              { leadingEdge = bounds.x;                targetEdge = stillBounds.x + stillBounds.width; }
-
-	constexpr float kPenetrationEpsilon = 0.01f;
-	const float gap = movingRight ? (targetEdge - leadingEdge) : (leadingEdge - targetEdge);
-
-	float t;
-	if (gap <= 0.0f)
-	{
-		if (gap < -kPenetrationEpsilon) return false;
-		t = 0.0f;
-	}
-	else
-	{
-		t = gap / fabsf(dx);
-	}
-
-	if (t < 0.0f || t > 1.0f) return false;
-
-	tOut = t;
-	return true;
-}
-
 void PhysicsManager::MoveAndResolveCollisionsX(const std::vector<LevelObject*>& objects, const float deltaTime, bool blockedByRealSlopes)
 {
 	for (LevelObject* o : objects)
@@ -122,9 +45,10 @@ void PhysicsManager::MoveAndResolveCollisionsX(const std::vector<LevelObject*>& 
 		float vel = o->GetVelocityX();
 		if (vel == 0.0f) continue;
 
-		const float dx = vel * deltaTime;
 		Rectangle bounds = o->GetBounds();
 
+		// We sweep against all non-sloped tiles to find the proportion of dx (tMin) of the first collision.
+		const float dx = vel * deltaTime;
 		float tMin = 1.0f;
 		bool hitFound = false;
 
@@ -133,16 +57,21 @@ void PhysicsManager::MoveAndResolveCollisionsX(const std::vector<LevelObject*>& 
 			float t;
 			if (SweepX(bounds, dx, solid, t) && t < tMin) { tMin = t; hitFound = true; }
 		}
+
 		for (LevelObject* slope : _solidMaybeSlopedObjects)
 		{
-			if (slope->HasActualSlopedHitbox()) continue; // rampes reals: a part
+			if (slope->HasActualSlopedHitbox()) continue;
+
 			float t;
 			if (SweepX(bounds, dx, slope, t) && t < tMin) { tMin = t; hitFound = true; }
 		}
 
+		// Move the object to the new position based on tMin
 		o->SetBoundsX(bounds.x + dx * tMin);
 		if (hitFound) o->SetVelocityX(0.0f);
 
+		// After moving, we check for collisions with actually sloped tiles and resolve them if necessary.
+		// This is done after the initial move to ensure that we handle slopes correctly, especially if the object is moving into a slope.
 		bounds = o->GetBounds();
 		for (LevelObject* solidMaybeSloped : _solidMaybeSlopedObjects)
 		{
@@ -152,81 +81,96 @@ void PhysicsManager::MoveAndResolveCollisionsX(const std::vector<LevelObject*>& 
 	}
 }
 
-bool PhysicsManager::CheckAndResolveCollisionX(LevelObject* stillObject, LevelObject* movingObject)
+bool PhysicsManager::SweepX(const Rectangle& bounds, float dx, LevelObject* stillObject, float& tOut)
 {
-	// Check collision
-	Rectangle bounds = movingObject->GetBounds();
-	Rectangle overlap = GetCollisionRec(bounds, stillObject->GetBounds());
-	if (overlap.width <= 0.0f || overlap.height <= 0.0f) return false;
+	if (dx == 0.0f) return false;
 
-	const bool movingRight = movingObject->GetVelocityX() > 0.0f;
+	// Check vertical overlap first
+	Rectangle stillBounds = stillObject->GetBounds();
+	if (bounds.y + bounds.height <= stillBounds.y || bounds.y >= stillBounds.y + stillBounds.height) return false;
+
+	// Discard collision if it comes from a side that the still object does not have as solid
+	const bool movingRight = dx > 0.0f;
 	const uint8_t relevantSide = movingRight ? SOLID_SIDE_LEFT : SOLID_SIDE_RIGHT;
 	if (!stillObject->GetSolidSideCollisionMask(relevantSide)) return false;
 
-	// Resolve collision
-	if (movingRight) movingObject->SetBoundsX(bounds.x - overlap.width);
-	else movingObject->SetBoundsX(bounds.x + overlap.width);
+	// Find the edges that might collide and get their gap
+	float leadingX, targetX;
+	if (movingRight) { leadingX = bounds.x + bounds.width; targetX = stillBounds.x; }
+	else              { leadingX = bounds.x;                targetX = stillBounds.x + stillBounds.width; }
+	const float gap = movingRight ? (targetX - leadingX) : (leadingX - targetX);
 
-	movingObject->SetVelocityX(0.0f);
+	// kPenetrationEpsilon is a small value to account for floating-point inaccuracies and prevent objects from getting stuck when they are very close to each other
+	constexpr float kPenetrationEpsilon = 0.01f;
+
+	// If the gap is negative, it means we are already overlapping. If it's positive, we can calculate the time of collision
+	float t;
+	if (gap <= 0.0f)
+	{
+		if (gap < -kPenetrationEpsilon) return false;
+		t = 0.0f;
+	}
+	else t = gap / fabsf(dx);
+
+	// If t is not between 0 and 1 the objects will not collide this frame
+	if (t < 0.0f || t > 1.0f) return false;
+
+	tOut = t;
 	return true;
 }
 
 bool PhysicsManager::CheckAndResolveCollisionXSlope(LevelObject* slopeObject, LevelObject* movingObject, bool blockedByRealSlopes)
 {
-    if (slopeObject->HasActualSlopedHitbox())
+	// Failsafe but should not happen if the function is called correctly
+	if (!slopeObject->HasActualSlopedHitbox()) return false;
+
+	// Entities are not meant to be blocked by slopes in X movement
+    if (!blockedByRealSlopes) return false;
+
+    Rectangle bounds = movingObject->GetBounds();
+    Rectangle slopeBounds = slopeObject->GetBounds();
+
+    if (bounds.y + bounds.height < slopeBounds.y || bounds.y > slopeBounds.y + slopeBounds.height) return false;
+    if (bounds.x + bounds.width < slopeBounds.x || bounds.x > slopeBounds.x + slopeBounds.width) return false;
+
+    float topY    = Clamp(bounds.y,                slopeBounds.y, slopeBounds.y + slopeBounds.height);
+    float bottomY = Clamp(bounds.y + bounds.height, slopeBounds.y, slopeBounds.y + slopeBounds.height);
+
+    Vector2 sampleTop    = slopeObject->SampleLeftRightAtY(topY);
+    Vector2 sampleBottom = slopeObject->SampleLeftRightAtY(bottomY);
+
+    const float rightEdge = bounds.x + bounds.width;
+    const float leftEdge  = bounds.x;
+
+    const bool rightInTop    = rightEdge >= sampleTop.x    && rightEdge <= sampleTop.y;
+    const bool rightInBottom = rightEdge >= sampleBottom.x && rightEdge <= sampleBottom.y;
+
+    if (rightInTop || rightInBottom)
     {
-        if (!blockedByRealSlopes) return false;
+        float leftBoundary = 0.0f;
+        if (rightInTop)    leftBoundary = sampleTop.x;
+        if (rightInBottom) leftBoundary = rightInTop ? fminf(leftBoundary, sampleBottom.x) : sampleBottom.x;
 
-        Rectangle bounds = movingObject->GetBounds();
-        Rectangle slopeBounds = slopeObject->GetBounds();
-
-        if (bounds.y + bounds.height < slopeBounds.y || bounds.y > slopeBounds.y + slopeBounds.height) return false;
-        if (bounds.x + bounds.width < slopeBounds.x || bounds.x > slopeBounds.x + slopeBounds.width) return false;
-
-        float topY    = Clamp(bounds.y,                slopeBounds.y, slopeBounds.y + slopeBounds.height);
-        float bottomY = Clamp(bounds.y + bounds.height, slopeBounds.y, slopeBounds.y + slopeBounds.height);
-
-        Vector2 sampleTop    = slopeObject->SampleLeftRightAtY(topY);
-        Vector2 sampleBottom = slopeObject->SampleLeftRightAtY(bottomY);
-
-        const float rightEdge = bounds.x + bounds.width;
-        const float leftEdge  = bounds.x;
-
-        const bool rightInTop    = rightEdge >= sampleTop.x    && rightEdge <= sampleTop.y;
-        const bool rightInBottom = rightEdge >= sampleBottom.x && rightEdge <= sampleBottom.y;
-
-        if (rightInTop || rightInBottom)
-        {
-            float leftBoundary = 0.0f;
-            if (rightInTop)    leftBoundary = sampleTop.x;
-            if (rightInBottom) leftBoundary = rightInTop ? fminf(leftBoundary, sampleBottom.x) : sampleBottom.x;
-
-            movingObject->SetBoundsX(leftBoundary - bounds.width);
-            movingObject->SetVelocityX(0.0f);
-            return true;
-        }
-
-        const bool leftInTop    = leftEdge >= sampleTop.x    && leftEdge <= sampleTop.y;
-        const bool leftInBottom = leftEdge >= sampleBottom.x && leftEdge <= sampleBottom.y;
-
-        if (leftInTop || leftInBottom)
-        {
-            float rightBoundary = 0.0f;
-            if (leftInTop)    rightBoundary = sampleTop.y;
-            if (leftInBottom) rightBoundary = leftInTop ? fmaxf(rightBoundary, sampleBottom.y) : sampleBottom.y;
-
-            movingObject->SetBoundsX(rightBoundary);
-            movingObject->SetVelocityX(0.0f);
-            return true;
-        }
-
-        return false;
+        movingObject->SetBoundsX(leftBoundary - bounds.width);
+        movingObject->SetVelocityX(0.0f);
+        return true;
     }
 
-    // Slope fals (pla): es comporta exactament com un Ground normal, sense
-    // cap excepció. La hitbox estreta és qui s'encarrega que pujar rampes
-    // primes segueixi funcionant, no cap heurística d'adjacència.
-    return CheckAndResolveCollisionX(slopeObject, movingObject);
+    const bool leftInTop    = leftEdge >= sampleTop.x    && leftEdge <= sampleTop.y;
+    const bool leftInBottom = leftEdge >= sampleBottom.x && leftEdge <= sampleBottom.y;
+
+    if (leftInTop || leftInBottom)
+    {
+        float rightBoundary = 0.0f;
+        if (leftInTop)    rightBoundary = sampleTop.y;
+        if (leftInBottom) rightBoundary = leftInTop ? fmaxf(rightBoundary, sampleBottom.y) : sampleBottom.y;
+
+        movingObject->SetBoundsX(rightBoundary);
+        movingObject->SetVelocityX(0.0f);
+        return true;
+    }
+
+    return false;
 }
 
 void PhysicsManager::MoveAndResolveCollisionsY(const std::vector<LevelObject*>& objects, const float deltaTime)
@@ -236,9 +180,10 @@ void PhysicsManager::MoveAndResolveCollisionsY(const std::vector<LevelObject*>& 
 		float vel = o->GetVelocityY();
 		if (vel == 0.0f) continue;
 
-		const float dy = vel * deltaTime;
 		Rectangle startBounds = o->GetBounds();
 
+		// We sweep against all non-sloped tiles to find the proportion of dy (tMin) of the first collision.
+		const float dy = vel * deltaTime;
 		float tMin = 1.0f;
 		bool hitFound = false;
 		bool willGround = false;
@@ -248,23 +193,28 @@ void PhysicsManager::MoveAndResolveCollisionsY(const std::vector<LevelObject*>& 
 			float t;
 			if (SweepY(startBounds, dy, solid, t) && t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; }
 		}
+
 		for (LevelObject* slope : _solidMaybeSlopedObjects)
 		{
 			if (slope->HasActualSlopedHitbox()) continue;
+
 			float t;
 			if (SweepY(startBounds, dy, slope, t) && t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; }
 		}
+
 		for (LevelObject* semisolidTotal : _semisolidTotalObjects)
 		{
 			float t;
 			if (SweepYOnlyFromTop(startBounds, dy, semisolidTotal, t) && t < tMin) { tMin = t; hitFound = true; willGround = true; }
 		}
+
 		for (LevelObject* semisolidPartial : _semisolidPartialObjects)
 		{
 			float t;
 			if (SweepYOnlyFromTop(startBounds, dy, semisolidPartial, t) && t < tMin) { tMin = t; hitFound = true; willGround = true; }
 		}
 
+		// Move the object to the new position based on tMin
 		o->SetBoundsY(startBounds.y + dy * tMin);
 		if (hitFound)
 		{
@@ -272,6 +222,8 @@ void PhysicsManager::MoveAndResolveCollisionsY(const std::vector<LevelObject*>& 
 			if (willGround) o->SetIsGrounded(true);
 		}
 
+		// After moving, we check for collisions with actually sloped tiles and resolve them if necessary.
+		// This is done after the initial move to ensure that we handle slopes correctly, especially if the object is moving into a slope.
 		Rectangle bounds = o->GetBounds();
 		for (LevelObject* solidMaybeSloped : _solidMaybeSlopedObjects)
 		{
@@ -281,44 +233,66 @@ void PhysicsManager::MoveAndResolveCollisionsY(const std::vector<LevelObject*>& 
 	}
 }
 
-bool PhysicsManager::CheckAndResolveCollisionY(LevelObject* stillObject, LevelObject* movingObject)
+bool PhysicsManager::SweepY(const Rectangle& bounds, float dy, LevelObject* stillObject, float& tOut)
 {
-	if (movingObject->GetVelocityY() == 0.0f) return false;
+	if (dy == 0.0f) return false;
 
-	// Check collision
-	Rectangle bounds = movingObject->GetBounds();
-	Rectangle overlap = GetCollisionRec(bounds, stillObject->GetBounds());
-	if (overlap.width <= 0.0f || overlap.height <= 0.0f) return false;
+	// Check horizontal overlap first
+	Rectangle stillBounds = stillObject->GetBounds();
+	if (bounds.x + bounds.width <= stillBounds.x || bounds.x >= stillBounds.x + stillBounds.width) return false;
 
-	const bool movingDown = movingObject->GetVelocityY() > 0.0f;
+	// Discard collision if it comes from a side that the still object does not have as solid
+	const bool movingDown = dy > 0.0f;
 	const uint8_t relevantSide = movingDown ? SOLID_SIDE_TOP : SOLID_SIDE_BOTTOM;
 	if (!stillObject->GetSolidSideCollisionMask(relevantSide)) return false;
 
-	// Resolve collision
-	if (movingObject->GetVelocityY() > 0.0f) { movingObject->SetBoundsY(bounds.y - overlap.height); movingObject->SetIsGrounded(true); }
-	else movingObject->SetBoundsY(bounds.y + overlap.height);
+	// Find the edges that might collide and get their gap
+	float leadingY, targetY;
+	if (movingDown) { leadingY = bounds.y + bounds.height; targetY = stillBounds.y; }
+	else            { leadingY = bounds.y;                 targetY = stillBounds.y + stillBounds.height; }
+	const float gap = movingDown ? (targetY - leadingY) : (leadingY - targetY);
 
-	movingObject->SetVelocityY(0.0f);
+	// kPenetrationEpsilon is a small value to account for floating-point inaccuracies and prevent objects from getting stuck when they are very close to each other
+	// However, if the still object is a ramp, we want to allow a larger penetration epsilon to avoid getting stuck on ramps
+	const bool nearRamp = !stillObject->GetSolidSideCollisionMask(SOLID_SIDE_LEFT) ||
+	                       !stillObject->GetSolidSideCollisionMask(SOLID_SIDE_RIGHT);
+	const float penetrationEpsilon = nearRamp ? 1.0f : 0.01f;
+
+	// If the gap is negative, it means we are already overlapping. If it's positive, we can calculate the time of collision
+	float t;
+	if (gap <= 0.0f)
+	{
+		if (gap < -penetrationEpsilon) return false;
+		t = 0.0f;
+	}
+	else t = gap / fabsf(dy);
+
+	// If t is not between 0 and 1 the objects will not collide this frame
+	if (t < 0.0f || t > 1.0f) return false;
+
+	tOut = t;
 	return true;
 }
 
 bool PhysicsManager::SweepYOnlyFromTop(const Rectangle& startBounds, float dy, LevelObject* stillObject, float& tOut)
 {
-	if (dy <= 0.0f) return false; // només bloqueja caient
+	if (dy <= 0.0f) return false; // Only when falling
 
+	// Check horizontal overlap first
 	Rectangle stillBounds = stillObject->GetBounds();
 	if (startBounds.x + startBounds.width <= stillBounds.x || startBounds.x >= stillBounds.x + stillBounds.width) return false;
 
 	constexpr float kAboveEpsilon = 0.01f;
 	const float startFeet = startBounds.y + startBounds.height;
 
-	// Només compta si, A L'INICI del frame (abans de moure's), els peus ja
-	// eren per sobre de la plataforma. Si venies de sota o de costat, els
-	// peus ja hi eren per sota o dins -- mai passarà aquest check.
+	// Collision only occurs if the moving object was above the still object (with a small epsilon to account for floating-point inaccuracies)
 	if (startFeet > stillBounds.y + kAboveEpsilon) return false;
 
+	// Find the edges that might collide and get their gap and time of collision
 	const float gap = stillBounds.y - startFeet;
 	const float t = gap / dy;
+
+	// If t is not between 0 and 1 the objects will not collide this frame
 	if (t < 0.0f || t > 1.0f) return false;
 
 	tOut = t;
@@ -327,8 +301,8 @@ bool PhysicsManager::SweepYOnlyFromTop(const Rectangle& startBounds, float dy, L
 
 bool PhysicsManager::CheckAndResolveCollisionYSlope(LevelObject* slopeObject, LevelObject* movingObject)
 {
-    if (!slopeObject->HasActualSlopedHitbox())
-        return CheckAndResolveCollisionY(slopeObject, movingObject);
+	// Failsafe but should not happen if the function is called correctly
+	if (!slopeObject->HasActualSlopedHitbox()) return false;
 
     Rectangle bounds = movingObject->GetBounds();
     Rectangle slopeBounds = slopeObject->GetBounds();
@@ -359,10 +333,7 @@ bool PhysicsManager::CheckAndResolveCollisionYSlope(LevelObject* slopeObject, Le
         movingObject->SetBoundsY(top - bounds.height);
         movingObject->SetIsGrounded(true);
     }
-    else
-    {
-        movingObject->SetBoundsY(bottom);
-    }
+    else movingObject->SetBoundsY(bottom);
 
     movingObject->SetVelocityY(0.0f);
     return true;
