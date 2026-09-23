@@ -9,7 +9,7 @@ GameManager::GameManager()
 	_assetManager = std::make_unique<AssetManager>();
 
 	_levelManager = std::make_unique<LevelManager>();
-	_levelManager->LoadLevel("test_level");
+	_levelManager->LoadLevel("slope_variation7_test");
 }
 
 GameManager::~GameManager()
