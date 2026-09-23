@@ -89,6 +89,10 @@ void LevelManager::LoadLevel(const std::string& levelName)
     for (int y = 0; y < _levelHeight; ++y)
         for (int x = 0; x < _levelWidth; ++x)
             if (_levelTiles[y][x]) UpdateTileAutotile(x, y);
+
+    for (int y = 0; y < _levelHeight; ++y)
+        for (int x = 0; x < _levelWidth; ++x)
+            if (_levelTiles[y][x]) SetTileSideCollisionMask(x, y);
 }
 
 int LevelManager::GetLevelWidth() const
@@ -368,6 +372,25 @@ uint8_t LevelManager::ComputeTileMaskBridge(int x, int y) const
     if (same(x + 1, y)) mask |= 2;          // E
 
     return mask;
+}
+
+void LevelManager::SetTileSideCollisionMask(int x, int y)
+{
+    bool hasN = false, hasS = false, hasW = false, hasE = false;
+
+    if (y > 0)
+        hasN = _levelTiles[y - 1][x] && (_levelTiles[y - 1][x]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y - 1][x]->GetTileType() == LevelObjectTileType::Slope);
+    if (y < _levelHeight - 1)
+        hasS = _levelTiles[y + 1][x] && (_levelTiles[y + 1][x]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y + 1][x]->GetTileType() == LevelObjectTileType::Slope);
+    if (x > 0)
+        hasW = _levelTiles[y][x - 1] && (_levelTiles[y][x - 1]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y][x - 1]->GetTileType() == LevelObjectTileType::Slope);
+    if (x < _levelWidth - 1)
+        hasE = _levelTiles[y][x + 1] && (_levelTiles[y][x + 1]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y][x + 1]->GetTileType() == LevelObjectTileType::Slope);
+
+    _levelTiles[y][x]->SetSolidSideCollisionMask(SOLID_SIDE_LEFT, !hasW);
+    _levelTiles[y][x]->SetSolidSideCollisionMask(SOLID_SIDE_TOP, !hasN);
+    _levelTiles[y][x]->SetSolidSideCollisionMask(SOLID_SIDE_RIGHT, !hasE);
+    _levelTiles[y][x]->SetSolidSideCollisionMask(SOLID_SIDE_BOTTOM, !hasS);
 }
 
 bool LevelManager::IsTileSame(int x, int y, LevelObjectTileType type) const

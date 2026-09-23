@@ -34,19 +34,32 @@ void LevelObjectTileSlope::RenderBounds(const float deltaTime, const Color& colo
     switch(_slopeOrientation)
     {
         case SlopeOrientation::RisingRight:
-            DrawTriangleLines({ _bounds.x + 1.0f, _bounds.y }, { _bounds.x, _bounds.y + 1.0f }, { _bounds.x + 1.0f, _bounds.y + 1.0f }, color);
+            DrawLineEx({ _bounds.x, _bounds.y + 1.0f }, { _bounds.x + 1.0f, _bounds.y }, 0.025f, color);
+            if (_spriteIndex == 47) DrawLineEx({ _bounds.x, _bounds.y + 1.0f }, { _bounds.x + 1.0f, _bounds.y + 1.0f }, 0.025f, color);
             break;
         case SlopeOrientation::RisingLeft:
-            DrawTriangleLines({ _bounds.x, _bounds.y }, { _bounds.x, _bounds.y + 1.0f }, { _bounds.x + 1.0f, _bounds.y + 1.0f }, color);
+            DrawLineEx({ _bounds.x, _bounds.y }, { _bounds.x + 1.0f, _bounds.y + 1.0f }, 0.025f, color);
+            if (_spriteIndex == 48) DrawLineEx({ _bounds.x, _bounds.y + 1.0f }, { _bounds.x + 1.0f, _bounds.y + 1.0f }, 0.025f, color);
             break;
         case SlopeOrientation::FallingRight:
-            DrawTriangleLines({ _bounds.x + 1.0f, _bounds.y + 1.0f }, { _bounds.x, _bounds.y }, { _bounds.x + 1.0f, _bounds.y }, color);
+            DrawLineEx({ _bounds.x, _bounds.y }, { _bounds.x + 1.0f, _bounds.y + 1.0f }, 0.025f, color);
             break;
         case SlopeOrientation::FallingLeft:
-            DrawTriangleLines({ _bounds.x, _bounds.y + 1.0f }, { _bounds.x, _bounds.y }, { _bounds.x + 1.0f, _bounds.y }, color);
+            DrawLineEx({ _bounds.x, _bounds.y + 1.0f }, { _bounds.x + 1.0f, _bounds.y }, 0.025f, color);
             break;
         default:
-            DrawRectangleLinesEx(_bounds, 0.025f, color);
+            if (GetSolidSideCollisionMask(SOLID_SIDE_TOP)) {
+                DrawLineEx({ _bounds.x, _bounds.y }, { _bounds.x + _bounds.width, _bounds.y }, 0.025f, color);
+            }
+            if (GetSolidSideCollisionMask(SOLID_SIDE_RIGHT)) {
+                DrawLineEx({ _bounds.x + _bounds.width, _bounds.y }, { _bounds.x + _bounds.width, _bounds.y + _bounds.height }, 0.025f, color);
+            }
+            if (GetSolidSideCollisionMask(SOLID_SIDE_BOTTOM)) {
+                DrawLineEx({ _bounds.x + _bounds.width, _bounds.y + _bounds.height }, { _bounds.x, _bounds.y + _bounds.height }, 0.025f, color);
+            }
+            if (GetSolidSideCollisionMask(SOLID_SIDE_LEFT)) {
+                DrawLineEx({ _bounds.x, _bounds.y + _bounds.height }, { _bounds.x, _bounds.y }, 0.025f, color);
+            }
             break;
     }
 }

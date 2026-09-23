@@ -51,6 +51,8 @@ private:
 	uint16_t ComputeSlopeVariationMask(uint8_t maskLow, int x, int y) const;
 	uint8_t ComputeTileMaskBridge(int x, int y) const;
 
+	void SetTileSideCollisionMask(int x, int y);
+
 	bool IsTileSame(int x, int y, LevelObjectTileType type) const;
 	bool IsTileSlope(int x, int y) const;
 

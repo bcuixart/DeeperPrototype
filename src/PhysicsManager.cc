@@ -67,8 +67,12 @@ bool PhysicsManager::CheckAndResolveCollisionX(LevelObject* stillObject, LevelOb
 	Rectangle overlap = GetCollisionRec(bounds, stillObject->GetBounds());
 	if (overlap.width <= 0.0f || overlap.height <= 0.0f) return false;
 
+	const bool movingRight = movingObject->GetVelocityX() > 0.0f;
+	const uint8_t relevantSide = movingRight ? SOLID_SIDE_LEFT : SOLID_SIDE_RIGHT;
+	if (!stillObject->GetSolidSideCollisionMask(relevantSide)) return false;
+
 	// Resolve collision
-	if (movingObject->GetVelocityX() > 0.0f) movingObject->SetBoundsX(bounds.x - overlap.width);
+	if (movingRight) movingObject->SetBoundsX(bounds.x - overlap.width);
 	else movingObject->SetBoundsX(bounds.x + overlap.width);
 
 	movingObject->SetVelocityX(0.0f);
@@ -173,6 +177,10 @@ bool PhysicsManager::CheckAndResolveCollisionY(LevelObject* stillObject, LevelOb
 	Rectangle bounds = movingObject->GetBounds();
 	Rectangle overlap = GetCollisionRec(bounds, stillObject->GetBounds());
 	if (overlap.width <= 0.0f || overlap.height <= 0.0f) return false;
+
+	const bool movingDown = movingObject->GetVelocityY() > 0.0f;
+	const uint8_t relevantSide = movingDown ? SOLID_SIDE_TOP : SOLID_SIDE_BOTTOM;
+	if (!stillObject->GetSolidSideCollisionMask(relevantSide)) return false;
 
 	// Resolve collision
 	if (movingObject->GetVelocityY() > 0.0f) { movingObject->SetBoundsY(bounds.y - overlap.height); movingObject->SetIsGrounded(true); }

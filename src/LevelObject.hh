@@ -4,11 +4,18 @@
 #include <raylib.h>
 #include <raymath.h>
 #include <iostream>
+#include <cstdint>
 
 #include "AssetManager.hh"
 #include "PhysicsProperties.hh"
 
 class LevelManager;
+
+#define SOLID_SIDE_NONE 0
+#define SOLID_SIDE_LEFT 1
+#define SOLID_SIDE_RIGHT 2
+#define SOLID_SIDE_TOP 4
+#define SOLID_SIDE_BOTTOM 8
 
 class LevelObject {
 public:
@@ -42,11 +49,16 @@ public:
 
 	virtual HitboxType GetHitboxType() const = 0;
 
+	void SetSolidSideCollisionMask(const uint8_t side, const bool mask);
+	bool GetSolidSideCollisionMask(const uint8_t side) const { return (_solidSidecollisionMask & side) != 0; }
+
 	virtual bool HasActualSlopedHitbox() const { return false; }
 
 protected:
 	Rectangle _bounds{};
 	Vector2   _velocity{};
+
+	uint8_t _solidSidecollisionMask{ SOLID_SIDE_LEFT | SOLID_SIDE_RIGHT | SOLID_SIDE_TOP | SOLID_SIDE_BOTTOM };
 
 	bool _isGrounded{ false };
 
