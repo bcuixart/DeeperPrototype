@@ -10,10 +10,10 @@ class LevelObject;
 
 class PhysicsManager {
 public:
-	PhysicsManager();
+	PhysicsManager(LevelManager& levelManager);
 	~PhysicsManager();
 
-	void Update(const float deltaTime, const LevelManager& levelManager);
+	void Update(const float deltaTime);
 
     void RegisterObject(LevelObject* object);
     void UnregisterObject(LevelObject* object);
@@ -41,12 +41,15 @@ private:
 
     std::vector<LevelObject*> _solidObjects;
     std::vector<LevelObject*> _solidMaybeSlopedObjects;
+    std::vector<LevelObject*> _solidBreakableObjects;
     std::vector<LevelObject*> _semisolidTotalObjects;
     std::vector<LevelObject*> _semisolidPartialObjects;
     std::vector<LevelObject*> _entityObjects;
     std::vector<LevelObject*> _dynamicObjects;
     std::vector<LevelObject*> _forceFieldObjects;
     std::vector<LevelObject*> _triggerObjects;
+
+    LevelManager* _levelManager{nullptr};
 
     constexpr static float kGravity = 20.0f;
 };

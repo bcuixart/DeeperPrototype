@@ -59,6 +59,10 @@ public:
 
 	virtual bool HasActualSlopedHitbox() const { return false; }
 
+	virtual void BreakableBreak(const LevelObject* other) { }
+	virtual bool GetBreakableIsBroken() const { return false; }
+	virtual float GetBreakableBreakSpeed() const { return 30.0f; }
+
 protected:
 	Rectangle _bounds{};
 	Vector2   _velocity{};

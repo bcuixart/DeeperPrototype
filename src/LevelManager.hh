@@ -38,6 +38,8 @@ public:
 	LevelObjectTileType GetTileTypeAt(const Vector2& position) const;
 	LevelObjectTileType GetTileTypeAt(int x, int y) const;
 
+	void UpdateAutotileNeighbors(int x, int y);
+
 protected:
 
 private:
@@ -45,7 +47,6 @@ private:
 	void InstantiateLevelTile(std::unique_ptr<LevelObjectTile> tile, int i, int j);
 
 	void UpdateTileAutotile(int x, int y);
-	void UpdateAutotileNeighbors(int x, int y);
 
 	uint8_t ComputeRawLowMask(int x, int y) const;
 	uint8_t ComputeRawHighMask(int x, int y) const;

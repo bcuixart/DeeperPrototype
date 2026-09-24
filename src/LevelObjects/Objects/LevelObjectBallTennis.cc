@@ -4,8 +4,6 @@ LevelObjectBallTennis::LevelObjectBallTennis(const Vector2& position)
 {
     _bounds = { position.x + kWidth / 2.0f, position.y + kHeight / 2.0f, kWidth, kHeight };
     
-    _velocity = { 10.0f, 0.0f };
-
 	_kickCooldown = 0.0f;
 }
 

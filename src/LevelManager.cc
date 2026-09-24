@@ -2,7 +2,7 @@
 
 LevelManager::LevelManager()
 {
-    _physicsManager = std::make_unique<PhysicsManager>();
+    _physicsManager = std::make_unique<PhysicsManager>(*this);
 }
 
 LevelManager::~LevelManager()
@@ -14,7 +14,7 @@ void LevelManager::Update(const float deltaTime)
 {
     for (auto& object : _levelObjects) object->Update(deltaTime);
 
-    _physicsManager->Update(deltaTime, *this);
+    _physicsManager->Update(deltaTime);
 }
 
 void LevelManager::Render(const float deltaTime) const
@@ -446,6 +446,9 @@ bool LevelManager::IsTileSame(int x, int y, LevelObjectTileType type) const
             break;
         }
         case LevelObjectTileType::Sand:
+        {
+            return _levelTiles[y][x]->GetTileType() == type && !_levelTiles[y][x]->GetBreakableIsBroken();  
+        }
         case LevelObjectTileType::Dirt:
         {
             return _levelTiles[y][x]->GetTileType() == type;  

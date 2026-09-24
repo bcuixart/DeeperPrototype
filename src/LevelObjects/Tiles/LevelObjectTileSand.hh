@@ -12,12 +12,18 @@ public:
 	void Render(const float deltaTime) const override;
 	void RenderBounds(const float deltaTime, const Color& color) const override;
 
+	HitboxType GetHitboxType() const override { return HitboxType::SolidBreakable; }
+
 	LevelObjectTileType GetTileType() const override;
+
+	void BreakableBreak(const LevelObject* other) override;
+	bool GetBreakableIsBroken() const override { return _isBroken; }
+	float GetBreakableBreakSpeed() const override { return 15.0f; }
 
 protected:
 
 private:
-
+	bool _isBroken{false};
 };
 
 #endif

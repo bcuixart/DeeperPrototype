@@ -17,6 +17,8 @@ void LevelObjectTileSand::Update(const float deltaTime)
 
 void LevelObjectTileSand::Render(const float deltaTime) const
 {
+    if (_isBroken) return;
+
     const Texture2D& tex = AssetManager::instance->GetTexture(TextureId::TilesetSand);
 
     int col = _spriteIndex % 7;
@@ -48,4 +50,11 @@ void LevelObjectTileSand::RenderBounds(const float deltaTime, const Color& color
 LevelObjectTileType LevelObjectTileSand::GetTileType() const
 {
 	return LevelObjectTileType::Sand;
+}
+
+void LevelObjectTileSand::BreakableBreak(const LevelObject* other)
+{
+    if (_isBroken) return;
+
+    _isBroken = true;
 }

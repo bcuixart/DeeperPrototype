@@ -1,7 +1,7 @@
 #include "PhysicsManager.hh"
 #include "LevelManager.hh"
 
-PhysicsManager::PhysicsManager()
+PhysicsManager::PhysicsManager(LevelManager& levelManager) : _levelManager(&levelManager)
 {
 
 }
@@ -11,7 +11,7 @@ PhysicsManager::~PhysicsManager()
 	
 }
 
-void PhysicsManager::Update(const float deltaTime, const LevelManager& levelManager)
+void PhysicsManager::Update(const float deltaTime)
 {
 	// Reset grounded state for all objects
 	for (LevelObject* o : _entityObjects) o->SetIsGrounded(false);
@@ -74,6 +74,23 @@ void PhysicsManager::MoveAndResolveCollisionsX(const std::vector<LevelObject*>& 
 			{
 				if (SweepX(bounds, dx, slope, t) && t < tMin) { tMin = t; hitFound = true; hitObject = slope; }
 			}
+		}
+
+		for (LevelObject* breakable : _solidBreakableObjects)
+		{
+			if (breakable->GetBreakableIsBroken()) continue;
+
+			float t;
+			if (!SweepX(bounds, dx, breakable, t)) continue;
+
+			if (fabsf(vel) >= breakable->GetBreakableBreakSpeed())
+			{
+				breakable->BreakableBreak(o);
+				_levelManager->UpdateAutotileNeighbors((int)breakable->GetPosition().x, (int)breakable->GetPosition().y);
+				continue; // Ignore collision if it goes fast enough to break it
+			}
+
+			if (t < tMin) { tMin = t; hitFound = true; hitObject = breakable; }
 		}
 
 		if (affectedByPartialSemisolids)
@@ -265,6 +282,23 @@ void PhysicsManager::MoveAndResolveCollisionsY(const std::vector<LevelObject*>& 
 			float t;
 			if (slope->HasActualSlopedHitbox()) { if (SweepYSlope(startBounds, dy, slope, t) && t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; hitObject = slope; } }
 			else { if (SweepY(startBounds, dy, slope, t) && t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; hitObject = slope; } }
+		}
+
+		for (LevelObject* breakable : _solidBreakableObjects)
+		{
+			if (breakable->GetBreakableIsBroken()) continue;
+
+			float t;
+			if (!SweepY(startBounds, dy, breakable, t)) continue;
+
+			if (fabsf(vel) >= breakable->GetBreakableBreakSpeed())
+			{
+				breakable->BreakableBreak(o);
+				_levelManager->UpdateAutotileNeighbors((int)breakable->GetPosition().x, (int)breakable->GetPosition().y);
+				continue; // Ignore collision if it goes fast enough to break it
+			}
+
+			if (t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; hitObject = breakable; }
 		}
 
 		for (LevelObject* semisolidTotal : _semisolidTotalObjects)
@@ -509,6 +543,7 @@ void PhysicsManager::RegisterObject(LevelObject* object)
 	{
 		case HitboxType::Solid:				_solidObjects.push_back(object); break;
 		case HitboxType::SolidMaybeSloped:	_solidMaybeSlopedObjects.push_back(object); break;
+		case HitboxType::SolidBreakable:	_solidBreakableObjects.push_back(object); break;
 		case HitboxType::SemisolidTotal:	_semisolidTotalObjects.push_back(object); break;
 		case HitboxType::SemisolidPartial:	_semisolidPartialObjects.push_back(object); break;
 		case HitboxType::Entity:			_entityObjects.push_back(object); break;
@@ -528,6 +563,7 @@ void PhysicsManager::UnregisterObject(LevelObject* object)
 	{
 		case HitboxType::Solid:				RemoveObjectFromList(_solidObjects, object); break;
 		case HitboxType::SolidMaybeSloped:	RemoveObjectFromList(_solidMaybeSlopedObjects, object); break;
+		case HitboxType::SolidBreakable:	RemoveObjectFromList(_solidBreakableObjects, object); break;
 		case HitboxType::SemisolidTotal:	RemoveObjectFromList(_semisolidTotalObjects, object); break;
 		case HitboxType::SemisolidPartial:	RemoveObjectFromList(_semisolidPartialObjects, object); break;
 		case HitboxType::Entity:			RemoveObjectFromList(_entityObjects, object); break;
