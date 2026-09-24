@@ -25,8 +25,8 @@ void PhysicsManager::Update(const float deltaTime, const LevelManager& levelMana
 
 
 	// Move objects on X and resolve collisions
-	MoveAndResolveCollisionsX(_entityObjects, deltaTime, false);
-	MoveAndResolveCollisionsX(_dynamicObjects, deltaTime, true);
+	MoveAndResolveCollisionsX(_entityObjects, deltaTime, false, false);
+	MoveAndResolveCollisionsX(_dynamicObjects, deltaTime, true, true);
 
 	// Move objects on Y and resolve collisions
 	MoveAndResolveCollisionsY(_entityObjects, deltaTime);
@@ -38,7 +38,7 @@ void PhysicsManager::ApplyGravity(const std::vector<LevelObject*>& objects, cons
 	for (LevelObject* o : objects) o->AddVelocityY(kGravity * deltaTime);
 }
 
-void PhysicsManager::MoveAndResolveCollisionsX(const std::vector<LevelObject*>& objects, const float deltaTime, bool blockedByRealSlopes)
+void PhysicsManager::MoveAndResolveCollisionsX(const std::vector<LevelObject*>& objects, const float deltaTime, bool affectedByPartialSemisolids, bool blockedByRealSlopes)
 {
 	for (LevelObject* o : objects)
 	{
@@ -51,11 +51,12 @@ void PhysicsManager::MoveAndResolveCollisionsX(const std::vector<LevelObject*>& 
 		const float dx = vel * deltaTime;
 		float tMin = 1.0f;
 		bool hitFound = false;
+		LevelObject* hitObject = nullptr;
 
 		for (LevelObject* solid : _solidObjects)
 		{
 			float t;
-			if (SweepX(bounds, dx, solid, t) && t < tMin) { tMin = t; hitFound = true; }
+			if (SweepX(bounds, dx, solid, t) && t < tMin) { tMin = t; hitFound = true; hitObject = solid;}
 		}
 
 		for (LevelObject* slope : _solidMaybeSlopedObjects)
@@ -63,12 +64,26 @@ void PhysicsManager::MoveAndResolveCollisionsX(const std::vector<LevelObject*>& 
 			if (slope->HasActualSlopedHitbox()) continue;
 
 			float t;
-			if (SweepX(bounds, dx, slope, t) && t < tMin) { tMin = t; hitFound = true; }
+			if (SweepX(bounds, dx, slope, t) && t < tMin) { tMin = t; hitFound = true; hitObject = slope; }
+		}
+
+		if (affectedByPartialSemisolids)
+		{
+			for (LevelObject* semisolidPartial : _semisolidPartialObjects)
+			{
+				float t;
+				if (SweepX(bounds, dx, semisolidPartial, t) && t < tMin) { tMin = t; hitFound = true; hitObject = semisolidPartial; }
+			}
 		}
 
 		// Move the object to the new position based on tMin
 		o->SetBoundsX(bounds.x + dx * tMin);
-		if (hitFound) o->SetVelocityX(0.0f);
+		if (hitFound)
+		{
+			o->SetVelocityX(0.0f);
+			o->CollidedWithX(hitObject, vel);
+			if (hitObject) hitObject->CollidedWithX(o, vel);
+		}
 
 		// After moving, we check for collisions with actually sloped tiles and resolve them if necessary.
 		// This is done after the initial move to ensure that we handle slopes correctly, especially if the object is moving into a slope.
@@ -76,7 +91,7 @@ void PhysicsManager::MoveAndResolveCollisionsX(const std::vector<LevelObject*>& 
 		for (LevelObject* solidMaybeSloped : _solidMaybeSlopedObjects)
 		{
 			if (!solidMaybeSloped->HasActualSlopedHitbox()) continue;
-			if (CheckAndResolveCollisionXSlope(solidMaybeSloped, o, blockedByRealSlopes)) bounds = o->GetBounds();
+			if (CheckAndResolveCollisionXSlope(solidMaybeSloped, o, blockedByRealSlopes, vel)) bounds = o->GetBounds();
 		}
 	}
 }
@@ -119,7 +134,7 @@ bool PhysicsManager::SweepX(const Rectangle& bounds, float dx, LevelObject* stil
 	return true;
 }
 
-bool PhysicsManager::CheckAndResolveCollisionXSlope(LevelObject* slopeObject, LevelObject* movingObject, bool blockedByRealSlopes)
+bool PhysicsManager::CheckAndResolveCollisionXSlope(LevelObject* slopeObject, LevelObject* movingObject, bool blockedByRealSlopes, float prevVelocityX)
 {
 	// Failsafe but should not happen if the function is called correctly
 	if (!slopeObject->HasActualSlopedHitbox()) return false;
@@ -153,6 +168,8 @@ bool PhysicsManager::CheckAndResolveCollisionXSlope(LevelObject* slopeObject, Le
 
         movingObject->SetBoundsX(leftBoundary - bounds.width);
         movingObject->SetVelocityX(0.0f);
+		movingObject->CollidedWithX(slopeObject, prevVelocityX);
+        slopeObject->CollidedWithX(movingObject, prevVelocityX);
         return true;
     }
 
@@ -167,6 +184,8 @@ bool PhysicsManager::CheckAndResolveCollisionXSlope(LevelObject* slopeObject, Le
 
         movingObject->SetBoundsX(rightBoundary);
         movingObject->SetVelocityX(0.0f);
+		movingObject->CollidedWithX(slopeObject, prevVelocityX);
+        slopeObject->CollidedWithX(movingObject, prevVelocityX);
         return true;
     }
 
@@ -187,30 +206,31 @@ void PhysicsManager::MoveAndResolveCollisionsY(const std::vector<LevelObject*>& 
 		float tMin = 1.0f;
 		bool hitFound = false;
 		bool willGround = false;
+		LevelObject* hitObject = nullptr;
 
 		for (LevelObject* solid : _solidObjects)
 		{
 			float t;
-			if (SweepY(startBounds, dy, solid, t) && t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; }
+			if (SweepY(startBounds, dy, solid, t) && t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; hitObject = solid; }
 		}
 
 		for (LevelObject* slope : _solidMaybeSlopedObjects)
 		{
 			float t;
-			if (slope->HasActualSlopedHitbox()) { if (SweepYSlope(startBounds, dy, slope, t) && t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; } }
-			else { if (SweepY(startBounds, dy, slope, t) && t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; } }
+			if (slope->HasActualSlopedHitbox()) { if (SweepYSlope(startBounds, dy, slope, t) && t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; hitObject = slope; } }
+			else { if (SweepY(startBounds, dy, slope, t) && t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; hitObject = slope; } }
 		}
 
 		for (LevelObject* semisolidTotal : _semisolidTotalObjects)
 		{
 			float t;
-			if (SweepYOnlyFromTop(startBounds, dy, semisolidTotal, t) && t < tMin) { tMin = t; hitFound = true; willGround = true; }
+			if (SweepYOnlyFromTop(startBounds, dy, semisolidTotal, t) && t < tMin) { tMin = t; hitFound = true; willGround = true; hitObject = semisolidTotal; }
 		}
 
 		for (LevelObject* semisolidPartial : _semisolidPartialObjects)
 		{
 			float t;
-			if (SweepYOnlyFromTop(startBounds, dy, semisolidPartial, t) && t < tMin) { tMin = t; hitFound = true; willGround = true; }
+			if (SweepYOnlyFromTop(startBounds, dy, semisolidPartial, t) && t < tMin) { tMin = t; hitFound = true; willGround = true; hitObject = semisolidPartial; }
 		}
 
 		// Move the object to the new position based on tMin
@@ -219,6 +239,9 @@ void PhysicsManager::MoveAndResolveCollisionsY(const std::vector<LevelObject*>& 
 		{
 			o->SetVelocityY(0.0f);
 			if (willGround) o->SetIsGrounded(true);
+
+			o->CollidedWithY(hitObject, vel);
+			if (hitObject) hitObject->CollidedWithY(o, vel);
 		}
 
 		// After moving, we check for collisions with actually sloped tiles and resolve them if necessary.
@@ -227,7 +250,7 @@ void PhysicsManager::MoveAndResolveCollisionsY(const std::vector<LevelObject*>& 
 		for (LevelObject* solidMaybeSloped : _solidMaybeSlopedObjects)
 		{
 			if (!solidMaybeSloped->HasActualSlopedHitbox()) continue;
-			if (CheckAndResolveCollisionYSlope(solidMaybeSloped, o)) bounds = o->GetBounds();
+			if (CheckAndResolveCollisionYSlope(solidMaybeSloped, o, vel)) bounds = o->GetBounds();
 		}
 	}
 }
@@ -341,7 +364,7 @@ bool PhysicsManager::SweepYOnlyFromTop(const Rectangle& startBounds, float dy, L
 	return true;
 }
 
-bool PhysicsManager::CheckAndResolveCollisionYSlope(LevelObject* slopeObject, LevelObject* movingObject)
+bool PhysicsManager::CheckAndResolveCollisionYSlope(LevelObject* slopeObject, LevelObject* movingObject, float prevVelocityY)
 {
 	if (!slopeObject->HasActualSlopedHitbox()) return false;
 
@@ -377,6 +400,8 @@ bool PhysicsManager::CheckAndResolveCollisionYSlope(LevelObject* slopeObject, Le
     else movingObject->SetBoundsY(bottom);
 
     movingObject->SetVelocityY(0.0f);
+	movingObject->CollidedWithY(slopeObject, prevVelocityY);
+    slopeObject->CollidedWithY(movingObject, prevVelocityY);
     return true;
 }
 

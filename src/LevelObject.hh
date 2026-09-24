@@ -44,6 +44,9 @@ public:
 	void ApplyVelocityX(const float deltaTime) { _bounds.x += _velocity.x * deltaTime; }
 	void ApplyVelocityY(const float deltaTime) { _bounds.y += _velocity.y * deltaTime; }
 
+	virtual void CollidedWithX(LevelObject* other, float prevVelocityX) { }
+	virtual void CollidedWithY(LevelObject* other, float prevVelocityY) { }
+
 	bool GetIsGrounded() const { return _isGrounded; }
 	void SetIsGrounded(const bool grounded) { _isGrounded = grounded; }
 

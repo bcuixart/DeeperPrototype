@@ -9,7 +9,7 @@ LevelObjectBallTennis::LevelObjectBallTennis(const Vector2& position)
 
 void LevelObjectBallTennis::Update(const float deltaTime) 
 {
-
+    if (_isGrounded) _velocity.x *= kGroundFriction;
 }
 
 void LevelObjectBallTennis::Render(const float deltaTime) const 
@@ -27,4 +27,14 @@ void LevelObjectBallTennis::Render(const float deltaTime) const
     };
 
     DrawTexturePro(tex, src, dst, { 0.0f, 0.0f }, 0.0f, WHITE);
+}
+
+void LevelObjectBallTennis::CollidedWithX(LevelObject* other, float prevVelocityX)
+{
+	SetVelocityX(-prevVelocityX * kBounciness);
+}
+
+void LevelObjectBallTennis::CollidedWithY(LevelObject* other, float prevVelocityY)
+{
+	SetVelocityY(-prevVelocityY * kBounciness);
 }
