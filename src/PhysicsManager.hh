@@ -25,6 +25,7 @@ private:
 
     void MoveAndResolveCollisionsX(const std::vector<LevelObject*>& objects, const float deltaTime, bool afectedByPartialSemisolids, bool blockedByRealSlopes);
     bool SweepX(const Rectangle& bounds, float dx, LevelObject* stillObject, float& tOut);
+    bool SweepXSlope(const Rectangle& bounds, float dx, LevelObject* slopeObject, float& tOut);
     bool CheckAndResolveCollisionXSlope(LevelObject* slopeObject, LevelObject* movingObject, bool blockedByRealSlopes, float prevVelocityX);
 
     void MoveAndResolveCollisionsY(const std::vector<LevelObject*>& objects, const float deltaTime);

@@ -79,6 +79,8 @@ void LevelManager::LoadLevel(const std::string& levelName)
             switch (row[j]) {
             case 'G': InstantiateLevelTile(std::make_unique<LevelObjectTileGround>(pos), i, j); break;
             case 's': InstantiateLevelTile(std::make_unique<LevelObjectTileSlope>(pos), i, j); break;
+            case 'S': InstantiateLevelTile(std::make_unique<LevelObjectTileSand>(pos), i, j); break;
+            case 'd': InstantiateLevelTile(std::make_unique<LevelObjectTileDirt>(pos), i, j); break;
             case 'B': InstantiateLevelTile(std::make_unique<LevelObjectTileBridge>(pos), i, j); break;
             case 't': InstantiateLevelObject(std::make_unique<LevelObjectBallTennis>(pos)); break;
             case 'h': InstantiateLevelObject(std::make_unique<LevelObjectHydrant001>(pos)); break;
@@ -147,8 +149,6 @@ void LevelManager::UpdateTileAutotile(int x, int y)
             return;
 
         case LevelObjectTileType::Ground:
-        case LevelObjectTileType::Sand:
-        case LevelObjectTileType::Dirt:
         {
             uint16_t normalized = NormalizeFullMask(ComputeFullMask(x, y));
 
@@ -176,6 +176,15 @@ void LevelManager::UpdateTileAutotile(int x, int y)
                 _levelTiles[y][x]->SetSpriteIndex(itV->second); 
             }
 
+            break;
+        }
+        case LevelObjectTileType::Sand:
+        case LevelObjectTileType::Dirt:
+        {
+            uint16_t normalized = NormalizeFullMask(ComputeFullMask(x, y));
+
+            auto it = sandDirtAutotileMap.find(normalized);
+            _levelTiles[y][x]->SetSpriteIndex(it != sandDirtAutotileMap.end() ? it->second : 48);
             break;
         }
         case LevelObjectTileType::Bridge:
@@ -362,6 +371,11 @@ uint16_t LevelManager::ComputeSlopeVariationMask(uint8_t maskLow, int x, int y) 
     return ((uint16_t)maskLow << 8) | var;
 }
 
+uint8_t LevelManager::ComputeTileMaskSandDirt(int x, int y) const
+{
+    return NormalizeLowMask(ComputeRawLowMask(x, y));
+}
+
 uint8_t LevelManager::ComputeTileMaskBridge(int x, int y) const
 {
     auto same = [&](int cx, int cy) -> bool {
@@ -379,27 +393,40 @@ uint8_t LevelManager::ComputeTileMaskBridge(int x, int y) const
 
 void LevelManager::SetTileSideCollisionMask(int x, int y)
 {
+    LevelObjectTile* tile = _levelTiles[y][x].get();
+    if (!tile) return;
+
+    const LevelObjectTileType type = tile->GetTileType();
+    if (type != LevelObjectTileType::Ground && type != LevelObjectTileType::Slope)
+    {
+        tile->SetSolidSideCollisionMask(SOLID_SIDE_LEFT, true);
+        tile->SetSolidSideCollisionMask(SOLID_SIDE_TOP, true);
+        tile->SetSolidSideCollisionMask(SOLID_SIDE_RIGHT, true);
+        tile->SetSolidSideCollisionMask(SOLID_SIDE_BOTTOM, true);
+        return;
+    }
+
     bool hasN = false, hasS = false, hasW = false, hasE = false;
 
     if (y > 0) 
     {
-        hasN = _levelTiles[y - 1][x] && (_levelTiles[y - 1][x]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y - 1][x]->GetTileType() == LevelObjectTileType::Slope);
+        hasN = _levelTiles[y - 1][x] && (_levelTiles[y - 1][x]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y - 1][x]->GetTileType() == LevelObjectTileType::Slope || _levelTiles[y - 1][x]->GetTileType() == LevelObjectTileType::Dirt);
         if (_levelTiles[y - 1][x] && IsTileSlope(x, y - 1)) hasN = false;
     }
     if (y < _levelHeight - 1)
     {
-        hasS = _levelTiles[y + 1][x] && (_levelTiles[y + 1][x]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y + 1][x]->GetTileType() == LevelObjectTileType::Slope);
+        hasS = _levelTiles[y + 1][x] && (_levelTiles[y + 1][x]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y + 1][x]->GetTileType() == LevelObjectTileType::Slope || _levelTiles[y + 1][x]->GetTileType() == LevelObjectTileType::Dirt);
         if (_levelTiles[y + 1][x] && IsTileSlope(x, y + 1)) hasS = false;
     }
     if (x > 0)
-        hasW = _levelTiles[y][x - 1] && (_levelTiles[y][x - 1]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y][x - 1]->GetTileType() == LevelObjectTileType::Slope);
+        hasW = _levelTiles[y][x - 1] && (_levelTiles[y][x - 1]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y][x - 1]->GetTileType() == LevelObjectTileType::Slope || _levelTiles[y][x - 1]->GetTileType() == LevelObjectTileType::Dirt);
     if (x < _levelWidth - 1)
-        hasE = _levelTiles[y][x + 1] && (_levelTiles[y][x + 1]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y][x + 1]->GetTileType() == LevelObjectTileType::Slope);
+        hasE = _levelTiles[y][x + 1] && (_levelTiles[y][x + 1]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y][x + 1]->GetTileType() == LevelObjectTileType::Slope || _levelTiles[y][x + 1]->GetTileType() == LevelObjectTileType::Dirt);
 
-    _levelTiles[y][x]->SetSolidSideCollisionMask(SOLID_SIDE_LEFT, !hasW);
-    _levelTiles[y][x]->SetSolidSideCollisionMask(SOLID_SIDE_TOP, !hasN);
-    _levelTiles[y][x]->SetSolidSideCollisionMask(SOLID_SIDE_RIGHT, !hasE);
-    _levelTiles[y][x]->SetSolidSideCollisionMask(SOLID_SIDE_BOTTOM, !hasS);
+    tile->SetSolidSideCollisionMask(SOLID_SIDE_LEFT, !hasW);
+    tile->SetSolidSideCollisionMask(SOLID_SIDE_TOP, !hasN);
+    tile->SetSolidSideCollisionMask(SOLID_SIDE_RIGHT, !hasE);
+    tile->SetSolidSideCollisionMask(SOLID_SIDE_BOTTOM, !hasS);
 }
 
 bool LevelManager::IsTileSame(int x, int y, LevelObjectTileType type) const

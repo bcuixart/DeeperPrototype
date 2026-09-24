@@ -61,10 +61,15 @@ void PhysicsManager::MoveAndResolveCollisionsX(const std::vector<LevelObject*>& 
 
 		for (LevelObject* slope : _solidMaybeSlopedObjects)
 		{
-			if (slope->HasActualSlopedHitbox()) continue;
-
 			float t;
-			if (SweepX(bounds, dx, slope, t) && t < tMin) { tMin = t; hitFound = true; hitObject = slope; }
+			if (slope->HasActualSlopedHitbox())
+			{
+				if (blockedByRealSlopes && SweepXSlope(bounds, dx, slope, t) && t < tMin) { tMin = t; hitFound = true; hitObject = slope; }
+			}
+			else
+			{
+				if (SweepX(bounds, dx, slope, t) && t < tMin) { tMin = t; hitFound = true; hitObject = slope; }
+			}
 		}
 
 		if (affectedByPartialSemisolids)
@@ -128,6 +133,43 @@ bool PhysicsManager::SweepX(const Rectangle& bounds, float dx, LevelObject* stil
 	else t = gap / fabsf(dx);
 
 	// If t is not between 0 and 1 the objects will not collide this frame
+	if (t < 0.0f || t > 1.0f) return false;
+
+	tOut = t;
+	return true;
+}
+
+bool PhysicsManager::SweepXSlope(const Rectangle& bounds, float dx, LevelObject* slopeObject, float& tOut)
+{
+	if (dx == 0.0f) return false;
+
+	float centerY = bounds.y + bounds.height * 0.5f;
+	Rectangle slopeBounds = slopeObject->GetBounds();
+	if (centerY < slopeBounds.y || centerY > slopeBounds.y + slopeBounds.height) return false;
+
+	const bool movingRight = dx > 0.0f;
+
+	Vector2 sample = slopeObject->SampleLeftRightAtY(centerY);
+	const float left = sample.x;
+	const float right = sample.y;
+
+	float leadingX, targetX, farBound;
+	if (movingRight) { leadingX = bounds.x + bounds.width; targetX = left;  farBound = right; }
+	else             { leadingX = bounds.x;                 targetX = right; farBound = left;  }
+	const float gap = movingRight ? (targetX - leadingX) : (leadingX - targetX);
+
+	constexpr float kFloatSlack = 0.01f;
+
+	float t;
+	if (gap <= 0.0f)
+	{
+		const bool stillWithinTile = movingRight ? (leadingX <= farBound + kFloatSlack)
+		                                          : (leadingX >= farBound - kFloatSlack);
+		if (!stillWithinTile) return false;
+		t = 0.0f;
+	}
+	else t = gap / fabsf(dx);
+
 	if (t < 0.0f || t > 1.0f) return false;
 
 	tOut = t;

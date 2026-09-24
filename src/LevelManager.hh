@@ -13,6 +13,8 @@
 #include "LevelObjects/Tiles/Autotile.hh"
 #include "LevelObjects/Tiles/LevelObjectTile.hh"
 #include "LevelObjects/Tiles/LevelObjectTileGround.hh"
+#include "LevelObjects/Tiles/LevelObjectTileSand.hh"
+#include "LevelObjects/Tiles/LevelObjectTileDirt.hh"
 #include "LevelObjects/Tiles/LevelObjectTileSlope.hh"
 #include "LevelObjects/Tiles/LevelObjectTileBridge.hh"
 #include "LevelObjects/Objects/LevelObjectBallTennis.hh"
@@ -52,6 +54,7 @@ private:
 	uint16_t NormalizeFullMask(uint16_t mask) const;
 	uint8_t CollapseHighByte(uint8_t low, uint8_t high) const;
 	uint16_t ComputeSlopeVariationMask(uint8_t maskLow, int x, int y) const;
+	uint8_t ComputeTileMaskSandDirt(int x, int y) const;
 	uint8_t ComputeTileMaskBridge(int x, int y) const;
 
 	void SetTileSideCollisionMask(int x, int y);

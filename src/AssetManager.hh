@@ -9,7 +9,8 @@ enum class TextureId
 {
     DogTest,
     TilesetGround,
-    TilesetSlope,
+    TilesetSand,
+    TilesetDirt,
     TilesetBridge,
     BallTennis,
     Hydrant001,
