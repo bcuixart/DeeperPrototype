@@ -26,11 +26,15 @@ void PhysicsManager::Update(const float deltaTime, const LevelManager& levelMana
 
 	// Move objects on X and resolve collisions
 	MoveAndResolveCollisionsX(_entityObjects, deltaTime, false, false);
-	MoveAndResolveCollisionsX(_dynamicObjects, deltaTime, true, false);
+	MoveAndResolveCollisionsX(_dynamicObjects, deltaTime, true, true);
 
 	// Move objects on Y and resolve collisions
-	MoveAndResolveCollisionsY(_entityObjects, deltaTime);
-	MoveAndResolveCollisionsY(_dynamicObjects, deltaTime);
+	MoveAndResolveCollisionsY(_entityObjects, deltaTime, false, true);
+	MoveAndResolveCollisionsY(_dynamicObjects, deltaTime, true, false);
+
+	CheckOverlapsSelf(_entityObjects);
+	CheckOverlaps(_entityObjects, _dynamicObjects);
+	CheckOverlapsSelf(_dynamicObjects);
 }
 
 void PhysicsManager::ApplyGravity(const std::vector<LevelObject*>& objects, const float deltaTime)
@@ -234,7 +238,7 @@ bool PhysicsManager::CheckAndResolveCollisionXSlope(LevelObject* slopeObject, Le
     return false;
 }
 
-void PhysicsManager::MoveAndResolveCollisionsY(const std::vector<LevelObject*>& objects, const float deltaTime)
+void PhysicsManager::MoveAndResolveCollisionsY(const std::vector<LevelObject*>& objects, const float deltaTime, bool checkSemisolidPartialBottom, bool affectedByEntitiesTop)
 {
 	for (LevelObject* o : objects)
 	{
@@ -272,7 +276,21 @@ void PhysicsManager::MoveAndResolveCollisionsY(const std::vector<LevelObject*>& 
 		for (LevelObject* semisolidPartial : _semisolidPartialObjects)
 		{
 			float t;
-			if (SweepYOnlyFromTop(startBounds, dy, semisolidPartial, t) && t < tMin) { tMin = t; hitFound = true; willGround = true; hitObject = semisolidPartial; }
+			if (checkSemisolidPartialBottom) {
+				if (SweepY(startBounds, dy, semisolidPartial, t) && t < tMin) { tMin = t; hitFound = true; willGround = true; hitObject = semisolidPartial; }
+			} else {
+				if (SweepYOnlyFromTop(startBounds, dy, semisolidPartial, t) && t < tMin) { tMin = t; hitFound = true; willGround = true; hitObject = semisolidPartial; }
+			}
+		}
+
+		if (affectedByEntitiesTop)
+		{
+			for (LevelObject* entity : _entityObjects)
+			{
+				if (entity == o) continue;
+				float t;
+				if (SweepYOnlyFromTop(startBounds, dy, entity, t) && t < tMin) { tMin = t; hitFound = true; willGround = true; hitObject = entity; }
+			}
 		}
 
 		// Move the object to the new position based on tMin
@@ -445,6 +463,41 @@ bool PhysicsManager::CheckAndResolveCollisionYSlope(LevelObject* slopeObject, Le
 	movingObject->CollidedWithY(slopeObject, prevVelocityY);
     slopeObject->CollidedWithY(movingObject, prevVelocityY);
     return true;
+}
+
+void PhysicsManager::CheckOverlaps(const std::vector<LevelObject*>& listA, const std::vector<LevelObject*>& listB)
+{
+	for (LevelObject* a : listA)
+	{
+		Rectangle boundsA = a->GetBounds();
+		for (LevelObject* b : listB)
+		{
+			if (a == b) continue;
+
+			Rectangle boundsB = b->GetBounds();
+
+			const bool overlap = CheckCollisionRecs(boundsA, boundsB);
+			if (!overlap) continue;
+
+			a->OnOverlap(b);
+			b->OnOverlap(a);
+		}
+	}
+}
+
+void PhysicsManager::CheckOverlapsSelf(const std::vector<LevelObject*>& list)
+{
+	for (size_t i = 0; i < list.size(); ++i)
+	{
+		Rectangle boundsA = list[i]->GetBounds();
+		for (size_t j = i + 1; j < list.size(); ++j)
+		{
+			if (!CheckCollisionRecs(boundsA, list[j]->GetBounds())) continue;
+
+			list[i]->OnOverlap(list[j]);
+			list[j]->OnOverlap(list[i]);
+		}
+	}
 }
 
 void PhysicsManager::RegisterObject(LevelObject* object)

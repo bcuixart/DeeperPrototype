@@ -28,11 +28,14 @@ private:
     bool SweepXSlope(const Rectangle& bounds, float dx, LevelObject* slopeObject, float& tOut);
     bool CheckAndResolveCollisionXSlope(LevelObject* slopeObject, LevelObject* movingObject, bool blockedByRealSlopes, float prevVelocityX);
 
-    void MoveAndResolveCollisionsY(const std::vector<LevelObject*>& objects, const float deltaTime);
+    void MoveAndResolveCollisionsY(const std::vector<LevelObject*>& objects, const float deltaTime, bool checkSemisolidPartialBottom, bool affectedByEntitiesTop);
     bool SweepY(const Rectangle& bounds, float dy, LevelObject* stillObject, float& tOut);
     bool SweepYSlope(const Rectangle& bounds, float dy, LevelObject* slopeObject, float& tOut);
     bool SweepYOnlyFromTop(const Rectangle& startBounds, float dy, LevelObject* stillObject, float& tOut);
     bool CheckAndResolveCollisionYSlope(LevelObject* slopeObject, LevelObject* movingObject, float prevVelocityY);
+
+    void CheckOverlaps(const std::vector<LevelObject*>& listA, const std::vector<LevelObject*>& listB);
+    void CheckOverlapsSelf(const std::vector<LevelObject*>& list);
 
     void RemoveObjectFromList(std::vector<LevelObject*>& list, LevelObject* obj);
 

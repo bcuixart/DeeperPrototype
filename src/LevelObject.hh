@@ -47,6 +47,8 @@ public:
 	virtual void CollidedWithX(LevelObject* other, float prevVelocityX) { }
 	virtual void CollidedWithY(LevelObject* other, float prevVelocityY) { }
 
+	virtual void OnOverlap(LevelObject* other) { }
+
 	bool GetIsGrounded() const { return _isGrounded; }
 	void SetIsGrounded(const bool grounded) { _isGrounded = grounded; }
 
