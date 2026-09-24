@@ -29,6 +29,7 @@ private:
 
     void MoveAndResolveCollisionsY(const std::vector<LevelObject*>& objects, const float deltaTime);
     bool SweepY(const Rectangle& bounds, float dy, LevelObject* stillObject, float& tOut);
+    bool SweepYSlope(const Rectangle& bounds, float dy, LevelObject* slopeObject, float& tOut);
     bool SweepYOnlyFromTop(const Rectangle& startBounds, float dy, LevelObject* stillObject, float& tOut);
     bool CheckAndResolveCollisionYSlope(LevelObject* slopeObject, LevelObject* movingObject);
 

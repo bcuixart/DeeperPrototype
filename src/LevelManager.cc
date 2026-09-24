@@ -378,10 +378,16 @@ void LevelManager::SetTileSideCollisionMask(int x, int y)
 {
     bool hasN = false, hasS = false, hasW = false, hasE = false;
 
-    if (y > 0)
+    if (y > 0) 
+    {
         hasN = _levelTiles[y - 1][x] && (_levelTiles[y - 1][x]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y - 1][x]->GetTileType() == LevelObjectTileType::Slope);
+        if (_levelTiles[y - 1][x] && IsTileSlope(x, y - 1)) hasN = false;
+    }
     if (y < _levelHeight - 1)
+    {
         hasS = _levelTiles[y + 1][x] && (_levelTiles[y + 1][x]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y + 1][x]->GetTileType() == LevelObjectTileType::Slope);
+        if (_levelTiles[y + 1][x] && IsTileSlope(x, y + 1)) hasS = false;
+    }
     if (x > 0)
         hasW = _levelTiles[y][x - 1] && (_levelTiles[y][x - 1]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y][x - 1]->GetTileType() == LevelObjectTileType::Slope);
     if (x < _levelWidth - 1)

@@ -196,10 +196,9 @@ void PhysicsManager::MoveAndResolveCollisionsY(const std::vector<LevelObject*>& 
 
 		for (LevelObject* slope : _solidMaybeSlopedObjects)
 		{
-			if (slope->HasActualSlopedHitbox()) continue;
-
 			float t;
-			if (SweepY(startBounds, dy, slope, t) && t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; }
+			if (slope->HasActualSlopedHitbox()) { if (SweepYSlope(startBounds, dy, slope, t) && t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; } }
+			else { if (SweepY(startBounds, dy, slope, t) && t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; } }
 		}
 
 		for (LevelObject* semisolidTotal : _semisolidTotalObjects)
@@ -274,6 +273,49 @@ bool PhysicsManager::SweepY(const Rectangle& bounds, float dy, LevelObject* stil
 	return true;
 }
 
+bool PhysicsManager::SweepYSlope(const Rectangle& bounds, float dy, LevelObject* slopeObject, float& tOut)
+{
+    if (dy == 0.0f) return false;
+
+    // Check horizontal overlap with center of object first
+    float centerX = bounds.x + bounds.width * 0.5f;
+    Rectangle slopeBounds = slopeObject->GetBounds();
+    if (centerX < slopeBounds.x || centerX > slopeBounds.x + slopeBounds.width) return false;
+
+    const bool movingDown = dy > 0.0f;
+
+    Vector2 sample = slopeObject->SampleTopBottomAtX(centerX);
+    const float top = sample.x;
+    const float bottom = sample.y;
+
+    // Find the edges that might collide and get their gap
+    float leadingY, targetY;
+    if (movingDown) { leadingY = bounds.y + bounds.height; targetY = top; }
+    else            { leadingY = bounds.y;                 targetY = bottom; }
+    const float gap = movingDown ? (targetY - leadingY) : (leadingY - targetY);
+
+    // kPenetrationEpsilon is a small value to account for floating-point inaccuracies and prevent objects from getting stuck when they are very close to each other
+    // However, if the still object is a ramp, we want to allow a larger penetration epsilon to avoid getting stuck on ramps
+    const bool nearRamp = !slopeObject->GetSolidSideCollisionMask(SOLID_SIDE_LEFT) ||
+                           !slopeObject->GetSolidSideCollisionMask(SOLID_SIDE_RIGHT);
+    const float penetrationEpsilon = nearRamp ? 0.5f : 0.01f;
+
+    // If the gap is negative, it means we are already overlapping. If it's positive, we can calculate the time of collision
+    float t;
+    if (gap <= 0.0f)
+    {
+        if (gap < -penetrationEpsilon) return false;
+        t = 0.0f;
+    }
+    else t = gap / fabsf(dy);
+
+    // If t is not between 0 and 1 the objects will not collide this frame
+    if (t < 0.0f || t > 1.0f) return false;
+
+    tOut = t;
+    return true;
+}
+
 bool PhysicsManager::SweepYOnlyFromTop(const Rectangle& startBounds, float dy, LevelObject* stillObject, float& tOut)
 {
 	if (dy <= 0.0f) return false; // Only when falling
@@ -301,7 +343,6 @@ bool PhysicsManager::SweepYOnlyFromTop(const Rectangle& startBounds, float dy, L
 
 bool PhysicsManager::CheckAndResolveCollisionYSlope(LevelObject* slopeObject, LevelObject* movingObject)
 {
-	// Failsafe but should not happen if the function is called correctly
 	if (!slopeObject->HasActualSlopedHitbox()) return false;
 
     Rectangle bounds = movingObject->GetBounds();
