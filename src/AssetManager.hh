@@ -11,6 +11,9 @@ enum class TextureId
     TilesetGround,
     TilesetSlope,
     TilesetBridge,
+    BallTennis,
+    Hydrant001,
+    Bench001,
 	Count // Last element to keep track of the number of textures
 };
 

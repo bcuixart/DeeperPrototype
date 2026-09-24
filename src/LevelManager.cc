@@ -44,7 +44,7 @@ void LevelManager::RenderBounds(const float deltaTime) const
                 _levelTiles[i][j]->RenderBounds(deltaTime, RED);
 
                 //DrawTextEx(GetFontDefault(), TextFormat("%d", _levelTiles[i][j]->GetSpriteIndex()), { (float)j, (float)i }, 0.5f, 0.025f, WHITE);
-                DrawTextEx(GetFontDefault(), TextFormat("%x", NormalizeFullMask(ComputeFullMask(j, i))), { (float)j, (float)i }, 0.5f, 0.025f, WHITE);
+                //DrawTextEx(GetFontDefault(), TextFormat("%x", NormalizeFullMask(ComputeFullMask(j, i))), { (float)j, (float)i }, 0.5f, 0.025f, WHITE);
             }
         }
     }
@@ -80,6 +80,9 @@ void LevelManager::LoadLevel(const std::string& levelName)
             case 'G': InstantiateLevelTile(std::make_unique<LevelObjectTileGround>(pos), i, j); break;
             case 's': InstantiateLevelTile(std::make_unique<LevelObjectTileSlope>(pos), i, j); break;
             case 'B': InstantiateLevelTile(std::make_unique<LevelObjectTileBridge>(pos), i, j); break;
+            case 't': InstantiateLevelObject(std::make_unique<LevelObjectBallTennis>(pos)); break;
+            case 'h': InstantiateLevelObject(std::make_unique<LevelObjectHydrant001>(pos)); break;
+            case 'b': InstantiateLevelObject(std::make_unique<LevelObjectBench001>(pos)); break;
 			case 'D': InstantiateLevelObject(std::make_unique<LevelObjectDog>(pos)); break;
             default:  break;
             }

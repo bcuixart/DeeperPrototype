@@ -15,6 +15,9 @@
 #include "LevelObjects/Tiles/LevelObjectTileGround.hh"
 #include "LevelObjects/Tiles/LevelObjectTileSlope.hh"
 #include "LevelObjects/Tiles/LevelObjectTileBridge.hh"
+#include "LevelObjects/Objects/LevelObjectBallTennis.hh"
+#include "LevelObjects/Objects/LevelObjectHydrant001.hh"
+#include "LevelObjects/Deco/LevelObjectBench001.hh"
 
 class LevelManager {
 public:
