@@ -20,6 +20,7 @@
 #include "LevelObjects/Objects/LevelObjectBallTennis.hh"
 #include "LevelObjects/Objects/LevelObjectHydrant001.hh"
 #include "LevelObjects/Deco/LevelObjectBench001.hh"
+#include "LevelObjects/Objects/LevelObjectDogHouse.hh"
 
 class LevelManager {
 public:

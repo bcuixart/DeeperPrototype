@@ -15,6 +15,7 @@ enum class TextureId
     BallTennis,
     Hydrant001,
     Bench001,
+    DogHouse,
 	Count // Last element to keep track of the number of textures
 };
 

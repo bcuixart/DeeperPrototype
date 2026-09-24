@@ -34,6 +34,7 @@ public:
 	virtual Vector2 SampleTopBottomAtX(const float x) const { return { _bounds.y, _bounds.y + _bounds.height }; }
 
 	Vector2 GetVelocity() const { return _velocity; }
+	float GetVelocityMagnitude() const { return Vector2Length(_velocity); }
 	float GetVelocityX() const { return _velocity.x; }
 	float GetVelocityY() const { return _velocity.y; }
 	void SetVelocityX(const float x) { _velocity.x = x; }

@@ -18,7 +18,7 @@ public:
 
 	void BreakableBreak(const LevelObject* other) override;
 	bool GetBreakableIsBroken() const override { return _isBroken; }
-	float GetBreakableBreakSpeed() const override { return 15.0f; }
+	float GetBreakableBreakSpeed() const override { return 20.0f; }
 
 protected:
 

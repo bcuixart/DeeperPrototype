@@ -32,9 +32,14 @@ void PhysicsManager::Update(const float deltaTime)
 	MoveAndResolveCollisionsY(_entityObjects, deltaTime, false, true);
 	MoveAndResolveCollisionsY(_dynamicObjects, deltaTime, true, false);
 
+	// Check overlap and handle interactions between entities and dynamics
 	CheckOverlapsSelf(_entityObjects);
 	CheckOverlaps(_entityObjects, _dynamicObjects);
 	CheckOverlapsSelf(_dynamicObjects);
+
+	// Check overlap and handle interactions with triggers
+	CheckOverlaps(_entityObjects, _triggerObjects);
+	CheckOverlaps(_dynamicObjects, _triggerObjects);
 }
 
 void PhysicsManager::ApplyGravity(const std::vector<LevelObject*>& objects, const float deltaTime)
@@ -83,7 +88,7 @@ void PhysicsManager::MoveAndResolveCollisionsX(const std::vector<LevelObject*>& 
 			float t;
 			if (!SweepX(bounds, dx, breakable, t)) continue;
 
-			if (fabsf(vel) >= breakable->GetBreakableBreakSpeed())
+			if (o->GetVelocityMagnitude() >= breakable->GetBreakableBreakSpeed())
 			{
 				breakable->BreakableBreak(o);
 				_levelManager->UpdateAutotileNeighbors((int)breakable->GetPosition().x, (int)breakable->GetPosition().y);
@@ -291,7 +296,7 @@ void PhysicsManager::MoveAndResolveCollisionsY(const std::vector<LevelObject*>& 
 			float t;
 			if (!SweepY(startBounds, dy, breakable, t)) continue;
 
-			if (fabsf(vel) >= breakable->GetBreakableBreakSpeed())
+			if (o->GetVelocityMagnitude() >= breakable->GetBreakableBreakSpeed())
 			{
 				breakable->BreakableBreak(o);
 				_levelManager->UpdateAutotileNeighbors((int)breakable->GetPosition().x, (int)breakable->GetPosition().y);
