@@ -37,10 +37,10 @@ public:
 	float GetVelocityMagnitude() const { return Vector2Length(_velocity); }
 	float GetVelocityX() const { return _velocity.x; }
 	float GetVelocityY() const { return _velocity.y; }
-	void SetVelocityX(const float x) { _velocity.x = x; }
-	void SetVelocityY(const float y) { _velocity.y = y; }
-	void AddVelocityX(const float x) { _velocity.x += x; }
-	void AddVelocityY(const float y) { _velocity.y += y; }
+	void SetVelocityX(const float x) { _velocity.x = x; ClampVelocityX(); }
+	void SetVelocityY(const float y) { _velocity.y = y; ClampVelocityY(); }
+	void AddVelocityX(const float x) { _velocity.x += x; ClampVelocityX(); }
+	void AddVelocityY(const float y) { _velocity.y += y; ClampVelocityY(); }
 
 	void ApplyVelocityX(const float deltaTime) { _bounds.x += _velocity.x * deltaTime; }
 	void ApplyVelocityY(const float deltaTime) { _bounds.y += _velocity.y * deltaTime; }
@@ -62,7 +62,7 @@ public:
 
 	virtual void BreakableBreak(const LevelObject* other) { }
 	virtual bool GetBreakableIsBroken() const { return false; }
-	virtual float GetBreakableBreakSpeed() const { return 30.0f; }
+	virtual float GetBreakableBreakSpeed() const { return kTerminalVelocityX; }
 
 protected:
 	Rectangle _bounds{};
@@ -73,7 +73,11 @@ protected:
 	bool _isGrounded{ false };
 
 private:
+	void ClampVelocityX() { if (_velocity.x > kTerminalVelocityX) _velocity.x = kTerminalVelocityX; if (_velocity.x < -kTerminalVelocityX) _velocity.x = -kTerminalVelocityX; }
+	void ClampVelocityY() { if (_velocity.y > kTerminalVelocityY) _velocity.y = kTerminalVelocityY; if (_velocity.y < -kTerminalVelocityY) _velocity.y = -kTerminalVelocityY; }
 
+	static constexpr float kTerminalVelocityX = 30.0f;
+	static constexpr float kTerminalVelocityY = 30.0f;
 };
 
 #endif
