@@ -26,7 +26,7 @@ void PhysicsManager::Update(const float deltaTime, const LevelManager& levelMana
 
 	// Move objects on X and resolve collisions
 	MoveAndResolveCollisionsX(_entityObjects, deltaTime, false, false);
-	MoveAndResolveCollisionsX(_dynamicObjects, deltaTime, true, true);
+	MoveAndResolveCollisionsX(_dynamicObjects, deltaTime, true, false);
 
 	// Move objects on Y and resolve collisions
 	MoveAndResolveCollisionsY(_entityObjects, deltaTime);
