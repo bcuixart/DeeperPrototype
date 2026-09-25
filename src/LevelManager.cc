@@ -430,20 +430,25 @@ void LevelManager::SetTileSideCollisionMask(int x, int y)
 
     bool hasN = false, hasS = false, hasW = false, hasE = false;
 
-    if (y > 0) 
+    if (x > 0)
+        hasW = _levelTiles[y][x - 1] && (_levelTiles[y][x - 1]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y][x - 1]->GetTileType() == LevelObjectTileType::Slope || _levelTiles[y][x - 1]->GetTileType() == LevelObjectTileType::Dirt);
+    if (x < _levelWidth - 1)
+        hasE = _levelTiles[y][x + 1] && (_levelTiles[y][x + 1]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y][x + 1]->GetTileType() == LevelObjectTileType::Slope || _levelTiles[y][x + 1]->GetTileType() == LevelObjectTileType::Dirt);
+    if (y > 0)
     {
         hasN = _levelTiles[y - 1][x] && (_levelTiles[y - 1][x]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y - 1][x]->GetTileType() == LevelObjectTileType::Slope || _levelTiles[y - 1][x]->GetTileType() == LevelObjectTileType::Dirt);
-        if (_levelTiles[y - 1][x] && IsTileSlope(x, y - 1)) hasN = false;
+        if (_levelTiles[y - 1][x] && IsTileSlope(x, y - 1))
+        {
+            // Disable internal top collision unless the slope above it ends
+			// This fixes clipping into ending slopes whilst not interfering with slope sliding behavior
+			if (hasE != hasW || (!hasE && !hasW)) hasN = false;
+        }
     }
     if (y < _levelHeight - 1)
     {
         hasS = _levelTiles[y + 1][x] && (_levelTiles[y + 1][x]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y + 1][x]->GetTileType() == LevelObjectTileType::Slope || _levelTiles[y + 1][x]->GetTileType() == LevelObjectTileType::Dirt);
         if (_levelTiles[y + 1][x] && IsTileSlope(x, y + 1)) hasS = false;
     }
-    if (x > 0)
-        hasW = _levelTiles[y][x - 1] && (_levelTiles[y][x - 1]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y][x - 1]->GetTileType() == LevelObjectTileType::Slope || _levelTiles[y][x - 1]->GetTileType() == LevelObjectTileType::Dirt);
-    if (x < _levelWidth - 1)
-        hasE = _levelTiles[y][x + 1] && (_levelTiles[y][x + 1]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y][x + 1]->GetTileType() == LevelObjectTileType::Slope || _levelTiles[y][x + 1]->GetTileType() == LevelObjectTileType::Dirt);
 
     tile->SetSolidSideCollisionMask(SOLID_SIDE_LEFT, !hasW);
     tile->SetSolidSideCollisionMask(SOLID_SIDE_TOP, !hasN);

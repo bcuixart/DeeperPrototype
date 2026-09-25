@@ -10,4 +10,4 @@ Eventually it will also feature online multiplayer.
 ## Non-obvious to-do list (Things I could very well forget):
 - [ ] Fix physics slope sweeping on X axis.
 - [ ] Determine how digging priorities are handled.
-- [ ] Fix digging not detecting slopes properly.
+- [ ] Fix weird crash in some levels.
