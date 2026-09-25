@@ -591,14 +591,15 @@ LevelObject* PhysicsManager::GetDugObjectAt(const Vector2& position, LevelObject
 		if (CanObjectBeDug(entity, position, digger)) return entity;
 	}
 
-	for (LevelObject* solid : _solidObjects)
-	{
-		if (CanObjectBeDug(solid, position, digger)) return solid;
-	}
-
+	// Slopes must be checked before regular solids
 	for (LevelObject* solidMaybeSloped : _solidMaybeSlopedObjects)
 	{
 		if (CanObjectBeDug(solidMaybeSloped, position, digger)) return solidMaybeSloped;
+	}
+
+	for (LevelObject* solid : _solidObjects)
+	{
+		if (CanObjectBeDug(solid, position, digger)) return solid;
 	}
 
 	for (LevelObject* solidBreakable : _solidBreakableObjects)
@@ -622,9 +623,12 @@ LevelObject* PhysicsManager::GetDugObjectAt(const Vector2& position, LevelObject
 bool PhysicsManager::CanObjectBeDug(LevelObject* object, const Vector2& position, LevelObject* digger) const
 {
 	if (object == digger) return false;
+	if (object == nullptr) return false;
 
 	const Rectangle bounds = object->GetBounds();
 	if (position.x < bounds.x || position.x > bounds.x + bounds.width) return false;
+
+	if (object->HasActualSlopedHitbox()) return CanSlopedObjectBeDug(object, position);
 
 	// To check if we're digging from the top, we check the position with a small epsilon above and below
 	constexpr float kDigVerticalTolerance = 0.1f;
@@ -636,4 +640,16 @@ bool PhysicsManager::CanObjectBeDug(LevelObject* object, const Vector2& position
 	const float objectTop = objectBoundsTopBottom.x;
 
 	return (digYTop <= objectTop && digYBottom >= objectTop);
+}
+
+bool PhysicsManager::CanSlopedObjectBeDug(LevelObject* object, const Vector2& position) const
+{
+	constexpr float kSlopeDigTolerance = 1.0f;
+	const float digY = position.y;
+
+	const Vector2 objectBoundsTopBottom = object->SampleTopBottomAtX(position.x);
+	const float objectTop    = objectBoundsTopBottom.x;
+	const float objectBottom = objectBoundsTopBottom.y;
+
+	return digY <= objectTop + kSlopeDigTolerance && digY >= objectBottom - kSlopeDigTolerance;
 }

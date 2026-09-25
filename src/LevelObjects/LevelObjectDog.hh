@@ -23,13 +23,17 @@ public:
 
 private:
     void Update_Default(const float deltaTime);
-    void Update_SlidingLeft(const float deltaTime);
-    void Update_SlidingRight(const float deltaTime);
+    void Update_Sliding(const float deltaTime, bool isSlidingLeft);
     void Update_InDirt(const float deltaTime);
     void Update_Flung(const float deltaTime);
 
     static constexpr float kWidth = 0.7f;
     static constexpr float kHeight = 0.5f;
+
+    static constexpr float kWalkSpeed = 10.0f;
+
+    static constexpr float kSlideInitialSpeed = 0.5f;
+    static constexpr float kSlideAcceleration = 10.0f;
 
     static constexpr float kDigHorizontalOffset = 0.01f;
 

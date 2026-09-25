@@ -40,6 +40,7 @@ private:
     void CheckOverlapsSelf(const std::vector<LevelObject*>& list);
 
     bool CanObjectBeDug(LevelObject* object, const Vector2& position, LevelObject* digger) const;
+    bool CanSlopedObjectBeDug(LevelObject* object, const Vector2& position) const;
 
     void RemoveObjectFromList(std::vector<LevelObject*>& list, LevelObject* obj);
 

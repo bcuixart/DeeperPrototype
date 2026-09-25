@@ -15,10 +15,10 @@ void LevelObjectDog::Update(const float deltaTime)
             Update_Default(deltaTime);
             break;
         case DogState::SlidingLeft:
-            Update_SlidingLeft(deltaTime);
+            Update_Sliding(deltaTime, true);
             break;
         case DogState::SlidingRight:
-            Update_SlidingRight(deltaTime);
+            Update_Sliding(deltaTime, false);
             break;
         case DogState::InDirt:
             Update_InDirt(deltaTime);
@@ -36,17 +36,21 @@ void LevelObjectDog::Update_Default(const float deltaTime)
         if (_isGrounded) SetVelocityY(-12.0f);
     } 
 
-    if (IsKeyDown(KEY_RIGHT)) 
+    float currentVelocityX = GetVelocityX();
+    float desiredVelocityX = 0.0f;
+
+    if (IsKeyDown(KEY_RIGHT)) desiredVelocityX = kWalkSpeed;
+    else if (IsKeyDown(KEY_LEFT)) desiredVelocityX = -kWalkSpeed;
+
+    if (desiredVelocityX != 0.0f)
     {
-        SetVelocityX(10.0f);
-    } 
-    else if (IsKeyDown(KEY_LEFT)) 
+	    const bool belowOrOpposite = fabsf(currentVelocityX) < fabsf(desiredVelocityX)
+	                                || (currentVelocityX >= 0.0f) != (desiredVelocityX >= 0.0f);
+	    if (belowOrOpposite) SetVelocityX(desiredVelocityX);
+    }
+    else if (fabsf(currentVelocityX) <= kWalkSpeed)
     {
-        SetVelocityX(-10.0f);
-    } 
-    else 
-    {
-        SetVelocityX(0.0f);
+	    SetVelocityX(0.0f);
     }
 
     if (IsKeyPressed(KEY_DOWN)) 
@@ -59,12 +63,23 @@ void LevelObjectDog::Update_Default(const float deltaTime)
     }
 }
 
-void LevelObjectDog::Update_SlidingLeft(const float deltaTime)
+void LevelObjectDog::Update_Sliding(const float deltaTime, bool isSlidingLeft)
 {
-}
+    if (GetVelocityY() <= 0.0f || GetVelocityX() == 0.0f)
+    {
+        _state = DogState::Default;
+        return;
+    }
 
-void LevelObjectDog::Update_SlidingRight(const float deltaTime)
-{
+    if (IsKeyDown(KEY_SPACE))
+    {
+        SetVelocityY(-12.0f);
+        _state = DogState::Default;
+        return;
+    }
+
+    // Move in a 45-degree angle downwards while sliding
+    AddVelocityX(isSlidingLeft ? -kSlideAcceleration * deltaTime : kSlideAcceleration * deltaTime);
 }
 
 void LevelObjectDog::Update_InDirt(const float deltaTime)
@@ -75,20 +90,32 @@ void LevelObjectDog::Update_Flung(const float deltaTime)
 {
 }
 
-
-
 void LevelObjectDog::DropThroughSemisolid(const Rectangle& semisolidBounds)
 {
+    if (_state != DogState::Default) return;
+    if (!_isGrounded) return;
+
     constexpr float kDropThroughMargin = 0.05f;
 	_bounds.y += kDropThroughMargin;
 }
 
 void LevelObjectDog::StartSlidingRight()
 {
+    std::cout << "StartSlidingRight called" << std::endl;
+    if (_state != DogState::Default) return;
+    if (!_isGrounded) return;
+
+    _state = DogState::SlidingRight;
+    SetVelocityX(kSlideInitialSpeed);
 }
 
 void LevelObjectDog::StartSlidingLeft()
 {
+    if (_state != DogState::Default) return;
+    if (!_isGrounded) return;
+
+    _state = DogState::SlidingLeft;
+    SetVelocityX(-kSlideInitialSpeed);
 }
 
 void LevelObjectDog::Render(const float deltaTime) const 
