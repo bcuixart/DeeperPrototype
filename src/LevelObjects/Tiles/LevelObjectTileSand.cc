@@ -33,6 +33,8 @@ void LevelObjectTileSand::Render(const float deltaTime) const
 
 void LevelObjectTileSand::RenderBounds(const float deltaTime, const Color& color) const
 {
+    if (_isBroken) return;
+
     if (GetSolidSideCollisionMask(SOLID_SIDE_TOP)) {
         DrawLineEx({ _bounds.x, _bounds.y }, { _bounds.x + _bounds.width, _bounds.y }, 0.025f, color);
     }

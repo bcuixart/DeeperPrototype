@@ -31,3 +31,9 @@ void LevelObjectBench001::Render(const float deltaTime) const
 
     DrawTexturePro(tex, src, dst, { 0.0f, 0.0f }, 0.0f, WHITE);
 }
+
+void LevelObjectBench001::OnDug(LevelObject* digger)
+{
+    if (LevelObjectDog* dog = dynamic_cast<LevelObjectDog*>(digger))
+		dog->DropThroughSemisolid(GetBounds());
+}

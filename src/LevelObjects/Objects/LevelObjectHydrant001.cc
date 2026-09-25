@@ -31,3 +31,29 @@ void LevelObjectHydrant001::Render(const float deltaTime) const
 
     DrawTexturePro(tex, src, dst, { 0.0f, 0.0f }, 0.0f, WHITE);
 }
+
+void LevelObjectHydrant001::CollidedWithX(LevelObject* other, float prevVelocityX)
+{
+    if (other->GetVelocityMagnitude() >= kInteractionVelocity)
+    {
+        Activate();
+    }
+}
+
+void LevelObjectHydrant001::CollidedWithY(LevelObject* other, float prevVelocityY)
+{
+    if (other->GetVelocityMagnitude() >= kInteractionVelocity)
+    {
+        Activate();
+    }
+}
+
+void LevelObjectHydrant001::OnDug(LevelObject* digger)
+{
+    Activate();
+}
+
+void LevelObjectHydrant001::Activate()
+{
+    std::cout << "Hydrant activated!" << std::endl;
+}

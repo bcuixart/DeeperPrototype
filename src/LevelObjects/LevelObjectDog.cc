@@ -9,6 +9,28 @@ LevelObjectDog::LevelObjectDog(const Vector2& position, LevelManager* levelManag
 
 void LevelObjectDog::Update(const float deltaTime) 
 {
+    switch (_state)
+    {
+        case DogState::Default:
+            Update_Default(deltaTime);
+            break;
+        case DogState::SlidingLeft:
+            Update_SlidingLeft(deltaTime);
+            break;
+        case DogState::SlidingRight:
+            Update_SlidingRight(deltaTime);
+            break;
+        case DogState::InDirt:
+            Update_InDirt(deltaTime);
+            break;
+        case DogState::Flung:
+            Update_Flung(deltaTime);
+            break;
+    }
+}
+
+void LevelObjectDog::Update_Default(const float deltaTime)
+{
     if (IsKeyDown(KEY_SPACE)) 
     {
         if (_isGrounded) SetVelocityY(-12.0f);
@@ -35,6 +57,38 @@ void LevelObjectDog::Update(const float deltaTime)
                                         { _bounds.x + _bounds.width - kDigHorizontalOffset, _bounds.y + _bounds.height });
         }
     }
+}
+
+void LevelObjectDog::Update_SlidingLeft(const float deltaTime)
+{
+}
+
+void LevelObjectDog::Update_SlidingRight(const float deltaTime)
+{
+}
+
+void LevelObjectDog::Update_InDirt(const float deltaTime)
+{
+}
+
+void LevelObjectDog::Update_Flung(const float deltaTime)
+{
+}
+
+
+
+void LevelObjectDog::DropThroughSemisolid(const Rectangle& semisolidBounds)
+{
+    constexpr float kDropThroughMargin = 0.005f;
+	_bounds.y = semisolidBounds.y + kDropThroughMargin;
+}
+
+void LevelObjectDog::StartSlidingRight()
+{
+}
+
+void LevelObjectDog::StartSlidingLeft()
+{
 }
 
 void LevelObjectDog::Render(const float deltaTime) const 

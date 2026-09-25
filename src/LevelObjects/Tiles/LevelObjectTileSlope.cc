@@ -125,3 +125,17 @@ void LevelObjectTileSlope::SetSpriteIndex(uint8_t idx)
         }
     }
 }
+
+void LevelObjectTileSlope::OnDug(LevelObject* digger)
+{
+    std::cout << "Dog dug the slope tile!" << std::endl;
+    switch (_slopeOrientation)
+    {
+        case SlopeOrientation::RisingRight:
+            std::cout << "Sliding to the left!" << std::endl; break;
+        case SlopeOrientation::RisingLeft:
+            std::cout << "Sliding to the right!" << std::endl; break;
+        default:
+            break;
+    }
+}

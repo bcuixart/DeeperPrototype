@@ -15,6 +15,8 @@ public:
 
 	LevelObjectTileType GetTileType() const override;
 
+	void OnDug(LevelObject* digger) override;
+
 protected:
 
 private:
