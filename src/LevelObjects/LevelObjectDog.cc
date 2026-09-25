@@ -106,7 +106,8 @@ void LevelObjectDog::StartSlidingRight()
     if (!_isGrounded) return;
 
     _state = DogState::SlidingRight;
-    SetVelocityX(kSlideInitialSpeed);
+    if (GetVelocityX() == 0.0f) SetVelocityX(kSlideInitialSpeed);
+    if (GetVelocityY() == 0.0f) SetVelocityY(kSlideInitialSpeed);
 }
 
 void LevelObjectDog::StartSlidingLeft()
@@ -115,7 +116,8 @@ void LevelObjectDog::StartSlidingLeft()
     if (!_isGrounded) return;
 
     _state = DogState::SlidingLeft;
-    SetVelocityX(-kSlideInitialSpeed);
+    if (GetVelocityX() == 0.0f) SetVelocityX(-kSlideInitialSpeed);
+    if (GetVelocityY() == 0.0f) SetVelocityY(kSlideInitialSpeed);
 }
 
 void LevelObjectDog::Render(const float deltaTime) const 
