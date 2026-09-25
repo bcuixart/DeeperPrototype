@@ -79,13 +79,13 @@ void LevelManager::LoadLevel(const std::string& levelName)
             switch (row[j]) {
             case 'G': InstantiateLevelTile(std::make_unique<LevelObjectTileGround>(pos), i, j); break;
             case 's': InstantiateLevelTile(std::make_unique<LevelObjectTileSlope>(pos), i, j); break;
-            case 'S': InstantiateLevelTile(std::make_unique<LevelObjectTileSand>(pos), i, j); break;
+            case 'S': InstantiateLevelTile(std::make_unique<LevelObjectTileSand>(pos, this), i, j); break;
             case 'd': InstantiateLevelTile(std::make_unique<LevelObjectTileDirt>(pos), i, j); break;
             case 'B': InstantiateLevelTile(std::make_unique<LevelObjectTileBridge>(pos), i, j); break;
             case 't': InstantiateLevelObject(std::make_unique<LevelObjectBallTennis>(pos)); break;
             case 'h': InstantiateLevelObject(std::make_unique<LevelObjectHydrant001>(pos)); break;
             case 'b': InstantiateLevelObject(std::make_unique<LevelObjectBench001>(pos)); break;
-			case 'D': InstantiateLevelObject(std::make_unique<LevelObjectDogHouse>(pos)); InstantiateLevelObject(std::make_unique<LevelObjectDog>(pos));  break;
+			case 'D': InstantiateLevelObject(std::make_unique<LevelObjectDogHouse>(pos)); InstantiateLevelObject(std::make_unique<LevelObjectDog>(pos, this));  break;
             default:  break;
             }
         }
@@ -108,6 +108,28 @@ int LevelManager::GetLevelWidth() const
 int LevelManager::GetLevelHeight() const
 {
 	return _levelHeight;
+}
+
+void LevelManager::DigAt(LevelObjectDog* digger, const Vector2& dogFeetPositionLeft, const Vector2& dogFeetPositionRight)
+{
+    LevelObject* dugObjectLeft = _physicsManager->GetDugObjectAt(dogFeetPositionLeft, digger);
+    LevelObject* dugObjectRight = _physicsManager->GetDugObjectAt(dogFeetPositionRight, digger);
+
+    if (dugObjectLeft != nullptr && dugObjectRight != nullptr)
+    {
+        if (dugObjectLeft == dugObjectRight) dugObjectLeft->OnDug(digger);
+        else
+        {
+            // He de pensar com resoldre aixo.
+            // Si els dos son semisolids, d'entrada cap problema
+            // Pero si un es terra i l'altre no?
+            // Hi ha moltes combinacions possibles, i no se si es correcte que el gos pugui cavar a terra i a un semisolid alhora.
+            dugObjectLeft->OnDug(digger);
+            dugObjectRight->OnDug(digger);
+        }
+    }
+    else if (dugObjectLeft != nullptr) dugObjectLeft->OnDug(digger);
+    else if (dugObjectRight != nullptr) dugObjectRight->OnDug(digger);
 }
 
 LevelObjectTileType LevelManager::GetTileTypeAt(const Vector2& position) const

@@ -60,6 +60,8 @@ public:
 
 	virtual bool HasActualSlopedHitbox() const { return false; }
 
+	virtual void OnDug(LevelObject* digger) { }
+
 	virtual void BreakableBreak(const LevelObject* other) { }
 	virtual bool GetBreakableIsBroken() const { return false; }
 	virtual float GetBreakableBreakSpeed() const { return kTerminalVelocityX; }
@@ -71,6 +73,8 @@ protected:
 	uint8_t _solidSidecollisionMask{ SOLID_SIDE_LEFT | SOLID_SIDE_RIGHT | SOLID_SIDE_TOP | SOLID_SIDE_BOTTOM };
 
 	bool _isGrounded{ false };
+
+	static constexpr float kInteractionVelocity = 15.0f;
 
 private:
 	void ClampVelocityX() { if (_velocity.x > kTerminalVelocityX) _velocity.x = kTerminalVelocityX; if (_velocity.x < -kTerminalVelocityX) _velocity.x = -kTerminalVelocityX; }

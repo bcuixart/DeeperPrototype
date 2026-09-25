@@ -1,9 +1,9 @@
 #include "LevelObjectTileSand.hh"
-#include "GameManager.hh"
+#include "LevelManager.hh"
 
-LevelObjectTileSand::LevelObjectTileSand(const Vector2& position) : LevelObjectTile(position)
+LevelObjectTileSand::LevelObjectTileSand(const Vector2& position, LevelManager* levelManager) : LevelObjectTile(position)
 {
-
+    _levelManager = levelManager;
 }
 
 LevelObjectTileSand::~LevelObjectTileSand()
@@ -57,4 +57,6 @@ void LevelObjectTileSand::BreakableBreak(const LevelObject* other)
     if (_isBroken) return;
 
     _isBroken = true;
+
+    _levelManager->UpdateAutotileNeighbors((int)GetPosition().x, (int)GetPosition().y);
 }

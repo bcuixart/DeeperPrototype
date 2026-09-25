@@ -41,6 +41,8 @@ public:
 
 	void UpdateAutotileNeighbors(int x, int y);
 
+	void DigAt(LevelObjectDog* digger, const Vector2& dogFeetPositionLeft, const Vector2& dogFeetPositionRight);
+
 protected:
 
 private:

@@ -1,8 +1,10 @@
 #include "LevelObjectDog.hh"
+#include "LevelManager.hh"
 
-LevelObjectDog::LevelObjectDog(const Vector2& position)
+LevelObjectDog::LevelObjectDog(const Vector2& position, LevelManager* levelManager)
 {
     _bounds = { position.x, position.y, kWidth, kHeight };
+    _levelManager = levelManager;
 }
 
 void LevelObjectDog::Update(const float deltaTime) 
@@ -24,6 +26,15 @@ void LevelObjectDog::Update(const float deltaTime)
     {
         SetVelocityX(0.0f);
     }
+
+    if (IsKeyPressed(KEY_DOWN)) 
+    {
+        if (_isGrounded)
+        {
+            _levelManager->DigAt(this, { _bounds.x + kDigHorizontalOffset, _bounds.y + _bounds.height }, 
+                                        { _bounds.x + _bounds.width - kDigHorizontalOffset, _bounds.y + _bounds.height });
+        }
+    }
 }
 
 void LevelObjectDog::Render(const float deltaTime) const 
@@ -41,4 +52,7 @@ void LevelObjectDog::Render(const float deltaTime) const
     };
 
     DrawTexturePro(tex, src, dst, { 0.0f, 0.0f }, 0.0f, WHITE);
+    
+    DrawCircleV({ _bounds.x + kDigHorizontalOffset, _bounds.y + _bounds.height }, 0.1f, RED);
+    DrawCircleV({ _bounds.x + _bounds.width - kDigHorizontalOffset, _bounds.y + _bounds.height }, 0.1f, RED);
 }

@@ -5,7 +5,7 @@
 
 class LevelObjectDog : public LevelObject {
 public:
-    LevelObjectDog(const Vector2& position);
+    LevelObjectDog(const Vector2& position, LevelManager* levelManager);
 
     void Update(const float deltaTime) override;
     void Render(const float deltaTime) const override;
@@ -15,6 +15,10 @@ public:
 private:
     static constexpr float kWidth = 0.7f;
     static constexpr float kHeight = 0.5f;
+
+    static constexpr float kDigHorizontalOffset = 0.1f;
+
+    LevelManager* _levelManager;
 };
 
 #endif

@@ -12,6 +12,11 @@ public:
 
     HitboxType GetHitboxType() const override { return HitboxType::SemisolidPartial; }
 
+    void OnCollidedWithX(LevelObject* other, float prevVelocityX) override;
+    void OnCollidedWithY(LevelObject* other, float prevVelocityY) override;
+
+    void OnDug(LevelObject* digger) override;
+
 private:
     static constexpr float kWidth = 0.5f;
     static constexpr float kHeight = 1.25f;

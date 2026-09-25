@@ -5,7 +5,7 @@
 
 class LevelObjectTileSand : public LevelObjectTile {
 public:
-	LevelObjectTileSand(const Vector2& position);
+	LevelObjectTileSand(const Vector2& position, LevelManager* levelManager);
 	~LevelObjectTileSand();
 
 	void Update(const float deltaTime) override;
@@ -20,9 +20,13 @@ public:
 	bool GetBreakableIsBroken() const override { return _isBroken; }
 	float GetBreakableBreakSpeed() const override { return 20.0f; }
 
+	void OnDug(LevelObject* digger) override { BreakableBreak(digger); }
+
 protected:
 
 private:
+	LevelManager* _levelManager{nullptr};
+
 	bool _isBroken{false};
 };
 

@@ -91,7 +91,6 @@ void PhysicsManager::MoveAndResolveCollisionsX(const std::vector<LevelObject*>& 
 			if (o->GetVelocityMagnitude() >= breakable->GetBreakableBreakSpeed())
 			{
 				breakable->BreakableBreak(o);
-				_levelManager->UpdateAutotileNeighbors((int)breakable->GetPosition().x, (int)breakable->GetPosition().y);
 				continue; // Ignore collision if it goes fast enough to break it
 			}
 
@@ -299,7 +298,6 @@ void PhysicsManager::MoveAndResolveCollisionsY(const std::vector<LevelObject*>& 
 			if (o->GetVelocityMagnitude() >= breakable->GetBreakableBreakSpeed())
 			{
 				breakable->BreakableBreak(o);
-				_levelManager->UpdateAutotileNeighbors((int)breakable->GetPosition().x, (int)breakable->GetPosition().y);
 				continue; // Ignore collision if it goes fast enough to break it
 			}
 
@@ -582,4 +580,60 @@ void PhysicsManager::UnregisterObject(LevelObject* object)
 void PhysicsManager::RemoveObjectFromList(std::vector<LevelObject*>& list, LevelObject* obj)
 {
 	list.erase(std::remove(list.begin(), list.end(), obj), list.end());
+}
+
+LevelObject* PhysicsManager::GetDugObjectAt(const Vector2& position, LevelObject* digger) const
+{
+	// In theory, order does not matter since static objects do not overlap vertically
+	// But since entities can move, it makes sense to check them first
+	for (LevelObject* entity : _entityObjects)
+	{
+		if (CanObjectBeDug(entity, position, digger)) return entity;
+	}
+
+	for (LevelObject* solid : _solidObjects)
+	{
+		if (CanObjectBeDug(solid, position, digger)) return solid;
+	}
+
+	for (LevelObject* solidMaybeSloped : _solidMaybeSlopedObjects)
+	{
+		if (CanObjectBeDug(solidMaybeSloped, position, digger)) return solidMaybeSloped;
+	}
+
+	for (LevelObject* solidBreakable : _solidBreakableObjects)
+	{
+		if (CanObjectBeDug(solidBreakable, position, digger)) return solidBreakable;
+	}
+
+	for (LevelObject* semisolidTotal : _semisolidTotalObjects)
+	{
+		if (CanObjectBeDug(semisolidTotal, position, digger)) return semisolidTotal;
+	}
+
+	for (LevelObject* semisolidPartial : _semisolidPartialObjects)
+	{
+		if (CanObjectBeDug(semisolidPartial, position, digger)) return semisolidPartial;
+	}
+
+	return nullptr;
+}
+
+bool PhysicsManager::CanObjectBeDug(LevelObject* object, const Vector2& position, LevelObject* digger) const
+{
+	if (object == digger) return false;
+
+	const Rectangle bounds = object->GetBounds();
+	if (position.x < bounds.x || position.x > bounds.x + bounds.width) return false;
+
+	// To check if we're digging from the top, we check the position with a small epsilon above and below
+	constexpr float kDigVerticalTolerance = 0.1f;
+	const float digYTop    = position.y - kDigVerticalTolerance;
+	const float digYBottom = position.y + kDigVerticalTolerance;
+
+	// This accounts for slopes. Nice!
+	const Vector2 objectBoundsTopBottom = object->SampleTopBottomAtX(position.x);
+	const float objectTop = objectBoundsTopBottom.x;
+
+	return (digYTop <= objectTop && digYBottom >= objectTop);
 }

@@ -18,6 +18,8 @@ public:
     void RegisterObject(LevelObject* object);
     void UnregisterObject(LevelObject* object);
 
+    LevelObject* GetDugObjectAt(const Vector2& position, LevelObject* digger) const;
+
 protected:
     
 private:
@@ -36,6 +38,8 @@ private:
 
     void CheckOverlaps(const std::vector<LevelObject*>& listA, const std::vector<LevelObject*>& listB);
     void CheckOverlapsSelf(const std::vector<LevelObject*>& list);
+
+    bool CanObjectBeDug(LevelObject* object, const Vector2& position, LevelObject* digger) const;
 
     void RemoveObjectFromList(std::vector<LevelObject*>& list, LevelObject* obj);
 
