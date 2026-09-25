@@ -79,8 +79,8 @@ void LevelObjectDog::Update_Flung(const float deltaTime)
 
 void LevelObjectDog::DropThroughSemisolid(const Rectangle& semisolidBounds)
 {
-    constexpr float kDropThroughMargin = 0.005f;
-	_bounds.y = semisolidBounds.y + kDropThroughMargin;
+    constexpr float kDropThroughMargin = 0.05f;
+	_bounds.y += kDropThroughMargin;
 }
 
 void LevelObjectDog::StartSlidingRight()
