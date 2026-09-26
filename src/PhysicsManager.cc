@@ -24,13 +24,9 @@ void PhysicsManager::Update(const float deltaTime)
 	// Apply force fields
 
 
-	// Move objects on X and resolve collisions
-	MoveAndResolveCollisionsX(_entityObjects, deltaTime, false, false);
-	MoveAndResolveCollisionsX(_dynamicObjects, deltaTime, true, true);
-
-	// Move objects on Y and resolve collisions
-	MoveAndResolveCollisionsY(_entityObjects, deltaTime, false, true);
-	MoveAndResolveCollisionsY(_dynamicObjects, deltaTime, true, false);
+	// Move objects and resolve collisions
+	MoveAndResolveMovement(_entityObjects, deltaTime, false, false, false, true);
+	MoveAndResolveMovement(_dynamicObjects, deltaTime, true, true, true, false);
 
 	// Check overlap and handle interactions between entities and dynamics
 	CheckOverlapsSelf(_entityObjects);
@@ -47,82 +43,89 @@ void PhysicsManager::ApplyGravity(const std::vector<LevelObject*>& objects, cons
 	for (LevelObject* o : objects) o->AddVelocityY(kGravity * deltaTime);
 }
 
-void PhysicsManager::MoveAndResolveCollisionsX(const std::vector<LevelObject*>& objects, const float deltaTime, bool affectedByPartialSemisolids, bool blockedByRealSlopes)
+void PhysicsManager::MoveAndResolveMovement(const std::vector<LevelObject*>& objects, const float deltaTime, 
+	bool affectedByPartialSemisolidsX, bool blockedByRealSlopesX, bool checkSemisolidPartialBottom, bool affectedByEntitiesTop)
 {
 	for (LevelObject* o : objects)
 	{
-		float vel = o->GetVelocityX();
-		if (vel == 0.0f) continue;
+		MoveAndResolveCollisionsX(o, deltaTime, affectedByPartialSemisolidsX, blockedByRealSlopesX);
+		MoveAndResolveCollisionsY(o, deltaTime, checkSemisolidPartialBottom, affectedByEntitiesTop);
+	}
+}
 
-		Rectangle bounds = o->GetBounds();
+void PhysicsManager::MoveAndResolveCollisionsX(LevelObject* object, const float deltaTime, bool affectedByPartialSemisolids, bool blockedByRealSlopes)
+{
+	float vel = object->GetVelocityX();
+	if (vel == 0.0f) return;
 
-		// We sweep against all non-sloped tiles to find the proportion of dx (tMin) of the first collision.
-		const float dx = vel * deltaTime;
-		float tMin = 1.0f;
-		bool hitFound = false;
-		LevelObject* hitObject = nullptr;
+	Rectangle bounds = object->GetBounds();
 
-		for (LevelObject* solid : _solidObjects)
+	// We sweep against all non-sloped tiles to find the proportion of dx (tMin) of the first collision.
+	const float dx = vel * deltaTime;
+	float tMin = 1.0f;
+	bool hitFound = false;
+	LevelObject* hitObject = nullptr;
+
+	for (LevelObject* solid : _solidObjects)
+	{
+		float t;
+		if (SweepX(bounds, dx, solid, t) && t < tMin) { tMin = t; hitFound = true; hitObject = solid;}
+	}
+
+	for (LevelObject* slope : _solidMaybeSlopedObjects)
+	{
+		float t;
+		if (slope->HasActualSlopedHitbox())
+		{
+			if (blockedByRealSlopes && SweepXSlope(bounds, dx, slope, t) && t < tMin) { tMin = t; hitFound = true; hitObject = slope; }
+		}
+		else
+		{
+			if (SweepX(bounds, dx, slope, t) && t < tMin) { tMin = t; hitFound = true; hitObject = slope; }
+		}
+	}
+
+	for (LevelObject* breakable : _solidBreakableObjects)
+	{
+		if (breakable->GetBreakableIsBroken()) continue;
+
+		float t;
+		if (!SweepX(bounds, dx, breakable, t)) continue;
+
+		if (object->GetVelocityMagnitude() >= breakable->GetBreakableBreakSpeed())
+		{
+			breakable->BreakableBreak(object);
+			continue; // Ignore collision if it goes fast enough to break it
+		}
+
+		if (t < tMin) { tMin = t; hitFound = true; hitObject = breakable; }
+	}
+
+	if (affectedByPartialSemisolids)
+	{
+		for (LevelObject* semisolidPartial : _semisolidPartialObjects)
 		{
 			float t;
-			if (SweepX(bounds, dx, solid, t) && t < tMin) { tMin = t; hitFound = true; hitObject = solid;}
+			if (SweepX(bounds, dx, semisolidPartial, t) && t < tMin) { tMin = t; hitFound = true; hitObject = semisolidPartial; }
 		}
+	}
 
-		for (LevelObject* slope : _solidMaybeSlopedObjects)
-		{
-			float t;
-			if (slope->HasActualSlopedHitbox())
-			{
-				if (blockedByRealSlopes && SweepXSlope(bounds, dx, slope, t) && t < tMin) { tMin = t; hitFound = true; hitObject = slope; }
-			}
-			else
-			{
-				if (SweepX(bounds, dx, slope, t) && t < tMin) { tMin = t; hitFound = true; hitObject = slope; }
-			}
-		}
+	// Move the object to the new position based on tMin
+	object->SetBoundsX(bounds.x + dx * tMin);
+	if (hitFound)
+	{
+		object->SetVelocityX(0.0f);
+		object->CollidedWithX(hitObject, vel);
+		if (hitObject) hitObject->CollidedWithX(object, vel);
+	}
 
-		for (LevelObject* breakable : _solidBreakableObjects)
-		{
-			if (breakable->GetBreakableIsBroken()) continue;
-
-			float t;
-			if (!SweepX(bounds, dx, breakable, t)) continue;
-
-			if (o->GetVelocityMagnitude() >= breakable->GetBreakableBreakSpeed())
-			{
-				breakable->BreakableBreak(o);
-				continue; // Ignore collision if it goes fast enough to break it
-			}
-
-			if (t < tMin) { tMin = t; hitFound = true; hitObject = breakable; }
-		}
-
-		if (affectedByPartialSemisolids)
-		{
-			for (LevelObject* semisolidPartial : _semisolidPartialObjects)
-			{
-				float t;
-				if (SweepX(bounds, dx, semisolidPartial, t) && t < tMin) { tMin = t; hitFound = true; hitObject = semisolidPartial; }
-			}
-		}
-
-		// Move the object to the new position based on tMin
-		o->SetBoundsX(bounds.x + dx * tMin);
-		if (hitFound)
-		{
-			o->SetVelocityX(0.0f);
-			o->CollidedWithX(hitObject, vel);
-			if (hitObject) hitObject->CollidedWithX(o, vel);
-		}
-
-		// After moving, we check for collisions with actually sloped tiles and resolve them if necessary.
-		// This is done after the initial move to ensure that we handle slopes correctly, especially if the object is moving into a slope.
-		bounds = o->GetBounds();
-		for (LevelObject* solidMaybeSloped : _solidMaybeSlopedObjects)
-		{
-			if (!solidMaybeSloped->HasActualSlopedHitbox()) continue;
-			if (CheckAndResolveCollisionXSlope(solidMaybeSloped, o, blockedByRealSlopes, vel)) bounds = o->GetBounds();
-		}
+	// After moving, we check for collisions with actually sloped tiles and resolve them if necessary.
+	// This is done after the initial move to ensure that we handle slopes correctly, especially if the object is moving into a slope.
+	bounds = object->GetBounds();
+	for (LevelObject* solidMaybeSloped : _solidMaybeSlopedObjects)
+	{
+		if (!solidMaybeSloped->HasActualSlopedHitbox()) continue;
+		if (CheckAndResolveCollisionXSlope(solidMaybeSloped, object, blockedByRealSlopes, vel)) bounds = object->GetBounds();
 	}
 }
 
@@ -262,96 +265,93 @@ bool PhysicsManager::CheckAndResolveCollisionXSlope(LevelObject* slopeObject, Le
     return false;
 }
 
-void PhysicsManager::MoveAndResolveCollisionsY(const std::vector<LevelObject*>& objects, const float deltaTime, bool checkSemisolidPartialBottom, bool affectedByEntitiesTop)
+void PhysicsManager::MoveAndResolveCollisionsY(LevelObject* object, const float deltaTime, bool checkSemisolidPartialBottom, bool affectedByEntitiesTop)
 {
-	for (LevelObject* o : objects)
+	float vel = object->GetVelocityY();
+	if (vel == 0.0f) return;
+
+	Rectangle startBounds = object->GetBounds();
+
+	// We sweep against all non-sloped tiles to find the proportion of dy (tMin) of the first collision.
+	const float dy = vel * deltaTime;
+	float tMin = 1.0f;
+	bool hitFound = false;
+	bool willGround = false;
+	LevelObject* hitObject = nullptr;
+
+	for (LevelObject* solid : _solidObjects)
 	{
-		float vel = o->GetVelocityY();
-		if (vel == 0.0f) continue;
+		float t;
+		if (SweepY(startBounds, dy, solid, t) && t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; hitObject = solid; }
+	}
 
-		Rectangle startBounds = o->GetBounds();
+	for (LevelObject* slope : _solidMaybeSlopedObjects)
+	{
+		float t;
+		if (slope->HasActualSlopedHitbox()) { if (SweepYSlope(startBounds, dy, slope, t) && t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; hitObject = slope; } }
+		else { if (SweepY(startBounds, dy, slope, t) && t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; hitObject = slope; } }
+	}
 
-		// We sweep against all non-sloped tiles to find the proportion of dy (tMin) of the first collision.
-		const float dy = vel * deltaTime;
-		float tMin = 1.0f;
-		bool hitFound = false;
-		bool willGround = false;
-		LevelObject* hitObject = nullptr;
+	for (LevelObject* breakable : _solidBreakableObjects)
+	{
+		if (breakable->GetBreakableIsBroken()) continue;
 
-		for (LevelObject* solid : _solidObjects)
+		float t;
+		if (!SweepY(startBounds, dy, breakable, t)) continue;
+
+		if (object->GetVelocityMagnitude() >= breakable->GetBreakableBreakSpeed())
 		{
+			breakable->BreakableBreak(object);
+			continue; // Ignore collision if it goes fast enough to break it
+		}
+
+		if (t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; hitObject = breakable; }
+	}
+
+	for (LevelObject* semisolidTotal : _semisolidTotalObjects)
+	{
+		float t;
+		if (SweepYOnlyFromTop(startBounds, dy, semisolidTotal, t) && t < tMin) { tMin = t; hitFound = true; willGround = true; hitObject = semisolidTotal; }
+	}
+
+	for (LevelObject* semisolidPartial : _semisolidPartialObjects)
+	{
+		float t;
+		if (checkSemisolidPartialBottom) {
+			if (SweepY(startBounds, dy, semisolidPartial, t) && t < tMin) { tMin = t; hitFound = true; willGround = true; hitObject = semisolidPartial; }
+		} else {
+			if (SweepYOnlyFromTop(startBounds, dy, semisolidPartial, t) && t < tMin) { tMin = t; hitFound = true; willGround = true; hitObject = semisolidPartial; }
+		}
+	}
+
+	if (affectedByEntitiesTop)
+	{
+		for (LevelObject* entity : _entityObjects)
+		{
+			if (entity == object) continue;
 			float t;
-			if (SweepY(startBounds, dy, solid, t) && t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; hitObject = solid; }
+			if (SweepYOnlyFromTop(startBounds, dy, entity, t) && t < tMin) { tMin = t; hitFound = true; willGround = true; hitObject = entity; }
 		}
+	}
 
-		for (LevelObject* slope : _solidMaybeSlopedObjects)
-		{
-			float t;
-			if (slope->HasActualSlopedHitbox()) { if (SweepYSlope(startBounds, dy, slope, t) && t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; hitObject = slope; } }
-			else { if (SweepY(startBounds, dy, slope, t) && t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; hitObject = slope; } }
-		}
+	// Move the object to the new position based on tMin
+	object->SetBoundsY(startBounds.y + dy * tMin);
+	if (hitFound)
+	{
+		object->SetVelocityY(0.0f);
+		if (willGround) object->SetIsGrounded(true);
 
-		for (LevelObject* breakable : _solidBreakableObjects)
-		{
-			if (breakable->GetBreakableIsBroken()) continue;
+		object->CollidedWithY(hitObject, vel);
+		if (hitObject) hitObject->CollidedWithY(object, vel);
+	}
 
-			float t;
-			if (!SweepY(startBounds, dy, breakable, t)) continue;
-
-			if (o->GetVelocityMagnitude() >= breakable->GetBreakableBreakSpeed())
-			{
-				breakable->BreakableBreak(o);
-				continue; // Ignore collision if it goes fast enough to break it
-			}
-
-			if (t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; hitObject = breakable; }
-		}
-
-		for (LevelObject* semisolidTotal : _semisolidTotalObjects)
-		{
-			float t;
-			if (SweepYOnlyFromTop(startBounds, dy, semisolidTotal, t) && t < tMin) { tMin = t; hitFound = true; willGround = true; hitObject = semisolidTotal; }
-		}
-
-		for (LevelObject* semisolidPartial : _semisolidPartialObjects)
-		{
-			float t;
-			if (checkSemisolidPartialBottom) {
-				if (SweepY(startBounds, dy, semisolidPartial, t) && t < tMin) { tMin = t; hitFound = true; willGround = true; hitObject = semisolidPartial; }
-			} else {
-				if (SweepYOnlyFromTop(startBounds, dy, semisolidPartial, t) && t < tMin) { tMin = t; hitFound = true; willGround = true; hitObject = semisolidPartial; }
-			}
-		}
-
-		if (affectedByEntitiesTop)
-		{
-			for (LevelObject* entity : _entityObjects)
-			{
-				if (entity == o) continue;
-				float t;
-				if (SweepYOnlyFromTop(startBounds, dy, entity, t) && t < tMin) { tMin = t; hitFound = true; willGround = true; hitObject = entity; }
-			}
-		}
-
-		// Move the object to the new position based on tMin
-		o->SetBoundsY(startBounds.y + dy * tMin);
-		if (hitFound)
-		{
-			o->SetVelocityY(0.0f);
-			if (willGround) o->SetIsGrounded(true);
-
-			o->CollidedWithY(hitObject, vel);
-			if (hitObject) hitObject->CollidedWithY(o, vel);
-		}
-
-		// After moving, we check for collisions with actually sloped tiles and resolve them if necessary.
-		// This is done after the initial move to ensure that we handle slopes correctly, especially if the object is moving into a slope.
-		Rectangle bounds = o->GetBounds();
-		for (LevelObject* solidMaybeSloped : _solidMaybeSlopedObjects)
-		{
-			if (!solidMaybeSloped->HasActualSlopedHitbox()) continue;
-			if (CheckAndResolveCollisionYSlope(solidMaybeSloped, o, vel)) bounds = o->GetBounds();
-		}
+	// After moving, we check for collisions with actually sloped tiles and resolve them if necessary.
+	// This is done after the initial move to ensure that we handle slopes correctly, especially if the object is moving into a slope.
+	Rectangle bounds = object->GetBounds();
+	for (LevelObject* solidMaybeSloped : _solidMaybeSlopedObjects)
+	{
+		if (!solidMaybeSloped->HasActualSlopedHitbox()) continue;
+		if (CheckAndResolveCollisionYSlope(solidMaybeSloped, object, vel)) bounds = object->GetBounds();
 	}
 }
 

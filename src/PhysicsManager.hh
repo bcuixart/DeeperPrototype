@@ -25,12 +25,14 @@ protected:
 private:
     void ApplyGravity(const std::vector<LevelObject*>& objects, const float deltaTime);
 
-    void MoveAndResolveCollisionsX(const std::vector<LevelObject*>& objects, const float deltaTime, bool afectedByPartialSemisolids, bool blockedByRealSlopes);
+    void MoveAndResolveMovement(const std::vector<LevelObject*>& objects, const float deltaTime, bool affectedByPartialSemisolidsX, bool blockedByRealSlopesX, bool checkSemisolidPartialBottom, bool affectedByEntitiesTop);
+
+    void MoveAndResolveCollisionsX(LevelObject* object, const float deltaTime, bool afectedByPartialSemisolids, bool blockedByRealSlopes);
     bool SweepX(const Rectangle& bounds, float dx, LevelObject* stillObject, float& tOut);
     bool SweepXSlope(const Rectangle& bounds, float dx, LevelObject* slopeObject, float& tOut);
     bool CheckAndResolveCollisionXSlope(LevelObject* slopeObject, LevelObject* movingObject, bool blockedByRealSlopes, float prevVelocityX);
 
-    void MoveAndResolveCollisionsY(const std::vector<LevelObject*>& objects, const float deltaTime, bool checkSemisolidPartialBottom, bool affectedByEntitiesTop);
+    void MoveAndResolveCollisionsY(LevelObject* object, const float deltaTime, bool checkSemisolidPartialBottom, bool affectedByEntitiesTop);
     bool SweepY(const Rectangle& bounds, float dy, LevelObject* stillObject, float& tOut);
     bool SweepYSlope(const Rectangle& bounds, float dy, LevelObject* slopeObject, float& tOut);
     bool SweepYOnlyFromTop(const Rectangle& startBounds, float dy, LevelObject* stillObject, float& tOut);
