@@ -10,6 +10,7 @@ Eventually it will also feature online multiplayer.
 ## Non-obvious to-do list (Things I could very well forget):
 - [ ] Fix dynamic objects clipping through slopes with solid roof (47, 48)
 - [ ] Fix objects clipping into sand and dirt when in a slope, either upwards or downwards.
+- [ ] Add swallowed check on slope sweeping in X axis.
 - [ ] Determine how digging priorities are handled.
 - [ ] Fix weird crash in some levels.
 - [ ] Physics act differently in some devices. Unsure if it's compiler or system stuff.
