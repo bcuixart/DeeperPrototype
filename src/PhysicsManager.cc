@@ -168,6 +168,7 @@ bool PhysicsManager::SweepXSlope(const Rectangle& bounds, float dx, LevelObject*
 {
 	if (dx == 0.0f) return false;
 
+	// Check vertical overlap with center of object first
 	float centerY = bounds.y + bounds.height * 0.5f;
 	Rectangle slopeBounds = slopeObject->GetBounds();
 	if (centerY < slopeBounds.y || centerY > slopeBounds.y + slopeBounds.height) return false;
@@ -178,23 +179,25 @@ bool PhysicsManager::SweepXSlope(const Rectangle& bounds, float dx, LevelObject*
 	const float left = sample.x;
 	const float right = sample.y;
 
-	float leadingX, targetX, farBound;
-	if (movingRight) { leadingX = bounds.x + bounds.width; targetX = left;  farBound = right; }
-	else             { leadingX = bounds.x;                 targetX = right; farBound = left;  }
+	// Find the edges that might collide and get their gap
+	float leadingX, targetX;
+	if (movingRight) { leadingX = bounds.x + bounds.width; targetX = left; }
+	else             { leadingX = bounds.x;                 targetX = right; }
 	const float gap = movingRight ? (targetX - leadingX) : (leadingX - targetX);
 
-	constexpr float kFloatSlack = 0.01f;
+	// kPenetrationEpsilon is a small value to account for floating-point inaccuracies and prevent objects from getting stuck when they are very close to each other
+	const float penetrationEpsilon = 0.5f;
 
+	// If the gap is negative, it means we are already overlapping. If it's positive, we can calculate the time of collision
 	float t;
 	if (gap <= 0.0f)
 	{
-		const bool stillWithinTile = movingRight ? (leadingX <= farBound + kFloatSlack)
-		                                          : (leadingX >= farBound - kFloatSlack);
-		if (!stillWithinTile) return false;
+		if (gap < -penetrationEpsilon) return false;
 		t = 0.0f;
 	}
 	else t = gap / fabsf(dx);
 
+	// If t is not between 0 and 1 the objects will not collide this frame
 	if (t < 0.0f || t > 1.0f) return false;
 
 	tOut = t;

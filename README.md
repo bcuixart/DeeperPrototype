@@ -8,6 +8,8 @@ The game is still in development. It is probably the fourth iteration of the gam
 Eventually it will also feature online multiplayer.
 
 ## Non-obvious to-do list (Things I could very well forget):
-- [ ] Fix physics slope sweeping on X axis.
+- [ ] Fix dynamic objects clipping through slopes with solid roof (47, 48)
+- [ ] Fix objects clipping into sand and dirt when in a slope, either upwards or downwards.
 - [ ] Determine how digging priorities are handled.
 - [ ] Fix weird crash in some levels.
+- [ ] Physics act differently in some devices. Unsure if it's compiler or system stuff.
