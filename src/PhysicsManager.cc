@@ -348,7 +348,16 @@ bool PhysicsManager::MoveAndResolveCollisionsY(LevelObject* object, const float 
 	if (hitFound)
 	{
 		object->SetVelocityY(0.0f);
-		if (willGround) object->SetIsGrounded(true);
+		if (willGround)
+		{
+			object->SetIsGrounded(true);
+
+			// Snap to surface. This fixes slightly clipping into flat ground after going up a slope.
+			if (tMin <= 0.0f && hitObject && !hitObject->HasActualSlopedHitbox())
+			{
+				object->SetBoundsY(hitObject->GetBounds().y - startBounds.height);
+			}
+		}
 
 		object->CollidedWithY(hitObject, vel);
 		if (hitObject) hitObject->CollidedWithY(object, vel);
