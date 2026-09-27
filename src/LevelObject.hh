@@ -11,6 +11,8 @@
 
 class LevelManager;
 
+enum class SurfaceType { None, FlatGround, SlopedLeftGround, SlopedRightGround };
+
 #define SOLID_SIDE_NONE 0
 #define SOLID_SIDE_LEFT 1
 #define SOLID_SIDE_RIGHT 2
@@ -51,7 +53,9 @@ public:
 	virtual void OnOverlap(LevelObject* other) { }
 
 	bool GetIsGrounded() const { return _isGrounded; }
-	void SetIsGrounded(const bool grounded) { _isGrounded = grounded; }
+	void SetIsGrounded(const bool grounded, SurfaceType surfaceType) { _isGrounded = grounded; _surfaceTypeStandingOn = surfaceType; }
+
+	virtual SurfaceType GetSurfaceType() const { return SurfaceType::FlatGround; }
 
 	virtual HitboxType GetHitboxType() const = 0;
 
@@ -73,6 +77,7 @@ protected:
 	uint8_t _solidSidecollisionMask{ SOLID_SIDE_LEFT | SOLID_SIDE_RIGHT | SOLID_SIDE_TOP | SOLID_SIDE_BOTTOM };
 
 	bool _isGrounded{ false };
+	SurfaceType _surfaceTypeStandingOn{ SurfaceType::FlatGround };
 
 	static constexpr float kInteractionVelocity = 15.0f;
 

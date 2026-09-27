@@ -15,10 +15,10 @@ void LevelObjectDog::Update(const float deltaTime)
             Update_Default(deltaTime);
             break;
         case DogState::SlidingLeft:
-            Update_Sliding(deltaTime, true);
+            Update_Sliding(deltaTime);
             break;
         case DogState::SlidingRight:
-            Update_Sliding(deltaTime, false);
+            Update_Sliding(deltaTime);
             break;
         case DogState::InDirt:
             Update_InDirt(deltaTime);
@@ -63,21 +63,16 @@ void LevelObjectDog::Update_Default(const float deltaTime)
     }
 }
 
-void LevelObjectDog::Update_Sliding(const float deltaTime, bool isSlidingLeft)
+void LevelObjectDog::Update_Sliding(const float deltaTime)
 {
-    if (!_isGrounded)
-    {
-        printf("Dog is not grounded, stopping slide\n");
-        _state = DogState::Default;
-        return;
-    }
+    // Stop sliding if you're grounded but not on a slope
+    if (_isGrounded && _surfaceTypeStandingOn != SurfaceType::SlopedLeftGround && _surfaceTypeStandingOn != SurfaceType::SlopedRightGround) { _state = DogState::Default; return; }
 
-    if (GetVelocityX() == 0.0f)
-    {
-        printf("Dog has stopped moving, stopping slide\n");
-        _state = DogState::Default;
-        return;
-    }
+    // Stop sliding if you're not grounded and not falling (you keep sliding if you're falling)
+    if (!_isGrounded && GetVelocityY() < 0.0f) { _state = DogState::Default; return; }
+
+    // Stop sliding if you hit an obstacle that stops your horizontal movement
+    if (GetVelocityX() == 0.0f) { _state = DogState::Default; return; }
 
     if (IsKeyDown(KEY_SPACE))
     {
@@ -86,9 +81,12 @@ void LevelObjectDog::Update_Sliding(const float deltaTime, bool isSlidingLeft)
         return;
     }
 
+    // Determine sliding direction based on the slope type, you keep moving the same direction if not grounded
+    if (_isGrounded) _isSlidingLeft = _surfaceTypeStandingOn == SurfaceType::SlopedRightGround;
+
     // Move in a 45-degree angle downwards while sliding
-    AddVelocityX(isSlidingLeft ? -kSlideAcceleration * deltaTime : kSlideAcceleration * deltaTime);
-    SetVelocityY(GetVelocityX());
+    AddVelocityX(_isSlidingLeft ? -kSlideAcceleration * deltaTime : kSlideAcceleration * deltaTime);
+    if (_isGrounded) SetVelocityY(fabsf(GetVelocityX()));
 }
 
 void LevelObjectDog::Update_InDirt(const float deltaTime)
@@ -110,9 +108,8 @@ void LevelObjectDog::DropThroughSemisolid(const Rectangle& semisolidBounds)
 
 void LevelObjectDog::StartSlidingRight()
 {
-    std::cout << "StartSlidingRight called" << std::endl;
     if (_state != DogState::Default) return;
-    if (!_isGrounded) return;
+    if (!_isGrounded || (_surfaceTypeStandingOn != SurfaceType::SlopedLeftGround && _surfaceTypeStandingOn != SurfaceType::SlopedRightGround)) return;
 
     _state = DogState::SlidingRight;
     if (GetVelocityX() == 0.0f) SetVelocityX(kSlideInitialSpeed);
@@ -121,9 +118,8 @@ void LevelObjectDog::StartSlidingRight()
 
 void LevelObjectDog::StartSlidingLeft()
 {
-    std::cout << "StartSlidingLeft called" << std::endl;
     if (_state != DogState::Default) return;
-    if (!_isGrounded) return;
+    if (!_isGrounded || (_surfaceTypeStandingOn != SurfaceType::SlopedLeftGround && _surfaceTypeStandingOn != SurfaceType::SlopedRightGround)) return;
 
     _state = DogState::SlidingLeft;
     if (GetVelocityX() == 0.0f) SetVelocityX(-kSlideInitialSpeed);

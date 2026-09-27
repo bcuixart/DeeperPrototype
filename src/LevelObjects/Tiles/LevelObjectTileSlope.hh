@@ -23,6 +23,8 @@ public:
 
 	SlopeOrientation GetSlopeOrientation() const override { return _slopeOrientation; }
 
+	SurfaceType GetSurfaceType() const override;
+
 	virtual void SetSpriteIndex(uint8_t idx) override;
 
 	void OnDug(LevelObject* digger) override;

@@ -103,6 +103,19 @@ LevelObjectTileType LevelObjectTileSlope::GetTileType() const
 	return LevelObjectTileType::Slope;
 }
 
+SurfaceType LevelObjectTileSlope::GetSurfaceType() const
+{
+    switch (_slopeOrientation)
+    {
+        case SlopeOrientation::RisingRight:
+            return SurfaceType::SlopedRightGround;
+        case SlopeOrientation::RisingLeft:
+            return SurfaceType::SlopedLeftGround;
+        default:
+            return SurfaceType::FlatGround;
+    }
+}
+
 void LevelObjectTileSlope::SetSpriteIndex(uint8_t idx)
 {
 	_spriteIndex = idx;

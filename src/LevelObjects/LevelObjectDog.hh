@@ -23,7 +23,7 @@ public:
 
 private:
     void Update_Default(const float deltaTime);
-    void Update_Sliding(const float deltaTime, bool isSlidingLeft);
+    void Update_Sliding(const float deltaTime);
     void Update_InDirt(const float deltaTime);
     void Update_Flung(const float deltaTime);
 
@@ -33,9 +33,11 @@ private:
     static constexpr float kWalkSpeed = 10.0f;
 
     static constexpr float kSlideInitialSpeed = 0.5f;
-    static constexpr float kSlideAcceleration = 10.0f;
+    static constexpr float kSlideAcceleration = 20.0f;
 
     static constexpr float kDigHorizontalOffset = 0.01f;
+
+    bool _isSlidingLeft = false;
 
     DogState _state{DogState::Default};
 

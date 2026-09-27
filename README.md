@@ -10,8 +10,6 @@ Eventually it will also feature online multiplayer.
 ## Non-obvious to-do list (Things I could very well forget):
 - [ ] Fix dynamic objects clipping through slopes with solid roof (47, 48)
 - [ ] Add swallowed check on slope sweeping in X axis. (Is it necessary?)
-- [ ] Sliding only works in one direction.
-- [ ] Going up slopes into flat surfaces sometimes causes the dog to get stuck.
 - [ ] Determine how digging priorities are handled.
 - [ ] Fix weird crash in some levels.
 - [ ] Physics act differently in some devices. Unsure if it's compiler or system stuff.

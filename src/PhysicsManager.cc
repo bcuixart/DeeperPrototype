@@ -14,8 +14,8 @@ PhysicsManager::~PhysicsManager()
 void PhysicsManager::Update(const float deltaTime)
 {
 	// Reset grounded state for all objects
-	for (LevelObject* o : _entityObjects) o->SetIsGrounded(false);
-	for (LevelObject* o : _dynamicObjects) o->SetIsGrounded(false);
+	for (LevelObject* o : _entityObjects) o->SetIsGrounded(false, SurfaceType::None);
+	for (LevelObject* o : _dynamicObjects) o->SetIsGrounded(false, SurfaceType::None);
 
 	// Apply gravity
 	ApplyGravity(_entityObjects, deltaTime);
@@ -350,7 +350,7 @@ bool PhysicsManager::MoveAndResolveCollisionsY(LevelObject* object, const float 
 		object->SetVelocityY(0.0f);
 		if (willGround)
 		{
-			object->SetIsGrounded(true);
+			object->SetIsGrounded(true, (hitObject ? hitObject->GetSurfaceType() : SurfaceType::FlatGround));
 
 			// Snap to surface. This fixes slightly clipping into flat ground after going up a slope.
 			if (tMin <= 0.0f && hitObject && !hitObject->HasActualSlopedHitbox())
@@ -525,7 +525,7 @@ bool PhysicsManager::CheckAndResolveCollisionYSlope(LevelObject* slopeObject, Le
 	if (blocker)
 	{
 		movingObject->SetVelocityY(0.0f);
-		if (isFloor) movingObject->SetIsGrounded(true);
+		if (isFloor) movingObject->SetIsGrounded(true, blocker->GetSurfaceType());
 
 		movingObject->CollidedWithY(blocker, prevVelocityY);
 		blocker->CollidedWithY(movingObject, prevVelocityY);
@@ -535,7 +535,7 @@ bool PhysicsManager::CheckAndResolveCollisionYSlope(LevelObject* slopeObject, Le
 	}
 
 	movingObject->SetBoundsY(proposedY);
-	if (isFloor) movingObject->SetIsGrounded(true);
+	if (isFloor) movingObject->SetIsGrounded(true, slopeObject->GetSurfaceType());
 
 	movingObject->SetVelocityY(0.0f);
 	movingObject->CollidedWithY(slopeObject, prevVelocityY);
