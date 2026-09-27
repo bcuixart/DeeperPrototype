@@ -536,9 +536,11 @@ bool PhysicsManager::CheckAndResolveCollisionYSlope(LevelObject* slopeObject, Le
 
 LevelObject* PhysicsManager::FindBlockingSolidY(const LevelObject* ignore, const Rectangle& bounds, float proposedY, bool movingDown) const
 {
+	const float centerX = bounds.x + bounds.width * 0.5f;
+
 	auto overlaps = [&](const Rectangle& b)
 	{
-		if (bounds.x + bounds.width <= b.x || bounds.x >= b.x + b.width) return false;
+		if (centerX <= b.x || centerX >= b.x + b.width) return false;
 		return proposedY < b.y + b.height && proposedY + bounds.height > b.y;
 	};
 
