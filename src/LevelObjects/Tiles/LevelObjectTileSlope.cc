@@ -148,9 +148,8 @@ void LevelObjectTileSlope::OnDug(LevelObject* digger)
     switch (_slopeOrientation)
     {
         case SlopeOrientation::RisingRight:
-            dog->StartSlidingLeft(); break;
         case SlopeOrientation::RisingLeft:
-            dog->StartSlidingRight(); break;
+            dog->StartSliding(); break;
         default:
             break;
     }

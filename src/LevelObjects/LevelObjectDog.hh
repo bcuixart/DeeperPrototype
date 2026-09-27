@@ -4,7 +4,7 @@
 #include "LevelObject.hh"
 
 enum class DogState {
-    Default, SlidingLeft, SlidingRight, InDirt, Flung
+    Default, Sliding, InDirt, Flung
 };
 
 class LevelObjectDog : public LevelObject {
@@ -18,8 +18,7 @@ public:
 
     void DropThroughSemisolid(const Rectangle& semisolidBounds);
 
-    void StartSlidingRight();
-    void StartSlidingLeft();
+    void StartSliding();
 
 private:
     void Update_Default(const float deltaTime);
@@ -31,6 +30,7 @@ private:
     static constexpr float kHeight = 0.5f;
 
     static constexpr float kWalkSpeed = 10.0f;
+    static constexpr float kGroundFriction = 0.1f;
 
     static constexpr float kSlideInitialSpeed = 0.5f;
     static constexpr float kSlideAcceleration = 20.0f;

@@ -14,10 +14,7 @@ void LevelObjectDog::Update(const float deltaTime)
         case DogState::Default:
             Update_Default(deltaTime);
             break;
-        case DogState::SlidingLeft:
-            Update_Sliding(deltaTime);
-            break;
-        case DogState::SlidingRight:
+        case DogState::Sliding:
             Update_Sliding(deltaTime);
             break;
         case DogState::InDirt:
@@ -44,13 +41,18 @@ void LevelObjectDog::Update_Default(const float deltaTime)
 
     if (desiredVelocityX != 0.0f)
     {
-	    const bool belowOrOpposite = fabsf(currentVelocityX) < fabsf(desiredVelocityX)
-	                                || (currentVelocityX >= 0.0f) != (desiredVelocityX >= 0.0f);
-	    if (belowOrOpposite) SetVelocityX(desiredVelocityX);
+        const bool belowOrOpposite = fabsf(currentVelocityX) < fabsf(desiredVelocityX)
+                                    || (currentVelocityX >= 0.0f) != (desiredVelocityX >= 0.0f);
+        if (belowOrOpposite) SetVelocityX(desiredVelocityX);
+        else if (_isGrounded) SetVelocityX(currentVelocityX * powf(kGroundFriction, deltaTime));
     }
-    else if (fabsf(currentVelocityX) <= kWalkSpeed)
+    else if (fabsf(currentVelocityX) <= kWalkSpeed && (IsKeyReleased(KEY_LEFT) || IsKeyReleased(KEY_RIGHT)))
     {
-	    SetVelocityX(0.0f);
+        SetVelocityX(0.0f);
+    }
+    else if (_isGrounded)
+    {
+        SetVelocityX(currentVelocityX * powf(kGroundFriction, deltaTime));
     }
 
     if (IsKeyPressed(KEY_DOWN)) 
@@ -106,23 +108,15 @@ void LevelObjectDog::DropThroughSemisolid(const Rectangle& semisolidBounds)
 	_bounds.y += kDropThroughMargin;
 }
 
-void LevelObjectDog::StartSlidingRight()
+void LevelObjectDog::StartSliding()
 {
     if (_state != DogState::Default) return;
     if (!_isGrounded || (_surfaceTypeStandingOn != SurfaceType::SlopedLeftGround && _surfaceTypeStandingOn != SurfaceType::SlopedRightGround)) return;
 
-    _state = DogState::SlidingRight;
-    if (GetVelocityX() == 0.0f) SetVelocityX(kSlideInitialSpeed);
-    if (GetVelocityY() == 0.0f) SetVelocityY(kSlideInitialSpeed);
-}
+    bool startingOnLeftSlope = _surfaceTypeStandingOn == SurfaceType::SlopedRightGround;
 
-void LevelObjectDog::StartSlidingLeft()
-{
-    if (_state != DogState::Default) return;
-    if (!_isGrounded || (_surfaceTypeStandingOn != SurfaceType::SlopedLeftGround && _surfaceTypeStandingOn != SurfaceType::SlopedRightGround)) return;
-
-    _state = DogState::SlidingLeft;
-    if (GetVelocityX() == 0.0f) SetVelocityX(-kSlideInitialSpeed);
+    _state = DogState::Sliding;
+    if (GetVelocityX() == 0.0f) SetVelocityX(startingOnLeftSlope ? -kSlideInitialSpeed : kSlideInitialSpeed);
     if (GetVelocityY() == 0.0f) SetVelocityY(kSlideInitialSpeed);
 }
 

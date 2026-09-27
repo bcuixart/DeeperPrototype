@@ -9,7 +9,7 @@ LevelObjectBallTennis::LevelObjectBallTennis(const Vector2& position)
 
 void LevelObjectBallTennis::Update(const float deltaTime) 
 {
-    if (_isGrounded) _velocity.x *= kGroundFriction;
+    if (_isGrounded) SetVelocityX(GetVelocityX() * powf(kGroundFriction, deltaTime));
 
 	if (_kickCooldown > 0.0f) _kickCooldown -= deltaTime;
 }

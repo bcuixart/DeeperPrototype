@@ -26,7 +26,7 @@ private:
     static constexpr float kHeight = 0.5f;
 
     static constexpr float kBounciness = 0.75f;
-    static constexpr float kGroundFriction = 0.99f;
+    static constexpr float kGroundFriction = 0.1f;
 
     float _kickCooldown = 0.0f;
     static constexpr float kKickSpeed = 2.0f;
