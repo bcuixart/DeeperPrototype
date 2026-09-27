@@ -65,8 +65,16 @@ void LevelObjectDog::Update_Default(const float deltaTime)
 
 void LevelObjectDog::Update_Sliding(const float deltaTime, bool isSlidingLeft)
 {
-    if (GetVelocityY() <= 0.0f || GetVelocityX() == 0.0f)
+    if (!_isGrounded)
     {
+        printf("Dog is not grounded, stopping slide\n");
+        _state = DogState::Default;
+        return;
+    }
+
+    if (GetVelocityX() == 0.0f)
+    {
+        printf("Dog has stopped moving, stopping slide\n");
         _state = DogState::Default;
         return;
     }
@@ -80,6 +88,7 @@ void LevelObjectDog::Update_Sliding(const float deltaTime, bool isSlidingLeft)
 
     // Move in a 45-degree angle downwards while sliding
     AddVelocityX(isSlidingLeft ? -kSlideAcceleration * deltaTime : kSlideAcceleration * deltaTime);
+    SetVelocityY(GetVelocityX());
 }
 
 void LevelObjectDog::Update_InDirt(const float deltaTime)
@@ -112,6 +121,7 @@ void LevelObjectDog::StartSlidingRight()
 
 void LevelObjectDog::StartSlidingLeft()
 {
+    std::cout << "StartSlidingLeft called" << std::endl;
     if (_state != DogState::Default) return;
     if (!_isGrounded) return;
 
