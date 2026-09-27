@@ -549,6 +549,8 @@ LevelObject* PhysicsManager::FindBlockingSolidY(const LevelObject* ignore, const
 			if (movingDown && !o->GetSolidSideCollisionMask(SOLID_SIDE_TOP)) continue;
 			else if (!movingDown && !o->GetSolidSideCollisionMask(SOLID_SIDE_BOTTOM)) continue;
 			printf("Found blocking solid Y: %p\n", o);
+			printf("Dog bounds: (%f, %f, %f, %f), proposedY: %f\n", bounds.x, bounds.y, bounds.width, bounds.height, proposedY);
+			printf("Collided object bounds: (%f, %f, %f, %f)\n", o->GetBounds().x, o->GetBounds().y, o->GetBounds().width, o->GetBounds().height);
 			return o;
 		}
 	}

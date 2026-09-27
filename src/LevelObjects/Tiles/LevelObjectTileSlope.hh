@@ -21,6 +21,8 @@ public:
 
 	LevelObjectTileType GetTileType() const override;
 
+	SlopeOrientation GetSlopeOrientation() const override { return _slopeOrientation; }
+
 	virtual void SetSpriteIndex(uint8_t idx) override;
 
 	void OnDug(LevelObject* digger) override;

@@ -20,6 +20,8 @@ public:
 
 	virtual LevelObjectTileType GetTileType() const;
 
+	virtual SlopeOrientation GetSlopeOrientation() const { return SlopeOrientation::None; }
+
 	virtual void SetSpriteIndex(uint8_t idx);
 	uint8_t GetSpriteIndex() const;
 

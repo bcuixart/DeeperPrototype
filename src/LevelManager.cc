@@ -441,13 +441,22 @@ void LevelManager::SetTileSideCollisionMask(int x, int y)
         {
             // Disable internal top collision unless the slope above it ends
 			// This fixes clipping into ending slopes whilst not interfering with slope sliding behavior
-			if (hasE != hasW || (!hasE && !hasW)) hasN = false;
+            SlopeOrientation orientation = _levelTiles[y - 1][x]->GetSlopeOrientation();
+            if (orientation == SlopeOrientation::RisingRight && !hasW) hasN = false;
+            else if (orientation == SlopeOrientation::RisingLeft && !hasE) hasN = false;
         }
     }
     if (y < _levelHeight - 1)
     {
         hasS = _levelTiles[y + 1][x] && (_levelTiles[y + 1][x]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y + 1][x]->GetTileType() == LevelObjectTileType::Slope || _levelTiles[y + 1][x]->GetTileType() == LevelObjectTileType::Dirt);
-        if (_levelTiles[y + 1][x] && IsTileSlope(x, y + 1)) hasS = false;
+        if (_levelTiles[y + 1][x] && IsTileSlope(x, y + 1))
+        {
+            // Disable internal bottom collision unless the slope below it ends
+			// This fixes clipping into ending slopes whilst not interfering with slope ceiling collision behavior
+			SlopeOrientation orientation = _levelTiles[y + 1][x]->GetSlopeOrientation();
+            if (orientation == SlopeOrientation::FallingRight && !hasW) hasS = false;
+            else if (orientation == SlopeOrientation::FallingLeft && !hasE) hasS = false;
+        }
     }
 
     tile->SetSolidSideCollisionMask(SOLID_SIDE_LEFT, !hasW);
