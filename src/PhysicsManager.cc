@@ -54,6 +54,7 @@ void PhysicsManager::MoveAndResolveMovement(const std::vector<LevelObject*>& obj
 
 		if (MoveAndResolveCollisionsY(o, deltaTime, checkSemisolidPartialBottom, affectedByEntitiesTop))
 		{
+			printf("Collision with slope caused whole move to be canceled for object %p\n", o);
 			o->SetBoundsX(startX);
 			o->SetVelocityX(0.0f);
 		}
@@ -132,7 +133,7 @@ void PhysicsManager::MoveAndResolveCollisionsX(LevelObject* object, const float 
 	for (LevelObject* solidMaybeSloped : _solidMaybeSlopedObjects)
 	{
 		if (!solidMaybeSloped->HasActualSlopedHitbox()) continue;
-		if (CheckAndResolveCollisionXSlope(solidMaybeSloped, object, blockedByRealSlopes, vel)) bounds = object->GetBounds();
+		if (CheckAndResolveCollisionXSlope(solidMaybeSloped, object, affectedByPartialSemisolids, blockedByRealSlopes, vel)) bounds = object->GetBounds();
 	}
 }
 
@@ -214,7 +215,7 @@ bool PhysicsManager::SweepXSlope(const Rectangle& bounds, float dx, LevelObject*
 	return true;
 }
 
-bool PhysicsManager::CheckAndResolveCollisionXSlope(LevelObject* slopeObject, LevelObject* movingObject, bool blockedByRealSlopes, float prevVelocityX)
+bool PhysicsManager::CheckAndResolveCollisionXSlope(LevelObject* slopeObject, LevelObject* movingObject, bool affectedByPartialSemisolidsX, bool blockedByRealSlopes, float prevVelocityX)
 {
 	// Failsafe but should not happen if the function is called correctly
 	if (!slopeObject->HasActualSlopedHitbox()) return false;
@@ -262,7 +263,7 @@ bool PhysicsManager::CheckAndResolveCollisionXSlope(LevelObject* slopeObject, Le
 	else return false;
 
 	// Before committing the snap, make sure it wouldn't tunnel the object through another solid.
-	LevelObject* blocker = FindBlockingSolidX(movingObject, bounds, proposedX);
+	LevelObject* blocker = FindBlockingSolidX(movingObject, bounds, proposedX, affectedByPartialSemisolidsX);
 	LevelObject* collidedWith = blocker ? blocker : slopeObject;
 
 	if (!blocker) movingObject->SetBoundsX(proposedX);
@@ -571,7 +572,7 @@ LevelObject* PhysicsManager::FindBlockingSolidY(const LevelObject* ignore, const
 	return nullptr;
 }
 
-LevelObject* PhysicsManager::FindBlockingSolidX(const LevelObject* ignore, const Rectangle& bounds, float proposedX) const
+LevelObject* PhysicsManager::FindBlockingSolidX(const LevelObject* ignore, const Rectangle& bounds, float proposedX, bool affectedByPartialSemisolidsX) const
 {
 	auto overlaps = [&](const Rectangle& b)
 	{
@@ -584,6 +585,12 @@ LevelObject* PhysicsManager::FindBlockingSolidX(const LevelObject* ignore, const
 
 	for (LevelObject* o : _solidBreakableObjects)
 		if (o != ignore && !o->GetBreakableIsBroken() && overlaps(o->GetBounds())) return o;
+
+	if (affectedByPartialSemisolidsX)
+	{
+		for (LevelObject* o : _semisolidPartialObjects)
+			if (o != ignore && overlaps(o->GetBounds())) return o;
+	}
 
 	return nullptr;
 }

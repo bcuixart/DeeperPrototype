@@ -30,7 +30,7 @@ private:
     void MoveAndResolveCollisionsX(LevelObject* object, const float deltaTime, bool afectedByPartialSemisolids, bool blockedByRealSlopes);
     bool SweepX(const Rectangle& bounds, float dx, LevelObject* stillObject, float& tOut);
     bool SweepXSlope(const Rectangle& bounds, float dx, LevelObject* slopeObject, float& tOut);
-    bool CheckAndResolveCollisionXSlope(LevelObject* slopeObject, LevelObject* movingObject, bool blockedByRealSlopes, float prevVelocityX);
+    bool CheckAndResolveCollisionXSlope(LevelObject* slopeObject, LevelObject* movingObject, bool affectedByPartialSemisolidsX, bool blockedByRealSlopes, float prevVelocityX);
 
     bool MoveAndResolveCollisionsY(LevelObject* object, const float deltaTime, bool checkSemisolidPartialBottom, bool affectedByEntitiesTop);
     bool SweepY(const Rectangle& bounds, float dy, LevelObject* stillObject, float& tOut);
@@ -39,7 +39,7 @@ private:
     bool CheckAndResolveCollisionYSlope(LevelObject* slopeObject, LevelObject* movingObject, float prevVelocityY, bool& outCancelWholeMove);
 
     LevelObject* FindBlockingSolidY(const LevelObject* ignore, const Rectangle& bounds, float proposedY, bool movingDown) const;
-    LevelObject* FindBlockingSolidX(const LevelObject* ignore, const Rectangle& bounds, float proposedX) const;
+    LevelObject* FindBlockingSolidX(const LevelObject* ignore, const Rectangle& bounds, float proposedX, bool affectedByPartialSemisolidsX) const;
 
     void CheckOverlaps(const std::vector<LevelObject*>& listA, const std::vector<LevelObject*>& listB);
     void CheckOverlapsSelf(const std::vector<LevelObject*>& list);
