@@ -543,10 +543,22 @@ LevelObject* PhysicsManager::FindBlockingSolidY(const LevelObject* ignore, const
 	};
 
 	for (LevelObject* o : _solidObjects)
-		if (o != ignore && overlaps(o->GetBounds())) return o;
+	{
+		if (o != ignore && overlaps(o->GetBounds())) 
+		{
+			if (movingDown && !o->GetSolidSideCollisionMask(SOLID_SIDE_TOP)) continue;
+			else if (!movingDown && !o->GetSolidSideCollisionMask(SOLID_SIDE_BOTTOM)) continue;
+			printf("Found blocking solid Y: %p\n", o);
+			return o;
+		}
+	}
 
 	for (LevelObject* o : _solidBreakableObjects)
-		if (o != ignore && !o->GetBreakableIsBroken() && overlaps(o->GetBounds())) return o;
+		if (o != ignore && !o->GetBreakableIsBroken() && overlaps(o->GetBounds())) 
+		{
+			printf("Found blocking solid breakable Y: %p\n", o);
+			return o;
+		}
 
 	if (movingDown)
 	{
@@ -556,8 +568,12 @@ LevelObject* PhysicsManager::FindBlockingSolidY(const LevelObject* ignore, const
 			if (o == ignore) continue;
 			const Rectangle b = o->GetBounds();
 			if (bounds.x + bounds.width <= b.x || bounds.x >= b.x + b.width) continue;
-			if (bounds.y + bounds.height > b.y + kAboveEpsilon) continue; // ja veníem de sota
-			if (proposedY + bounds.height > b.y) return o;
+			if (bounds.y + bounds.height > b.y + kAboveEpsilon) continue;
+			if (proposedY + bounds.height > b.y) 
+			{
+				printf("Found blocking semisolid total Y: %p\n", o);
+				return o;
+			}
 		}
 		for (LevelObject* o : _semisolidPartialObjects)
 		{
@@ -565,7 +581,11 @@ LevelObject* PhysicsManager::FindBlockingSolidY(const LevelObject* ignore, const
 			const Rectangle b = o->GetBounds();
 			if (bounds.x + bounds.width <= b.x || bounds.x >= b.x + b.width) continue;
 			if (bounds.y + bounds.height > b.y + kAboveEpsilon) continue;
-			if (proposedY + bounds.height > b.y) return o;
+			if (proposedY + bounds.height > b.y) 
+			{
+				printf("Found blocking semisolid partial Y: %p\n", o);
+				return o;
+			}
 		}
 	}
 
@@ -580,16 +600,34 @@ LevelObject* PhysicsManager::FindBlockingSolidX(const LevelObject* ignore, const
 		return proposedX < b.x + b.width && proposedX + bounds.width > b.x;
 	};
 
+	const bool movingRight = proposedX > bounds.x;
+
 	for (LevelObject* o : _solidObjects)
-		if (o != ignore && overlaps(o->GetBounds())) return o;
+	{
+		if (o != ignore && overlaps(o->GetBounds()))
+		{
+			if (movingRight && !o->GetSolidSideCollisionMask(SOLID_SIDE_LEFT)) continue;
+			else if (!movingRight && !o->GetSolidSideCollisionMask(SOLID_SIDE_RIGHT)) continue;
+			printf("Found blocking solid X: %p\n", o);
+			return o;
+		}
+	}
 
 	for (LevelObject* o : _solidBreakableObjects)
-		if (o != ignore && !o->GetBreakableIsBroken() && overlaps(o->GetBounds())) return o;
+		if (o != ignore && !o->GetBreakableIsBroken() && overlaps(o->GetBounds()))
+		{
+			printf("Found blocking solid breakable X: %p\n", o);
+			return o;
+		}
 
 	if (affectedByPartialSemisolidsX)
 	{
 		for (LevelObject* o : _semisolidPartialObjects)
-			if (o != ignore && overlaps(o->GetBounds())) return o;
+			if (o != ignore && overlaps(o->GetBounds()))
+			{
+				printf("Found blocking semisolid partial X: %p\n", o);
+				return o;
+			}
 	}
 
 	return nullptr;
