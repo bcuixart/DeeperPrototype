@@ -14,6 +14,7 @@ enum class TextureId
     TilesetBridge,
     BallTennis,
     Hydrant001,
+    Hydrant001Water,
     Bench001,
     DogHouse,
     UmbrellaTall,

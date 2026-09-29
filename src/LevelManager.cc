@@ -83,7 +83,19 @@ void LevelManager::LoadLevel(const std::string& levelName)
             case 'd': InstantiateLevelTile(std::make_unique<LevelObjectTileDirt>(pos), i, j); break;
             case 'B': InstantiateLevelTile(std::make_unique<LevelObjectTileBridge>(pos), i, j); break;
             case 't': InstantiateLevelObject(std::make_unique<LevelObjectBallTennis>(pos)); break;
-            case 'h': InstantiateLevelObject(std::make_unique<LevelObjectHydrant001>(pos)); break;
+            case 'h': 
+            {
+                auto waterLeft = std::make_unique<LevelObjectHydrant001Water>(pos, true);
+                auto waterRight = std::make_unique<LevelObjectHydrant001Water>(pos, false);
+
+                LevelObjectHydrant001Water* waterLeftPtr = waterLeft.get();
+                LevelObjectHydrant001Water* waterRightPtr = waterRight.get();
+
+                InstantiateLevelObject(std::move(waterLeft));
+                InstantiateLevelObject(std::move(waterRight));
+                InstantiateLevelObject(std::make_unique<LevelObjectHydrant001>(pos, waterLeftPtr, waterRightPtr)); 
+                break;
+            }
             case 'b': InstantiateLevelObject(std::make_unique<LevelObjectBench001>(pos)); break;
 			case 'D': InstantiateLevelObject(std::make_unique<LevelObjectDogHouse>(pos)); InstantiateLevelObject(std::make_unique<LevelObjectDog>(pos, this));  break;
             case 'U': InstantiateLevelObject(std::make_unique<LevelObjectUmbrellaTall>(pos)); break;

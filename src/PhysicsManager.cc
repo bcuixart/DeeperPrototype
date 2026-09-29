@@ -22,7 +22,8 @@ void PhysicsManager::Update(const float deltaTime)
 	ApplyGravity(_dynamicObjects, deltaTime);
 
 	// Apply force fields
-
+	ApplyForceFields(_entityObjects, deltaTime);
+	ApplyForceFields(_dynamicObjects, deltaTime);
 
 	// Move objects and resolve collisions
 	MoveAndResolveMovement(_entityObjects, deltaTime, false, false, false, true);
@@ -41,6 +42,23 @@ void PhysicsManager::Update(const float deltaTime)
 void PhysicsManager::ApplyGravity(const std::vector<LevelObject*>& objects, const float deltaTime)
 {
 	for (LevelObject* o : objects) o->AddVelocityY(kGravity * deltaTime);
+}
+
+void PhysicsManager::ApplyForceFields(const std::vector<LevelObject*>& objects, const float deltaTime)
+{
+	for (LevelObject* o : objects)
+	{
+		Rectangle bounds = o->GetBounds();
+		for (LevelObject* field : _forceFieldObjects)
+		{
+			if (!field->GetForceFieldIsActive()) continue;
+			if (!CheckCollisionRecs(bounds, field->GetBounds())) continue;
+
+			Vector2 force = field->GetForceFieldForce();
+			o->AddVelocityX(force.x * deltaTime);
+			o->AddVelocityY(force.y * deltaTime);
+		}
+	}
 }
 
 void PhysicsManager::MoveAndResolveMovement(const std::vector<LevelObject*>& objects, const float deltaTime, 

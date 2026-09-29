@@ -25,6 +25,7 @@ void AssetManager::LoadTextures()
 	_textures[(size_t)TextureId::TilesetBridge] = LoadTexture("assets/sprites/tilesets/Tileset_Bridge.png");
 	_textures[(size_t)TextureId::BallTennis] = LoadTexture("assets/sprites/objects/Object_Ball_Tennis.png");
 	_textures[(size_t)TextureId::Hydrant001] = LoadTexture("assets/sprites/objects/Object_Hydrant001.png");
+	_textures[(size_t)TextureId::Hydrant001Water] = LoadTexture("assets/sprites/objects/Object_Hydrant001_Water.png");
 	_textures[(size_t)TextureId::Bench001] = LoadTexture("assets/sprites/deco/Deco_Bench_001.png");
 	_textures[(size_t)TextureId::DogHouse] = LoadTexture("assets/sprites/objects/Object_DogHouse.png");
 	_textures[(size_t)TextureId::UmbrellaTall] = LoadTexture("assets/sprites/objects/Object_Umbrella_Tall.png");

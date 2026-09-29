@@ -70,6 +70,9 @@ public:
 	virtual bool GetBreakableIsBroken() const { return false; }
 	virtual float GetBreakableBreakSpeed() const { return kTerminalVelocityX; }
 
+	virtual bool GetForceFieldIsActive() const { return false; }
+	virtual Vector2 GetForceFieldForce() const { return { 0.0f, 0.0f }; }
+
 protected:
 	Rectangle _bounds{};
 	Vector2   _velocity{};

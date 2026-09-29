@@ -25,6 +25,8 @@ protected:
 private:
     void ApplyGravity(const std::vector<LevelObject*>& objects, const float deltaTime);
 
+    void ApplyForceFields(const std::vector<LevelObject*>& objects, const float deltaTime);
+
     void MoveAndResolveMovement(const std::vector<LevelObject*>& objects, const float deltaTime, bool affectedByPartialSemisolidsX, bool blockedByRealSlopesX, bool checkSemisolidPartialBottom, bool affectedByEntitiesTop);
 
     void MoveAndResolveCollisionsX(LevelObject* object, const float deltaTime, bool afectedByPartialSemisolids, bool blockedByRealSlopes);
