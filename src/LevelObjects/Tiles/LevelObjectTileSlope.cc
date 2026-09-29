@@ -141,7 +141,6 @@ void LevelObjectTileSlope::SetSpriteIndex(uint8_t idx)
 
 void LevelObjectTileSlope::OnDug(LevelObject* digger)
 {
-    std::cout << "Slope tile dug by digger at position: (" << digger->GetPosition().x << ", " << digger->GetPosition().y << ")\n";
     LevelObjectDog* dog = dynamic_cast<LevelObjectDog*>(digger);
     if (!dog) return;
 
@@ -149,6 +148,7 @@ void LevelObjectTileSlope::OnDug(LevelObject* digger)
     {
         case SlopeOrientation::RisingRight:
         case SlopeOrientation::RisingLeft:
+            std::cout << "Slope tile dug by digger at position: (" << digger->GetPosition().x << ", " << digger->GetPosition().y << ")\n";
             dog->StartSliding(); break;
         default:
             break;

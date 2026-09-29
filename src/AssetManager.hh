@@ -16,6 +16,7 @@ enum class TextureId
     Hydrant001,
     Bench001,
     DogHouse,
+    UmbrellaTall,
 	Count // Last element to keep track of the number of textures
 };
 

@@ -21,6 +21,7 @@
 #include "LevelObjects/Objects/LevelObjectHydrant001.hh"
 #include "LevelObjects/Deco/LevelObjectBench001.hh"
 #include "LevelObjects/Objects/LevelObjectDogHouse.hh"
+#include "LevelObjects/Objects/LevelObjectUmbrellaTall.hh"
 
 class LevelManager {
 public:

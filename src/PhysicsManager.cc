@@ -286,19 +286,20 @@ bool PhysicsManager::MoveAndResolveCollisionsY(LevelObject* object, const float 
 	float tMin = 1.0f;
 	bool hitFound = false;
 	bool willGround = false;
+	bool willBounceTrampoline = false;
 	LevelObject* hitObject = nullptr;
 
 	for (LevelObject* solid : _solidObjects)
 	{
 		float t;
-		if (SweepY(startBounds, dy, solid, t) && t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; hitObject = solid; }
+		if (SweepY(startBounds, dy, solid, t) && t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; willBounceTrampoline = false; hitObject = solid; }
 	}
 
 	for (LevelObject* slope : _solidMaybeSlopedObjects)
 	{
 		float t;
-		if (slope->HasActualSlopedHitbox()) { if (SweepYSlope(startBounds, dy, slope, t) && t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; hitObject = slope; } }
-		else { if (SweepY(startBounds, dy, slope, t) && t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; hitObject = slope; } }
+		if (slope->HasActualSlopedHitbox()) { if (SweepYSlope(startBounds, dy, slope, t) && t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; willBounceTrampoline = false; hitObject = slope; } }
+		else { if (SweepY(startBounds, dy, slope, t) && t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; willBounceTrampoline = false; hitObject = slope; } }
 	}
 
 	for (LevelObject* breakable : _solidBreakableObjects)
@@ -314,22 +315,22 @@ bool PhysicsManager::MoveAndResolveCollisionsY(LevelObject* object, const float 
 			continue; // Ignore collision if it goes fast enough to break it
 		}
 
-		if (t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; hitObject = breakable; }
+		if (t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; willBounceTrampoline = false; hitObject = breakable; }
 	}
 
 	for (LevelObject* semisolidTotal : _semisolidTotalObjects)
 	{
 		float t;
-		if (SweepYOnlyFromTop(startBounds, dy, semisolidTotal, t) && t < tMin) { tMin = t; hitFound = true; willGround = true; hitObject = semisolidTotal; }
+		if (SweepYOnlyFromTop(startBounds, dy, semisolidTotal, t) && t < tMin) { tMin = t; hitFound = true; willGround = true; willBounceTrampoline = false; hitObject = semisolidTotal; }
 	}
 
 	for (LevelObject* semisolidPartial : _semisolidPartialObjects)
 	{
 		float t;
 		if (checkSemisolidPartialBottom) {
-			if (SweepY(startBounds, dy, semisolidPartial, t) && t < tMin) { tMin = t; hitFound = true; willGround = true; hitObject = semisolidPartial; }
+			if (SweepY(startBounds, dy, semisolidPartial, t) && t < tMin) { tMin = t; hitFound = true; willGround = true; willBounceTrampoline = false; hitObject = semisolidPartial; }
 		} else {
-			if (SweepYOnlyFromTop(startBounds, dy, semisolidPartial, t) && t < tMin) { tMin = t; hitFound = true; willGround = true; hitObject = semisolidPartial; }
+			if (SweepYOnlyFromTop(startBounds, dy, semisolidPartial, t) && t < tMin) { tMin = t; hitFound = true; willGround = true; willBounceTrampoline = false; hitObject = semisolidPartial; }
 		}
 	}
 
@@ -339,8 +340,14 @@ bool PhysicsManager::MoveAndResolveCollisionsY(LevelObject* object, const float 
 		{
 			if (entity == object) continue;
 			float t;
-			if (SweepYOnlyFromTop(startBounds, dy, entity, t) && t < tMin) { tMin = t; hitFound = true; willGround = true; hitObject = entity; }
+			if (SweepYOnlyFromTop(startBounds, dy, entity, t) && t < tMin) { tMin = t; hitFound = true; willGround = true; willBounceTrampoline = false; hitObject = entity; }
 		}
+	}
+
+	for (LevelObject* trampoline : _trampolineObjects)
+	{
+		float t;
+		if (SweepYOnlyFromTop(startBounds, dy, trampoline, t) && t < tMin) { tMin = t; hitFound = true; willGround = false; willBounceTrampoline = true; hitObject = trampoline; }
 	}
 
 	// Move the object to the new position based on tMin
@@ -358,6 +365,7 @@ bool PhysicsManager::MoveAndResolveCollisionsY(LevelObject* object, const float 
 				object->SetBoundsY(hitObject->GetBounds().y - startBounds.height);
 			}
 		}
+		else if (willBounceTrampoline) { object->SetVelocityY(std::min(-vel, -5.0f)); }
 
 		object->CollidedWithY(hitObject, vel);
 		if (hitObject) hitObject->CollidedWithY(object, vel);
@@ -695,6 +703,7 @@ void PhysicsManager::RegisterObject(LevelObject* object)
 		case HitboxType::SemisolidPartial:	_semisolidPartialObjects.push_back(object); break;
 		case HitboxType::Entity:			_entityObjects.push_back(object); break;
 		case HitboxType::Dynamic:			_dynamicObjects.push_back(object); break;
+		case HitboxType::Trampoline:		_trampolineObjects.push_back(object); break;
 		case HitboxType::ForceField:		_forceFieldObjects.push_back(object); break;
 		case HitboxType::Trigger:			_triggerObjects.push_back(object); break;
 		default: break;
@@ -715,6 +724,7 @@ void PhysicsManager::UnregisterObject(LevelObject* object)
 		case HitboxType::SemisolidPartial:	RemoveObjectFromList(_semisolidPartialObjects, object); break;
 		case HitboxType::Entity:			RemoveObjectFromList(_entityObjects, object); break;
 		case HitboxType::Dynamic:			RemoveObjectFromList(_dynamicObjects, object); break;
+		case HitboxType::Trampoline:		RemoveObjectFromList(_trampolineObjects, object); break;
 		case HitboxType::ForceField:		RemoveObjectFromList(_forceFieldObjects, object); break;
 		case HitboxType::Trigger:			RemoveObjectFromList(_triggerObjects, object); break;
 		default: break;

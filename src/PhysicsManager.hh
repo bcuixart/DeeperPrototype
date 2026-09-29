@@ -56,6 +56,7 @@ private:
     std::vector<LevelObject*> _semisolidPartialObjects;
     std::vector<LevelObject*> _entityObjects;
     std::vector<LevelObject*> _dynamicObjects;
+    std::vector<LevelObject*> _trampolineObjects;
     std::vector<LevelObject*> _forceFieldObjects;
     std::vector<LevelObject*> _triggerObjects;
 

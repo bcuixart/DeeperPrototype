@@ -86,6 +86,7 @@ void LevelManager::LoadLevel(const std::string& levelName)
             case 'h': InstantiateLevelObject(std::make_unique<LevelObjectHydrant001>(pos)); break;
             case 'b': InstantiateLevelObject(std::make_unique<LevelObjectBench001>(pos)); break;
 			case 'D': InstantiateLevelObject(std::make_unique<LevelObjectDogHouse>(pos)); InstantiateLevelObject(std::make_unique<LevelObjectDog>(pos, this));  break;
+            case 'U': InstantiateLevelObject(std::make_unique<LevelObjectUmbrellaTall>(pos)); break;
             default:  break;
             }
         }

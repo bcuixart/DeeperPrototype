@@ -9,7 +9,8 @@ enum class HitboxType {
 	SemisolidPartial,   // Only solid from top for entities, also solid from sides for dynamic objects, does not move, can be dug (Most decorative objects)
 	Entity,             // Only solid from top for other entities, can move and be affected by forces, but not solid, can be dug (Dogs, cats, etc.)
 	Dynamic,            // Can move and be affected by forces, but not solid (Balls, etc.)
-	ForceField,         // Cannot move, not solid (Force fields, trampolines, etc.)
+	Trampoline,			// Cannot move, only affects entities from top (Trampolines, duh.)
+	ForceField,         // Cannot move, not solid (Force fields, etc.)
 	Trigger,            // Cannot move, not solid but can trigger events (Bones, small bushes, etc.)
 };
 
