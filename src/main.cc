@@ -29,16 +29,13 @@ int main(int argc, char* argv[])
 
     GameManager* gameManager = new GameManager();
 
-    bool _firstFrame = true;
     float accumulator = 0.0f;
     constexpr float kFixedDeltaTime = 1.0f / 60.0f;
     constexpr float kMaxFrameTime = 1.0f / 20.0f;
 
     while (!WindowShouldClose())
     {
-        if (_firstFrame) { _firstFrame = false; continue; }
-
-        const float frameTime = std::min(GetFrameTime(), kMaxFrameTime);
+        const float frameTime = std::max(kMaxFrameTime/10.f, std::min(GetFrameTime(), kMaxFrameTime));
         accumulator += frameTime;
 
         while (accumulator >= kFixedDeltaTime)

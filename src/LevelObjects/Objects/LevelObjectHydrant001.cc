@@ -120,18 +120,14 @@ void LevelObjectHydrant001Water::Render(const float deltaTime) const
     constexpr float kSrcWidth = 21.0f;
     constexpr float kSrcHeight = 23.0f;
 
-    // Amplada negativa del source = mirall horitzontal (truc estàndard de raylib)
     Rectangle src = { 0.0f, 0.0f, _isLeft ? -kSrcWidth : kSrcWidth, kSrcHeight };
 
     const float spriteWidth  = kSrcWidth  / kPixelsPerTile;
     const float spriteHeight = kSrcHeight / kPixelsPerTile;
 
-    // Ancoratge horitzontal: el centre de _bounds JA és centre_hidrant +- kHorizontalOffset (veure constructor).
-    // El sprite no es centra aquí, s'hi enganxa per un costat i creix cap enfora de l'hidrant.
     const float anchorX = _isLeft ? (_bounds.x + _bounds.width) : _bounds.x;
     const float dstX = _isLeft ? (anchorX - spriteWidth) : anchorX;
 
-    // Vertical: centrat dins la hitbox
     const float dstY = _bounds.y + (_bounds.height - spriteHeight) * 0.5f;
 
     Rectangle dst = { dstX, dstY, spriteWidth, spriteHeight };

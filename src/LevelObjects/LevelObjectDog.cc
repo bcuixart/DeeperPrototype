@@ -36,8 +36,8 @@ void LevelObjectDog::Update_Default(const float deltaTime)
     float currentVelocityX = GetVelocityX();
     float desiredVelocityX = 0.0f;
 
-    if (IsKeyDown(KEY_RIGHT)) desiredVelocityX = kWalkSpeed;
-    else if (IsKeyDown(KEY_LEFT)) desiredVelocityX = -kWalkSpeed;
+    if (IsKeyDown(KEY_RIGHT)) { desiredVelocityX = kWalkSpeed; _isFacingLeft = false; }
+    else if (IsKeyDown(KEY_LEFT)) { desiredVelocityX = -kWalkSpeed; _isFacingLeft = true; }
 
     if (desiredVelocityX != 0.0f)
     {
@@ -75,6 +75,8 @@ void LevelObjectDog::Update_Sliding(const float deltaTime)
 
     // Stop sliding if you hit an obstacle that stops your horizontal movement
     if (GetVelocityX() == 0.0f) { _state = DogState::Default; return; }
+
+	_isFacingLeft = (GetVelocityX() < 0.0f);
 
     if (IsKeyDown(KEY_SPACE))
     {
@@ -126,7 +128,7 @@ void LevelObjectDog::Render(const float deltaTime) const
 
     const float spriteSize = 2.0f;
 
-    Rectangle src = { 0.0f, 0.0f, 32.0f, 32.0f };
+    Rectangle src = { 0.0f, 0.0f, _isFacingLeft ? -32.0f : 32.0f, 32.0f };
     Rectangle dst = {
         _bounds.x + _bounds.width / 2.0f - spriteSize / 2.0f,
         _bounds.y + _bounds.height / 2.0f - spriteSize / 2.0f,

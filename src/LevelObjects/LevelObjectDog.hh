@@ -41,6 +41,8 @@ private:
 
     static constexpr float kDigHorizontalOffset = 0.01f;
 
+    bool _isFacingLeft = false;
+
     bool _isSlidingLeft = false;
 
     DogState _state{DogState::Default};

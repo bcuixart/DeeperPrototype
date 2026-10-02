@@ -14,5 +14,5 @@ Eventually it will also feature online multiplayer.
 - [ ] Add digging in centerX as a fail-safe option in case nothing is found in left or right.
 - [X] Specialize interaction velocity.
 - [ ] Improve force field feel.
-- [-] Fix weird crash in some levels.
-- [-] Physics act differently in some devices. Unsure if it's compiler or system stuff.
+- [ ] Fix weird crash in some levels.
+- [ ] Physics act differently in some devices. Unsure if it's compiler or system stuff.
