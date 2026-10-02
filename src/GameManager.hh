@@ -32,7 +32,7 @@ private:
 
 	Camera2D _cam = { 0 };
 
-	constexpr static bool DEBUG_DRAW_BOUNDS = true;
+	constexpr static bool DEBUG_DRAW_BOUNDS = false;
 };
 
 #endif

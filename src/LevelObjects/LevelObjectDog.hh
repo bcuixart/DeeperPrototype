@@ -20,6 +20,8 @@ public:
 
     void StartSliding();
 
+	float GetInteractionVelocity() const override { return kInteractionVelocity; }
+
 private:
     void Update_Default(const float deltaTime);
     void Update_Sliding(const float deltaTime);
@@ -31,6 +33,8 @@ private:
 
     static constexpr float kWalkSpeed = 10.0f;
     static constexpr float kGroundFriction = 0.1f;
+
+    static constexpr float kInteractionVelocity = 15.0f;
 
     static constexpr float kSlideInitialSpeed = 0.5f;
     static constexpr float kSlideAcceleration = 20.0f;

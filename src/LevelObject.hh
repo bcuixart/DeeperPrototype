@@ -66,9 +66,10 @@ public:
 
 	virtual void OnDug(LevelObject* digger) { }
 
+	virtual float GetInteractionVelocity() const { return kTerminalVelocityX; };
+
 	virtual void BreakableBreak(const LevelObject* other) { }
 	virtual bool GetBreakableIsBroken() const { return false; }
-	virtual float GetBreakableBreakSpeed() const { return kTerminalVelocityX; }
 
 	virtual bool GetForceFieldIsActive() const { return false; }
 	virtual Vector2 GetForceFieldForce() const { return { 0.0f, 0.0f }; }
@@ -81,8 +82,6 @@ protected:
 
 	bool _isGrounded{ false };
 	SurfaceType _surfaceTypeStandingOn{ SurfaceType::FlatGround };
-
-	static constexpr float kInteractionVelocity = 15.0f;
 
 private:
 	void ClampVelocityX() { if (_velocity.x > kTerminalVelocityX) _velocity.x = kTerminalVelocityX; if (_velocity.x < -kTerminalVelocityX) _velocity.x = -kTerminalVelocityX; }

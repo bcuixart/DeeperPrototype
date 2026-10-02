@@ -18,6 +18,8 @@ public:
 
     HitboxType GetHitboxType() const override { return HitboxType::Dynamic; }
 
+	float GetInteractionVelocity() const override { return kInteractionVelocity; }
+
 private:
     void KickFromDog(LevelObjectDog* dog);
     void BounceOffBall(LevelObjectBallTennis* otherBall);
@@ -27,6 +29,8 @@ private:
 
     static constexpr float kBounciness = 0.75f;
     static constexpr float kGroundFriction = 0.1f;
+
+    static constexpr float kInteractionVelocity = 10.0f;
 
     float _kickCooldown = 0.0f;
     static constexpr float kKickSpeed = 2.0f;

@@ -54,7 +54,7 @@ void LevelObjectHydrant001Water::RenderBounds(const float deltaTime, const Color
 
 void LevelObjectHydrant001::CollidedWithX(LevelObject* other, float prevVelocityX)
 {
-    if (other->GetVelocityMagnitude() >= kInteractionVelocity)
+    if (other->GetVelocityMagnitude() >= other->GetInteractionVelocity())
     {
         Activate();
     }
@@ -62,7 +62,7 @@ void LevelObjectHydrant001::CollidedWithX(LevelObject* other, float prevVelocity
 
 void LevelObjectHydrant001::CollidedWithY(LevelObject* other, float prevVelocityY)
 {
-    if (other->GetVelocityMagnitude() >= kInteractionVelocity)
+    if (other->GetVelocityMagnitude() >= other->GetInteractionVelocity())
     {
         Activate();
     }

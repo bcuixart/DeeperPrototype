@@ -18,7 +18,6 @@ public:
 
 	void BreakableBreak(const LevelObject* other) override;
 	bool GetBreakableIsBroken() const override { return _isBroken; }
-	float GetBreakableBreakSpeed() const override { return kInteractionVelocity; }
 
 	void OnDug(LevelObject* digger) override { BreakableBreak(digger); }
 
