@@ -29,7 +29,7 @@ public:
 	~LevelManager();
 
 	void Update(const float deltaTime);
-	void Render(const float deltaTime) const;
+	void Render(const float deltaTime);
 	void RenderBounds(const float deltaTime) const;
 
 	void LoadLevel(const std::string& levelName);
@@ -67,6 +67,8 @@ private:
 	bool IsTileSame(int x, int y, LevelObjectTileType type) const;
 	bool IsTileSlope(int x, int y) const;
 
+	Camera2D _cam = { 0 };
+
 	int _levelWidth = 0;
 	int _levelHeight = 0;
 
@@ -74,6 +76,8 @@ private:
 
 	std::vector<std::unique_ptr<LevelObject>> _levelObjects;
 	std::vector<std::vector<std::unique_ptr<LevelObjectTile>>> _levelTiles;
+
+	constexpr static bool DEBUG_DRAW_BOUNDS = false;
 };
 
 #endif

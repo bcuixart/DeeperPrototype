@@ -14,6 +14,12 @@
 
 using namespace std;
 
+enum class GameState {
+	MAIN_MENU,
+	PLAYER_SETTINGS,
+	PLAYING,
+};
+
 class GameManager {
 public:
 	GameManager();
@@ -27,12 +33,10 @@ public:
 protected:
 
 private:
+	GameState _gameState;
+
 	std::unique_ptr<AssetManager> _assetManager = nullptr;
 	std::unique_ptr<LevelManager> _levelManager = nullptr;
-
-	Camera2D _cam = { 0 };
-
-	constexpr static bool DEBUG_DRAW_BOUNDS = false;
 };
 
 #endif

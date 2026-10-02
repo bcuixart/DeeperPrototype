@@ -17,8 +17,20 @@ void LevelManager::Update(const float deltaTime)
     _physicsManager->Update(deltaTime);
 }
 
-void LevelManager::Render(const float deltaTime) const
+void LevelManager::Render(const float deltaTime)
 {
+    float zoomX = (float)GetScreenWidth() / GetLevelWidth();
+    float zoomY = (float)GetScreenHeight() / GetLevelHeight();
+
+    _cam.zoom = std::min(zoomX, zoomY);
+    _cam.target = { GetLevelWidth() / 2.0f, GetLevelHeight() / 2.0f };
+    _cam.offset = { GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f };
+    _cam.rotation = 0.0f;
+
+    BeginDrawing();
+    BeginMode2D(_cam);
+    ClearBackground({ 0, 196, 255, 255 });
+
     for (int i = 0; i < _levelHeight; ++i)
     {
         for (int j = 0; j < _levelWidth; ++j)
@@ -31,6 +43,13 @@ void LevelManager::Render(const float deltaTime) const
     }
 
     for (auto& object : _levelObjects) object->Render(deltaTime);
+
+    if (DEBUG_DRAW_BOUNDS) RenderBounds(deltaTime);
+
+    DrawFPS(-500, -500);
+
+    EndMode2D();
+    EndDrawing();
 }
 
 void LevelManager::RenderBounds(const float deltaTime) const
