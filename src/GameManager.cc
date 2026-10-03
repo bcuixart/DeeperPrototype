@@ -62,22 +62,31 @@ void GameManager::Update_PlayerSettings(const float deltaTime)
 	if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_DOWN) ||
 		IsKeyPressed(KEY_LEFT_CONTROL))
 	{
-		TryToAddPlayer(PlayerControllerType::KEYBOARD_ARROW);
+		TryToAddPlayer(PlayerControllerType::KEYBOARD_ARROW, 0);
 	}
 
 	if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_D) || IsKeyPressed(KEY_W) || IsKeyPressed(KEY_S) ||
 		IsKeyPressed(KEY_SPACE))
 	{
-		TryToAddPlayer(PlayerControllerType::KEYBOARD_WASD);
+		TryToAddPlayer(PlayerControllerType::KEYBOARD_WASD, 0);
 	}
 
 	if (IsKeyPressed(KEY_I) || IsKeyPressed(KEY_K) || IsKeyPressed(KEY_J) || IsKeyPressed(KEY_L) ||
 		IsKeyPressed(KEY_U))
 	{
-		TryToAddPlayer(PlayerControllerType::KEYBOARD_IJKL);
+		TryToAddPlayer(PlayerControllerType::KEYBOARD_IJKL, 0);
 	}
 
-	// Controller shit
+	for (int gamepadIndex = 0; gamepadIndex < MAX_GAMEPADS; gamepadIndex++)
+	{
+		if (!IsGamepadAvailable(gamepadIndex)) continue;
+		if (AnyGamepadButtonPressed(gamepadIndex))
+		{
+			TryToAddPlayer((PlayerControllerType)((int)PlayerControllerType::GAMEPAD_0 + gamepadIndex), gamepadIndex);
+		}
+	}
+
+	CheckForDisconnectedGamepadPlayers();
 }
 
 void GameManager::Render_PlayerSettings(const float deltaTime)
@@ -86,30 +95,36 @@ void GameManager::Render_PlayerSettings(const float deltaTime)
 	EndDrawing();
 }
 
-void GameManager::TryToAddPlayer(PlayerControllerType type)
+bool GameManager::TryToAddPlayer(PlayerControllerType type, uint8_t gamepadIndex)
 {
-	if (_playersActive >= LOCAL_PLAYERS) return;
-	if (IsControllerTypeInUse(type)) return;
+	if (_playersActive >= LOCAL_PLAYERS) return false;
+	if (IsControllerTypeInUse(type)) return false;
 
 	_playerInfo[_playersActive].isActive = true;
 	_playerInfo[_playersActive].controllerType = type;
+	_playerInfo[_playersActive].gamepadIndex = gamepadIndex;
 	_playersActive++;
 
 	printf("Added player %d with controller type %d\n", _playersActive, (int)type);
+
+	return true;
 }
 
-void GameManager::RemovePlayer(uint8_t playerNum)
+bool GameManager::TryToRemovePlayer(uint8_t playerNum)
 {
-	if (playerNum >= _playersActive) return;
+	if (playerNum >= _playersActive) return false;
+	if (!_playerInfo[playerNum].isActive) return false;
 
 	_playerInfo[playerNum].isActive = false;
 
-	if (playerNum == LOCAL_PLAYERS - 1) return;
+	if (playerNum == LOCAL_PLAYERS - 1) return true;
 	for (int i = playerNum; i < _playersActive - 1; i++)
 	{
 		_playerInfo[i] = _playerInfo[i + 1];
 	}
 	_playersActive--;
+
+	return true;
 }
 
 bool GameManager::IsControllerTypeInUse(PlayerControllerType type) const
@@ -120,4 +135,32 @@ bool GameManager::IsControllerTypeInUse(PlayerControllerType type) const
 	}
 
 	return false;
+}
+
+bool GameManager::AnyGamepadButtonPressed(int gamepadIndex) const
+{
+	// GAMEPAD_BUTTON_UNKNOWN (0) is excluded
+	for (int button = GAMEPAD_BUTTON_LEFT_FACE_UP; button <= GAMEPAD_BUTTON_RIGHT_THUMB; button++)
+	{
+		if (IsGamepadButtonPressed(gamepadIndex, button)) return true;
+	}
+
+	return false;
+}
+
+void GameManager::CheckForDisconnectedGamepadPlayers()
+{
+	for (int i = 0; i < _playersActive; i++)
+	{
+		PlayerControllerType type = _playerInfo[i].controllerType;
+		if (type < PlayerControllerType::GAMEPAD_0) continue;
+
+		int gamepadIndex = (int)type - (int)PlayerControllerType::GAMEPAD_0;
+		if (!IsGamepadAvailable(gamepadIndex))
+		{
+			printf("Player %d's gamepad disconnected, removing\n", i);
+			TryToRemovePlayer(i);
+			i--;
+		}
+	}
 }

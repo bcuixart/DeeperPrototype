@@ -15,6 +15,7 @@
 using namespace std;
 
 #define LOCAL_PLAYERS 4
+#define MAX_GAMEPADS 4
 
 enum class PlayerControllerType {
 	KEYBOARD_ARROW,
@@ -31,7 +32,7 @@ struct PlayerInfo
 	bool isActive;
 	char playerName[16];
 	PlayerControllerType controllerType;
-	int controllerIndex;
+	uint8_t gamepadIndex;
 };
 
 enum class GameState {
@@ -56,10 +57,12 @@ private:
 	void Update_PlayerSettings(const float deltaTime);
 	void Render_PlayerSettings(const float deltaTime);
 
-	void TryToAddPlayer(PlayerControllerType type);
-	void RemovePlayer(uint8_t playerNum);
+	bool TryToAddPlayer(PlayerControllerType type, uint8_t gamepadIndex);
+	bool TryToRemovePlayer(uint8_t playerNum);
 
 	bool IsControllerTypeInUse(PlayerControllerType type) const;
+	bool AnyGamepadButtonPressed(int gamepadIndex) const;
+	void CheckForDisconnectedGamepadPlayers();
 
 	GameState _gameState;
 	PlayerInfo _playerInfo[LOCAL_PLAYERS];
