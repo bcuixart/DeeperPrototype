@@ -1,7 +1,7 @@
 #ifndef LEVELOBJECTTILEBRIDGE_HH
 #define LEVELOBJECTTILEBRIDGE_HH
 
-#include "LevelObjects/Tiles/LevelObjectTile.hh"
+#include "Level/LevelObjects/Tiles/LevelObjectTile.hh"
 
 class LevelObjectTileBridge : public LevelObjectTile {
 public:

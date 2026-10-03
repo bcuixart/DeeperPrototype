@@ -1,7 +1,7 @@
 #ifndef LEVELOBJECTUMBRELLATALL_HH
 #define LEVELOBJECTUMBRELLATALL_HH
 
-#include "LevelObject.hh"
+#include "Level/LevelObject.hh"
 
 class LevelObjectUmbrellaTall : public LevelObject {
 public:

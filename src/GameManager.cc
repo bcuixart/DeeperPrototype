@@ -9,7 +9,7 @@ GameManager::GameManager()
 
 	_assetManager = std::make_unique<AssetManager>();
 
-	for (int i = 0; i < LOCAL_PLAYERS; i++)
+	for (int i = 0; i < MAX_LOCAL_PLAYERS; i++)
 	{
 		_playerInfo[i].isActive = false;
 	}
@@ -52,7 +52,6 @@ void GameManager::Render(const float deltaTime)
 	case GameState::MAIN_MENU:
 		break;
 	case GameState::PLAYER_SETTINGS:
-		Render_PlayerSettings(deltaTime);
 		_menuManager->Render(deltaTime);
 		break;
 	case GameState::PLAYING:
@@ -93,15 +92,9 @@ void GameManager::Update_PlayerSettings(const float deltaTime)
 	CheckForDisconnectedGamepadPlayers();
 }
 
-void GameManager::Render_PlayerSettings(const float deltaTime)
-{
-	BeginDrawing();
-	EndDrawing();
-}
-
 bool GameManager::TryToAddPlayer(PlayerControllerType type, uint8_t gamepadIndex)
 {
-	if (_playersActive >= LOCAL_PLAYERS) return false;
+	if (_playersActive >= MAX_LOCAL_PLAYERS) return false;
 	if (IsControllerTypeInUse(type)) return false;
 
 	_playerInfo[_playersActive].isActive = true;
@@ -121,7 +114,7 @@ bool GameManager::TryToRemovePlayer(uint8_t playerNum)
 
 	_playerInfo[playerNum].isActive = false;
 
-	if (playerNum == LOCAL_PLAYERS - 1) return true;
+	if (playerNum == MAX_LOCAL_PLAYERS - 1) return true;
 	for (int i = playerNum; i < _playersActive - 1; i++)
 	{
 		_playerInfo[i] = _playerInfo[i + 1];

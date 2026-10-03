@@ -6,6 +6,7 @@
 #include <memory>
 #include <fstream>
 #include <iostream>
+#include <raylib.h>
 
 #include "MenuCursor.hh"
 #include "MenuObject.hh"
@@ -21,7 +22,8 @@ public:
 	void LoadMenu(const std::string& menuName);
 
 private:
-
+	std::vector<std::unique_ptr<MenuCursor>> _menuCursors;
+	std::vector<std::unique_ptr<MenuObject>> _menuObjects;
 };
 
 #endif

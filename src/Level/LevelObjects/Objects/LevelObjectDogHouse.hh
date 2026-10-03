@@ -1,7 +1,7 @@
 #ifndef LEVELOBJECTDOGHOUSE_HH
 #define LEVELOBJECTDOGHOUSE_HH
 
-#include "LevelObject.hh"
+#include "Level/LevelObject.hh"
 
 class LevelObjectDogHouse : public LevelObject {
 public:

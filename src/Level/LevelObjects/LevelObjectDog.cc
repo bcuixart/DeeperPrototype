@@ -1,5 +1,5 @@
 #include "LevelObjectDog.hh"
-#include "LevelManager.hh"
+#include "Level/LevelManager.hh"
 
 LevelObjectDog::LevelObjectDog(const Vector2& position, LevelManager* levelManager)
 {

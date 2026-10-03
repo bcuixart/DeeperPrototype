@@ -1,5 +1,4 @@
 #include "LevelObjectTile.hh"
-#include "GameManager.hh"
 
 LevelObjectTile::LevelObjectTile(const Vector2& position)
 {

@@ -1,12 +1,12 @@
-#ifndef LEVELOBJECTTILEDIRT_HH
-#define LEVELOBJECTTILEDIRT_HH
+#ifndef LEVELOBJECTTILEGROUND_HH
+#define LEVELOBJECTTILEGROUND_HH
 
-#include "LevelObjects/Tiles/LevelObjectTile.hh"
+#include "Level/LevelObjects/Tiles/LevelObjectTile.hh"
 
-class LevelObjectTileDirt : public LevelObjectTile {
+class LevelObjectTileGround : public LevelObjectTile {
 public:
-	LevelObjectTileDirt(const Vector2& position);
-	~LevelObjectTileDirt();
+	LevelObjectTileGround(const Vector2& position);
+	~LevelObjectTileGround();
 
 	void Update(const float deltaTime) override;
 	void Render(const float deltaTime) const override;

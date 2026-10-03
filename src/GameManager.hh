@@ -10,13 +10,14 @@
 #include <raymath.h>
 
 #include "AssetManager.hh"
-#include "LevelManager.hh"
+#include "Level/LevelManager.hh"
 #include "Menu/MenuManager.hh"
 
 using namespace std;
 
-#define LOCAL_PLAYERS 4
+#define MAX_LOCAL_PLAYERS 4
 #define MAX_GAMEPADS 4
+#define MAX_PLAYERS 8
 
 enum class PlayerControllerType {
 	KEYBOARD_ARROW,
@@ -56,7 +57,6 @@ protected:
 
 private:
 	void Update_PlayerSettings(const float deltaTime);
-	void Render_PlayerSettings(const float deltaTime);
 
 	bool TryToAddPlayer(PlayerControllerType type, uint8_t gamepadIndex);
 	bool TryToRemovePlayer(uint8_t playerNum);
@@ -66,7 +66,7 @@ private:
 	void CheckForDisconnectedGamepadPlayers();
 
 	GameState _gameState;
-	PlayerInfo _playerInfo[LOCAL_PLAYERS];
+	PlayerInfo _playerInfo[MAX_LOCAL_PLAYERS];
 
 	std::unique_ptr<AssetManager> _assetManager = nullptr;
 	std::unique_ptr<MenuManager> _menuManager = nullptr;

@@ -1,7 +1,7 @@
 #ifndef LEVELOBJECTTILESAND_HH
 #define LEVELOBJECTTILESAND_HH
 
-#include "LevelObjects/Tiles/LevelObjectTile.hh"
+#include "Level/LevelObjects/Tiles/LevelObjectTile.hh"
 
 class LevelObjectTileSand : public LevelObjectTile {
 public:

@@ -1,8 +1,8 @@
 #ifndef LEVELOBJECTBALLTENNIS_HH
 #define LEVELOBJECTBALLTENNIS_HH
 
-#include "LevelObject.hh"
-#include "LevelObjects/LevelObjectDog.hh"
+#include "Level/LevelObject.hh"
+#include "Level/LevelObjects/LevelObjectDog.hh"
 
 class LevelObjectBallTennis : public LevelObject {
 public:

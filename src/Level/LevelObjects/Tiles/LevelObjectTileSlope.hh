@@ -1,7 +1,7 @@
 #ifndef LEVELOBJECTTILESLOPE_HH
 #define LEVELOBJECTTILESLOPE_HH
 
-#include "LevelObjects/Tiles/LevelObjectTile.hh"
+#include "Level/LevelObjects/Tiles/LevelObjectTile.hh"
 
 class LevelObjectTileSlope : public LevelObjectTile {
 public:

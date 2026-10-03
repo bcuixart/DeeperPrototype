@@ -1,7 +1,7 @@
 #ifndef LEVELOBJECTHYDRANT001_HH
 #define LEVELOBJECTHYDRANT001_HH
 
-#include "LevelObject.hh"
+#include "Level/LevelObject.hh"
 
 class LevelObjectHydrant001Water;
 

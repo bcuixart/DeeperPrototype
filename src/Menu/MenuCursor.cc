@@ -1,7 +1,9 @@
 #include "MenuCursor.hh"
 
-MenuCursor::MenuCursor()
+MenuCursor::MenuCursor(int playerIndex, bool isActive)
 {
+	_playerIndex = playerIndex;
+	_isActive = isActive;
 }
 
 MenuCursor::~MenuCursor()

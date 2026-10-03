@@ -1,7 +1,7 @@
 #ifndef LEVELOBJECTDOG_HH
 #define LEVELOBJECTDOG_HH
 
-#include "LevelObject.hh"
+#include "Level/LevelObject.hh"
 
 enum class DogState {
     Default, Sliding, InDirt, Flung

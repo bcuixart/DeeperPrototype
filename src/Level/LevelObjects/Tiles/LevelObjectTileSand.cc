@@ -1,5 +1,5 @@
 #include "LevelObjectTileSand.hh"
-#include "LevelManager.hh"
+#include "Level/LevelManager.hh"
 
 LevelObjectTileSand::LevelObjectTileSand(const Vector2& position, LevelManager* levelManager) : LevelObjectTile(position)
 {

@@ -1,8 +1,8 @@
 #ifndef LEVELOBJECTBENCH001_HH
 #define LEVELOBJECTBENCH001_HH
 
-#include "LevelObject.hh"
-#include "LevelObjects/LevelObjectDog.hh"
+#include "Level/LevelObject.hh"
+#include "Level/LevelObjects/LevelObjectDog.hh"
 
 class LevelObjectBench001 : public LevelObject {
 public:
