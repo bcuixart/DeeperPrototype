@@ -38,6 +38,7 @@ void GameManager::Update(const float deltaTime)
 		break;
 	case GameState::PLAYER_SETTINGS:
 		Update_PlayerSettings(deltaTime);
+		_menuManager->ReceiveInput(_inputManager->GetMenuInput(_playerInfo));
 		_menuManager->Update(deltaTime);
 		break;
 	case GameState::LEVEL:
@@ -98,10 +99,12 @@ bool GameManager::TryToAddPlayer(PlayerControllerType type, uint8_t gamepadIndex
 	if (_playersActive >= MAX_LOCAL_PLAYERS) return false;
 	if (IsControllerTypeInUse(type)) return false;
 
+	_menuManager->SetMenuCursorActive(_playersActive, true);
 	_playerInfo[_playersActive].isActive = true;
 	_playerInfo[_playersActive].controllerType = type;
 	_playerInfo[_playersActive].gamepadIndex = gamepadIndex;
 	_playersActive++;
+
 
 	printf("Added player %d with controller type %d\n", _playersActive, (int)type);
 
@@ -114,6 +117,7 @@ bool GameManager::TryToRemovePlayer(uint8_t playerNum)
 	if (!_playerInfo[playerNum].isActive) return false;
 
 	_playerInfo[playerNum].isActive = false;
+	_menuManager->SetMenuCursorActive(playerNum, false);
 
 	if (playerNum == MAX_LOCAL_PLAYERS - 1) return true;
 	for (int i = playerNum; i < _playersActive - 1; i++)

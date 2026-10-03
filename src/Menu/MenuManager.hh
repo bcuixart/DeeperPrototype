@@ -8,6 +8,7 @@
 #include <iostream>
 #include <raylib.h>
 
+#include "InputManager.hh"
 #include "MenuCursor.hh"
 #include "MenuObject.hh"
 
@@ -20,6 +21,10 @@ public:
 	void Render(const float deltaTime);
 
 	void LoadMenu(const std::string& menuName);
+
+	void ReceiveInput(const std::array<uint8_t, MAX_LOCAL_PLAYERS>& input);
+
+	void SetMenuCursorActive(uint8_t playerIndex, bool isActive);
 
 private:
 	std::vector<std::unique_ptr<MenuCursor>> _menuCursors;
