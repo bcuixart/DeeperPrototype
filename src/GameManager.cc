@@ -15,6 +15,8 @@ GameManager::GameManager()
 	}
 	_playersActive = 0;
 
+	_menuManager = std::make_unique<MenuManager>();
+
 	_levelManager = std::make_unique<LevelManager>();
 	_levelManager->LoadLevel("test_level");
 }
@@ -35,6 +37,7 @@ void GameManager::Update(const float deltaTime)
 		break;
 	case GameState::PLAYER_SETTINGS:
 		Update_PlayerSettings(deltaTime);
+		_menuManager->Update(deltaTime);
 		break;
 	case GameState::PLAYING:
 		_levelManager->Update(deltaTime);
@@ -50,6 +53,7 @@ void GameManager::Render(const float deltaTime)
 		break;
 	case GameState::PLAYER_SETTINGS:
 		Render_PlayerSettings(deltaTime);
+		_menuManager->Render(deltaTime);
 		break;
 	case GameState::PLAYING:
 		_levelManager->Render(deltaTime);

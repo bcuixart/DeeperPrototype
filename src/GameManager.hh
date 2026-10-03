@@ -11,6 +11,7 @@
 
 #include "AssetManager.hh"
 #include "LevelManager.hh"
+#include "Menu/MenuManager.hh"
 
 using namespace std;
 
@@ -68,6 +69,7 @@ private:
 	PlayerInfo _playerInfo[LOCAL_PLAYERS];
 
 	std::unique_ptr<AssetManager> _assetManager = nullptr;
+	std::unique_ptr<MenuManager> _menuManager = nullptr;
 	std::unique_ptr<LevelManager> _levelManager = nullptr;
 
 	uint8_t _playersActive;
