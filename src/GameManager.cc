@@ -62,13 +62,19 @@ void GameManager::Update_PlayerSettings(const float deltaTime)
 	if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_DOWN) ||
 		IsKeyPressed(KEY_LEFT_CONTROL))
 	{
-		if (!_addedPlayerArrows) TryToAddPlayer(PlayerControllerType::KEYBOARD_ARROW);
+		TryToAddPlayer(PlayerControllerType::KEYBOARD_ARROW);
 	}
 
 	if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_D) || IsKeyPressed(KEY_W) || IsKeyPressed(KEY_S) ||
 		IsKeyPressed(KEY_SPACE))
 	{
-		if (!_addedPlayerWASD) TryToAddPlayer(PlayerControllerType::KEYBOARD_WASD);
+		TryToAddPlayer(PlayerControllerType::KEYBOARD_WASD);
+	}
+
+	if (IsKeyPressed(KEY_I) || IsKeyPressed(KEY_K) || IsKeyPressed(KEY_J) || IsKeyPressed(KEY_L) ||
+		IsKeyPressed(KEY_U))
+	{
+		TryToAddPlayer(PlayerControllerType::KEYBOARD_IJKL);
 	}
 
 	// Controller shit
@@ -83,15 +89,11 @@ void GameManager::Render_PlayerSettings(const float deltaTime)
 void GameManager::TryToAddPlayer(PlayerControllerType type)
 {
 	if (_playersActive >= LOCAL_PLAYERS) return;
-	if (type == PlayerControllerType::KEYBOARD_ARROW && _addedPlayerArrows) return;
-	if (type == PlayerControllerType::KEYBOARD_WASD && _addedPlayerWASD) return;
+	if (IsControllerTypeInUse(type)) return;
 
 	_playerInfo[_playersActive].isActive = true;
 	_playerInfo[_playersActive].controllerType = type;
 	_playersActive++;
-
-	if (type == PlayerControllerType::KEYBOARD_ARROW) _addedPlayerArrows = true;
-	if (type == PlayerControllerType::KEYBOARD_WASD) _addedPlayerWASD = true;
 
 	printf("Added player %d with controller type %d\n", _playersActive, (int)type);
 }
@@ -108,4 +110,14 @@ void GameManager::RemovePlayer(uint8_t playerNum)
 		_playerInfo[i] = _playerInfo[i + 1];
 	}
 	_playersActive--;
+}
+
+bool GameManager::IsControllerTypeInUse(PlayerControllerType type) const
+{
+	for (int i = 0; i < _playersActive; i++)
+	{
+		if (_playerInfo[i].isActive && _playerInfo[i].controllerType == type) return true;
+	}
+
+	return false;
 }

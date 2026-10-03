@@ -19,7 +19,11 @@ using namespace std;
 enum class PlayerControllerType {
 	KEYBOARD_ARROW,
 	KEYBOARD_WASD,
-	CONTROLLER,
+	KEYBOARD_IJKL,
+	GAMEPAD_0,
+	GAMEPAD_1,
+	GAMEPAD_2,
+	GAMEPAD_3,
 };
 
 struct PlayerInfo
@@ -55,6 +59,8 @@ private:
 	void TryToAddPlayer(PlayerControllerType type);
 	void RemovePlayer(uint8_t playerNum);
 
+	bool IsControllerTypeInUse(PlayerControllerType type) const;
+
 	GameState _gameState;
 	PlayerInfo _playerInfo[LOCAL_PLAYERS];
 
@@ -62,9 +68,6 @@ private:
 	std::unique_ptr<LevelManager> _levelManager = nullptr;
 
 	uint8_t _playersActive;
-
-	bool _addedPlayerWASD{ false };
-	bool _addedPlayerArrows{ false };
 };
 
 #endif
