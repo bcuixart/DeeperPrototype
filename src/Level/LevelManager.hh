@@ -6,6 +6,7 @@
 #include <memory>
 #include <fstream>
 #include <iostream>
+#include <random>
 
 #include "PhysicsManager.hh"
 #include "LevelObject.hh"
@@ -25,12 +26,14 @@
 
 class LevelManager {
 public:
-	LevelManager();
+	LevelManager(int numDogs);
 	~LevelManager();
 
 	void Update(const float deltaTime);
 	void Render(const float deltaTime);
 	void RenderBounds(const float deltaTime) const;
+
+	void ReceiveInput(const std::array<uint8_t, MAX_LOCAL_PLAYERS>& input);
 
 	void LoadLevel(const std::string& levelName);
 
@@ -76,6 +79,9 @@ private:
 
 	std::vector<std::unique_ptr<LevelObject>> _levelObjects;
 	std::vector<std::vector<std::unique_ptr<LevelObjectTile>>> _levelTiles;
+
+	std::vector<LevelObjectDog*> _dogs;
+	int _numDogs = 0;
 
 	constexpr static bool DEBUG_DRAW_BOUNDS = false;
 };

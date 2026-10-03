@@ -17,17 +17,11 @@ GameManager::GameManager()
 	_playersActive = 0;
 
 	_menuManager = std::make_unique<MenuManager>();
-
-	_levelManager = std::make_unique<LevelManager>();
-	_levelManager->LoadLevel("test_level");
 }
 
 GameManager::~GameManager()
 {
     GameManager::instance = nullptr;
-
-    _assetManager.reset();
-	_levelManager.reset();
 }
 
 void GameManager::Update(const float deltaTime)
@@ -42,6 +36,7 @@ void GameManager::Update(const float deltaTime)
 		_menuManager->Update(deltaTime);
 		break;
 	case GameState::LEVEL:
+		_levelManager->ReceiveInput(_inputManager->GetLevelInput(_playerInfo));
 		_levelManager->Update(deltaTime);
 		break;
 	}
@@ -64,34 +59,35 @@ void GameManager::Render(const float deltaTime)
 
 void GameManager::Update_PlayerSettings(const float deltaTime)
 {
-	if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_DOWN) ||
-		IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_RIGHT_CONTROL))
-	{
-		TryToAddPlayer(PlayerControllerType::KEYBOARD_ARROW, 0);
-	}
-
-	if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_D) || IsKeyPressed(KEY_W) || IsKeyPressed(KEY_S) ||
-		IsKeyPressed(KEY_LEFT_SHIFT) || IsKeyPressed(KEY_LEFT_CONTROL))
-	{
-		TryToAddPlayer(PlayerControllerType::KEYBOARD_WASD, 0);
-	}
-
-	if (IsKeyPressed(KEY_I) || IsKeyPressed(KEY_K) || IsKeyPressed(KEY_J) || IsKeyPressed(KEY_L) ||
-		IsKeyPressed(KEY_U))
-	{
-		TryToAddPlayer(PlayerControllerType::KEYBOARD_IJKL, 0);
-	}
+	if (_inputManager->AnyKeyboardArrowKeyPressed()) TryToAddPlayer(PlayerControllerType::KEYBOARD_ARROW, 0);
+	if (_inputManager->AnyKeyboardWASDKeyPressed()) TryToAddPlayer(PlayerControllerType::KEYBOARD_WASD, 0);
+	if (_inputManager->AnyKeyboardIJKLKeyPressed()) TryToAddPlayer(PlayerControllerType::KEYBOARD_IJKL, 0);
 
 	for (int gamepadIndex = 0; gamepadIndex < MAX_GAMEPADS; gamepadIndex++)
 	{
 		if (!IsGamepadAvailable(gamepadIndex)) continue;
-		if (AnyGamepadButtonPressed(gamepadIndex))
+		if (_inputManager->AnyGamepadButtonPressed(gamepadIndex))
 		{
 			TryToAddPlayer((PlayerControllerType)((int)PlayerControllerType::GAMEPAD_0 + gamepadIndex), gamepadIndex);
 		}
 	}
 
 	CheckForDisconnectedGamepadPlayers();
+
+	if (IsKeyPressed(KEY_ENTER))
+	{
+		StartLevel("test_level");
+	}
+}
+
+void GameManager::StartLevel(const std::string& levelName)
+{
+	if (_playersActive == 0) return;
+
+	_gameState = GameState::LEVEL;
+
+	_levelManager = std::make_unique<LevelManager>(_playersActive);
+	_levelManager->LoadLevel(levelName);
 }
 
 bool GameManager::TryToAddPlayer(PlayerControllerType type, uint8_t gamepadIndex)
@@ -134,17 +130,6 @@ bool GameManager::IsControllerTypeInUse(PlayerControllerType type) const
 	for (int i = 0; i < _playersActive; i++)
 	{
 		if (_playerInfo[i].isActive && _playerInfo[i].controllerType == type) return true;
-	}
-
-	return false;
-}
-
-bool GameManager::AnyGamepadButtonPressed(int gamepadIndex) const
-{
-	// GAMEPAD_BUTTON_UNKNOWN (0) is excluded
-	for (int button = GAMEPAD_BUTTON_LEFT_FACE_UP; button <= GAMEPAD_BUTTON_RIGHT_THUMB; button++)
-	{
-		if (IsGamepadButtonPressed(gamepadIndex, button)) return true;
 	}
 
 	return false;

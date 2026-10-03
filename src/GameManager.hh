@@ -35,6 +35,8 @@ protected:
 private:
 	void Update_PlayerSettings(const float deltaTime);
 
+	void StartLevel(const std::string& levelName);
+
 	bool TryToAddPlayer(PlayerControllerType type, uint8_t gamepadIndex);
 	bool TryToRemovePlayer(uint8_t playerNum);
 

@@ -85,8 +85,6 @@ uint8_t InputManager::GetMenuInput_KeyboardIJKL()
 
 uint8_t InputManager::GetMenuInput_Gamepad(uint8_t gamepadIndex)
 {
-	constexpr float kStickDeadZone = 0.1f;
-
 	uint8_t select = (IsGamepadButtonDown(gamepadIndex, GAMEPAD_BUTTON_RIGHT_FACE_UP) ||
 						IsGamepadButtonDown(gamepadIndex, GAMEPAD_BUTTON_RIGHT_FACE_DOWN) ||
 						IsGamepadButtonDown(gamepadIndex, GAMEPAD_BUTTON_RIGHT_FACE_LEFT) ||
@@ -108,7 +106,7 @@ uint8_t InputManager::GetMenuInput_Gamepad(uint8_t gamepadIndex)
 	if (fabsf(joystickX) < kStickDeadZone) joystickX = GetGamepadAxisMovement(gamepadIndex, GAMEPAD_AXIS_RIGHT_X);
 	if (fabsf(joystickY) < kStickDeadZone) joystickY = GetGamepadAxisMovement(gamepadIndex, GAMEPAD_AXIS_RIGHT_Y);
 
-	auto EncodeStickAxis = [kStickDeadZone](float value) -> uint8_t
+	auto EncodeStickAxis = [](float value) -> uint8_t
 	{
 		if (fabsf(value) < kStickDeadZone) return 0x04;
 		if (value > 0.0f) return (value > 0.75f) ? 0x07 : (value > 0.5f) ? 0x06 : 0x05;
@@ -151,20 +149,118 @@ std::array<uint8_t, MAX_LOCAL_PLAYERS> InputManager::GetLevelInput(const std::ar
 
 uint8_t InputManager::GetLevelInput_KeyboardArrow()
 {
-	return 0;
+	uint8_t jump = IsKeyDown(KEY_UP) ? 1 : 0;
+	uint8_t bark = (IsKeyDown(KEY_RIGHT_CONTROL) || IsKeyDown(KEY_SPACE)) ? 1 : 0;
+	uint8_t dig = IsKeyDown(KEY_DOWN) ? 1 : 0;
+
+	uint8_t left = IsKeyDown(KEY_LEFT) ? 1 : 0;
+	uint8_t right = IsKeyDown(KEY_RIGHT) ? 1 : 0;
+
+	uint8_t axisX = (right) ? 0x1F : (left) ? 0x00 : 0x10;
+
+	return (axisX << 3) | (bark << 2) | (dig << 1) | (jump << 0);
 }
 
 uint8_t InputManager::GetLevelInput_KeyboardWASD()
 {
-	return 0;
+	uint8_t jump = IsKeyDown(KEY_W) ? 1 : 0;
+	uint8_t bark = (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_LEFT_CONTROL)) ? 1 : 0;
+	uint8_t dig = IsKeyDown(KEY_S) ? 1 : 0;
+
+	uint8_t left = IsKeyDown(KEY_A) ? 1 : 0;
+	uint8_t right = IsKeyDown(KEY_D) ? 1 : 0;
+
+	uint8_t axisX = (right) ? 0x1F : (left) ? 0x00 : 0x10;
+
+	return (axisX << 3) | (bark << 2) | (dig << 1) | (jump << 0);
 }
 
 uint8_t InputManager::GetLevelInput_KeyboardIJKL()
 {
-	return 0;
+	uint8_t jump = IsKeyDown(KEY_I) ? 1 : 0;
+	uint8_t bark = (IsKeyDown(KEY_O) || IsKeyDown(KEY_U)) ? 1 : 0;
+	uint8_t dig = IsKeyDown(KEY_K) ? 1 : 0;
+
+	uint8_t left = IsKeyDown(KEY_J) ? 1 : 0;
+	uint8_t right = IsKeyDown(KEY_L) ? 1 : 0;
+
+	uint8_t axisX = (right) ? 0x1F : (left) ? 0x00 : 0x10;
+
+	return (axisX << 3) | (bark << 2) | (dig << 1) | (jump << 0);
 }
 
 uint8_t InputManager::GetLevelInput_Gamepad(uint8_t gamepadIndex)
 {
-	return 0;
+	uint8_t jump = (IsGamepadButtonDown(gamepadIndex, GAMEPAD_BUTTON_RIGHT_FACE_UP) ||
+						IsGamepadButtonDown(gamepadIndex, GAMEPAD_BUTTON_RIGHT_FACE_DOWN) ||
+						IsGamepadButtonDown(gamepadIndex, GAMEPAD_BUTTON_RIGHT_FACE_LEFT) ||
+						IsGamepadButtonDown(gamepadIndex, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT)) ? 1 : 0;
+
+	uint8_t bark = (IsGamepadButtonDown(gamepadIndex, GAMEPAD_BUTTON_LEFT_TRIGGER_1) ||
+						IsGamepadButtonDown(gamepadIndex, GAMEPAD_BUTTON_LEFT_TRIGGER_2) ||
+						IsGamepadButtonDown(gamepadIndex, GAMEPAD_BUTTON_RIGHT_TRIGGER_1) ||
+						IsGamepadButtonDown(gamepadIndex, GAMEPAD_BUTTON_RIGHT_TRIGGER_2)) ? 1 : 0;
+
+	uint8_t down_dpad = IsGamepadButtonDown(gamepadIndex, GAMEPAD_BUTTON_LEFT_FACE_DOWN) ? 1 : 0;
+	uint8_t left_dpad = IsGamepadButtonDown(gamepadIndex, GAMEPAD_BUTTON_LEFT_FACE_LEFT) ? 1 : 0;
+	uint8_t right_dpad = IsGamepadButtonDown(gamepadIndex, GAMEPAD_BUTTON_LEFT_FACE_RIGHT) ? 1 : 0;
+
+	// Prioritize left joystick, use right joystick if the left one is not used
+	float joystickX = GetGamepadAxisMovement(gamepadIndex, GAMEPAD_AXIS_LEFT_X);
+	float joystickY = GetGamepadAxisMovement(gamepadIndex, GAMEPAD_AXIS_LEFT_Y);
+	if (fabsf(joystickX) < kStickDeadZone) joystickX = GetGamepadAxisMovement(gamepadIndex, GAMEPAD_AXIS_RIGHT_X);
+	if (fabsf(joystickY) < kStickDeadZone) joystickY = GetGamepadAxisMovement(gamepadIndex, GAMEPAD_AXIS_RIGHT_Y);
+
+	auto EncodeStickAxis = [](float value) -> uint8_t
+	{
+		constexpr uint8_t kCenter = 16;
+
+		if (fabsf(value) < kStickDeadZone) return kCenter;
+
+		float magnitude = (fabsf(value) - kStickDeadZone) / (1.0f - kStickDeadZone);
+		if (magnitude < 0.0f) magnitude = 0.0f;
+		else if (magnitude > 1.0f) magnitude = 1.0f;
+
+		if (value > 0.0f) return kCenter + (uint8_t)roundf(magnitude * (31 - kCenter));
+		return kCenter - (uint8_t)roundf(magnitude * kCenter);
+	};
+
+	// DPAD takes priority over joystick input
+	uint8_t axisX = (right_dpad) ? 0x1F : (left_dpad) ? 0x00 : EncodeStickAxis(joystickX);
+
+	uint8_t dig = (down_dpad || joystickY > kDigThreshold) ? 1 : 0;
+
+	return (axisX << 3) | (bark << 2) | (dig << 1) | (jump << 0);
+}
+
+bool InputManager::AnyKeyboardArrowKeyPressed() const
+{
+	return IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_DOWN) ||
+		IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_RIGHT_CONTROL);
+}
+
+bool InputManager::AnyKeyboardWASDKeyPressed() const
+{
+	return IsKeyPressed(KEY_A) || IsKeyPressed(KEY_D) || IsKeyPressed(KEY_W) || IsKeyPressed(KEY_S) ||
+		IsKeyPressed(KEY_LEFT_SHIFT) || IsKeyPressed(KEY_LEFT_CONTROL);
+}
+
+bool InputManager::AnyKeyboardIJKLKeyPressed() const
+{
+	return IsKeyPressed(KEY_I) || IsKeyPressed(KEY_K) || IsKeyPressed(KEY_J) || IsKeyPressed(KEY_L) ||
+		IsKeyPressed(KEY_U) || IsKeyPressed(KEY_O);
+}
+
+bool InputManager::AnyGamepadButtonPressed(int gamepadIndex) const
+{
+	// GAMEPAD_BUTTON_UNKNOWN (0) is excluded
+	for (int button = GAMEPAD_BUTTON_LEFT_FACE_UP; button <= GAMEPAD_BUTTON_RIGHT_THUMB; button++)
+	{
+		if (IsGamepadButtonPressed(gamepadIndex, button)) return true;
+
+		if (fabs(GetGamepadAxisMovement(gamepadIndex, 0)) > InputManager::kStickDeadZone) return true;
+		if (fabs(GetGamepadAxisMovement(gamepadIndex, 1)) > InputManager::kStickDeadZone) return true;
+	}
+
+	return false;
 }

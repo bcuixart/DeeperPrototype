@@ -2,6 +2,7 @@
 #define LEVELOBJECTDOG_HH
 
 #include "Level/LevelObject.hh"
+#include "InputManager.hh"
 
 enum class DogState {
     Default, Sliding, InDirt, Flung
@@ -15,6 +16,8 @@ public:
     void Render(const float deltaTime) const override;
 
     HitboxType GetHitboxType() const override { return HitboxType::Entity; }
+
+    void ReceiveInput(uint8_t input);
 
     void DropThroughSemisolid(const Rectangle& semisolidBounds);
 
@@ -40,6 +43,16 @@ private:
     static constexpr float kSlideAcceleration = 20.0f;
 
     static constexpr float kDigHorizontalOffset = 0.01f;
+
+    bool _inputJump{false};
+    bool _inputDig{false};
+    bool _inputBark{false};
+    float _inputAxisX{0.0f};
+
+    bool _inputJumpPrev{false};
+    bool _inputDigPrev{false};
+    bool _inputBarkPrev{false};
+    float _inputAxisXPrev{0.0f};
 
     bool _isFacingLeft = false;
 

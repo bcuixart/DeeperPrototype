@@ -33,6 +33,11 @@ struct PlayerInfo
 #define BITMASK_MENU_AXIS_X	    0x1C
 #define BITMASK_MENU_AXIS_Y	    0xE0
 
+#define BITMASK_LEVEL_JUMP		0x01
+#define BITMASK_LEVEL_DIG		0x02
+#define BITMASK_LEVEL_BARK		0x04
+#define BITMASK_LEVEL_AXIS_X	0xF1
+
 class InputManager {
 public:
 	InputManager();
@@ -40,6 +45,11 @@ public:
 
 	std::array<uint8_t, MAX_LOCAL_PLAYERS> GetMenuInput(const std::array<PlayerInfo, MAX_LOCAL_PLAYERS>& _playerInfo);
 	std::array<uint8_t, MAX_LOCAL_PLAYERS> GetLevelInput(const std::array<PlayerInfo, MAX_LOCAL_PLAYERS>& _playerInfo);
+
+	bool AnyKeyboardArrowKeyPressed() const;
+	bool AnyKeyboardWASDKeyPressed() const;
+	bool AnyKeyboardIJKLKeyPressed() const;
+	bool AnyGamepadButtonPressed(int gamepadIndex) const;
 
 protected:
 	uint8_t GetMenuInput_KeyboardArrow();
@@ -51,6 +61,9 @@ protected:
 	uint8_t GetLevelInput_KeyboardWASD();
 	uint8_t GetLevelInput_KeyboardIJKL();
 	uint8_t GetLevelInput_Gamepad(uint8_t gamepadIndex);
+
+	static constexpr float kStickDeadZone = 0.1f;
+	static constexpr float kDigThreshold = 0.5f;
 };
 
 #endif

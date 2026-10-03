@@ -24,20 +24,25 @@ void LevelObjectDog::Update(const float deltaTime)
             Update_Flung(deltaTime);
             break;
     }
+
+    _inputJumpPrev = _inputJump;
+    _inputDigPrev = _inputDig;
+    _inputBarkPrev = _inputBark;
+    _inputAxisXPrev = _inputAxisX;
 }
 
 void LevelObjectDog::Update_Default(const float deltaTime)
 {
-    if (IsKeyDown(KEY_SPACE)) 
+    if (_inputJump && !_inputJumpPrev)
     {
         if (_isGrounded) SetVelocityY(-12.0f);
     } 
 
     float currentVelocityX = GetVelocityX();
-    float desiredVelocityX = 0.0f;
+    float desiredVelocityX = kWalkSpeed * _inputAxisX;
 
-    if (IsKeyDown(KEY_RIGHT)) { desiredVelocityX = kWalkSpeed; _isFacingLeft = false; }
-    else if (IsKeyDown(KEY_LEFT)) { desiredVelocityX = -kWalkSpeed; _isFacingLeft = true; }
+    if (_inputAxisX > 0.0f) _isFacingLeft = false;
+    else if (_inputAxisX < 0.0f) _isFacingLeft = true;
 
     if (desiredVelocityX != 0.0f)
     {
@@ -46,7 +51,7 @@ void LevelObjectDog::Update_Default(const float deltaTime)
         if (belowOrOpposite) SetVelocityX(desiredVelocityX);
         else if (_isGrounded) SetVelocityX(currentVelocityX * powf(kGroundFriction, deltaTime));
     }
-    else if (fabsf(currentVelocityX) <= kWalkSpeed && (IsKeyReleased(KEY_LEFT) || IsKeyReleased(KEY_RIGHT)))
+    else if (fabsf(currentVelocityX) <= kWalkSpeed && (_inputAxisX == 0.0f && _inputAxisXPrev != 0.0f))
     {
         SetVelocityX(0.0f);
     }
@@ -55,7 +60,7 @@ void LevelObjectDog::Update_Default(const float deltaTime)
         SetVelocityX(currentVelocityX * powf(kGroundFriction, deltaTime));
     }
 
-    if (IsKeyPressed(KEY_DOWN)) 
+    if (_inputDig && !_inputDigPrev) 
     {
         if (_isGrounded)
         {
@@ -78,7 +83,7 @@ void LevelObjectDog::Update_Sliding(const float deltaTime)
 
 	_isFacingLeft = (GetVelocityX() < 0.0f);
 
-    if (IsKeyDown(KEY_SPACE))
+    if (_inputJump && !_inputJumpPrev)
     {
         SetVelocityY(-12.0f);
         _state = DogState::Default;
@@ -99,6 +104,19 @@ void LevelObjectDog::Update_InDirt(const float deltaTime)
 
 void LevelObjectDog::Update_Flung(const float deltaTime)
 {
+}
+
+void LevelObjectDog::ReceiveInput(uint8_t input)
+{
+    _inputJump = (input & BITMASK_LEVEL_JUMP) != 0;
+    _inputDig = (input & BITMASK_LEVEL_DIG) != 0;
+    _inputBark = (input & BITMASK_LEVEL_BARK) != 0;
+
+    uint8_t axisX = (input & BITMASK_LEVEL_AXIS_X) >> 3;
+
+    constexpr int kAxisXCenter = 16;
+    int axisXSigned = static_cast<int>(axisX) - kAxisXCenter;
+    _inputAxisX = (axisXSigned >= 0) ? axisXSigned / 15.0f : axisXSigned / 16.0f;
 }
 
 void LevelObjectDog::DropThroughSemisolid(const Rectangle& semisolidBounds)
