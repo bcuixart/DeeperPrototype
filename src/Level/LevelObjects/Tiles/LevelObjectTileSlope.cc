@@ -1,5 +1,4 @@
 #include "LevelObjectTileSlope.hh"
-#include "GameManager.hh"
 
 LevelObjectTileSlope::LevelObjectTileSlope(const Vector2& position) : LevelObjectTile(position)
 {

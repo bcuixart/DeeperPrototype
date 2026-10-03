@@ -15,11 +15,16 @@ MenuManager::~MenuManager()
 
 void MenuManager::Update(const float deltaTime)
 {
+	for (auto& cursor : _menuCursors) cursor->Update(deltaTime);
+	for (auto& object : _menuObjects) object->Update(deltaTime);
 }
 
 void MenuManager::Render(const float deltaTime)
 {
 	BeginDrawing();
+
+	for (auto& cursor : _menuCursors) cursor->Render(deltaTime);
+	for (auto& object : _menuObjects) object->Render(deltaTime);
 
 	EndDrawing();
 }

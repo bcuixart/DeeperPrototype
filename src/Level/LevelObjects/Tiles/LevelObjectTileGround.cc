@@ -1,5 +1,4 @@
 #include "LevelObjectTileGround.hh"
-#include "GameManager.hh"
 
 LevelObjectTileGround::LevelObjectTileGround(const Vector2& position) : LevelObjectTile(position)
 {

@@ -2,6 +2,7 @@
 #define LEVELOBJECTTILEBRIDGE_HH
 
 #include "Level/LevelObjects/Tiles/LevelObjectTile.hh"
+#include "Level/LevelObjects/LevelObjectDog.hh"
 
 class LevelObjectTileBridge : public LevelObjectTile {
 public:

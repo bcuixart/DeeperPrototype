@@ -1,5 +1,4 @@
 #include "LevelObjectTileBridge.hh"
-#include "GameManager.hh"
 
 LevelObjectTileBridge::LevelObjectTileBridge(const Vector2& position) : LevelObjectTile(position)
 {

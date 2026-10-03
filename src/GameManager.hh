@@ -3,44 +3,21 @@
 
 #include <iostream>
 #include <vector> 
+#include <array>
 #include <algorithm> 
 #include <memory> 
 
-#include <raylib.h>
-#include <raymath.h>
-
 #include "AssetManager.hh"
+#include "InputManager.hh"
 #include "Level/LevelManager.hh"
 #include "Menu/MenuManager.hh"
 
 using namespace std;
 
-#define MAX_LOCAL_PLAYERS 4
-#define MAX_GAMEPADS 4
-#define MAX_PLAYERS 8
-
-enum class PlayerControllerType {
-	KEYBOARD_ARROW,
-	KEYBOARD_WASD,
-	KEYBOARD_IJKL,
-	GAMEPAD_0,
-	GAMEPAD_1,
-	GAMEPAD_2,
-	GAMEPAD_3,
-};
-
-struct PlayerInfo
-{
-	bool isActive;
-	char playerName[16];
-	PlayerControllerType controllerType;
-	uint8_t gamepadIndex;
-};
-
 enum class GameState {
 	MAIN_MENU,
 	PLAYER_SETTINGS,
-	PLAYING,
+	LEVEL,
 };
 
 class GameManager {
@@ -66,9 +43,10 @@ private:
 	void CheckForDisconnectedGamepadPlayers();
 
 	GameState _gameState;
-	PlayerInfo _playerInfo[MAX_LOCAL_PLAYERS];
+	std::array<PlayerInfo, MAX_LOCAL_PLAYERS> _playerInfo;
 
 	std::unique_ptr<AssetManager> _assetManager = nullptr;
+	std::unique_ptr<InputManager> _inputManager = nullptr;
 	std::unique_ptr<MenuManager> _menuManager = nullptr;
 	std::unique_ptr<LevelManager> _levelManager = nullptr;
 

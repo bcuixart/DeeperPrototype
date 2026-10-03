@@ -1,5 +1,4 @@
 #include "LevelObjectTileDirt.hh"
-#include "GameManager.hh"
 
 LevelObjectTileDirt::LevelObjectTileDirt(const Vector2& position) : LevelObjectTile(position)
 {

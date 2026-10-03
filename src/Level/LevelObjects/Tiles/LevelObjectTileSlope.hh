@@ -2,6 +2,8 @@
 #define LEVELOBJECTTILESLOPE_HH
 
 #include "Level/LevelObjects/Tiles/LevelObjectTile.hh"
+#include "Level/LevelObjects/Tiles/Autotile.hh"
+#include "Level/LevelObjects/LevelObjectDog.hh"
 
 class LevelObjectTileSlope : public LevelObjectTile {
 public:

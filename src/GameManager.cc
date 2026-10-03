@@ -8,6 +8,7 @@ GameManager::GameManager()
 	_gameState = GameState::PLAYER_SETTINGS;
 
 	_assetManager = std::make_unique<AssetManager>();
+	_inputManager = std::make_unique<InputManager>();
 
 	for (int i = 0; i < MAX_LOCAL_PLAYERS; i++)
 	{
@@ -39,7 +40,7 @@ void GameManager::Update(const float deltaTime)
 		Update_PlayerSettings(deltaTime);
 		_menuManager->Update(deltaTime);
 		break;
-	case GameState::PLAYING:
+	case GameState::LEVEL:
 		_levelManager->Update(deltaTime);
 		break;
 	}
@@ -54,7 +55,7 @@ void GameManager::Render(const float deltaTime)
 	case GameState::PLAYER_SETTINGS:
 		_menuManager->Render(deltaTime);
 		break;
-	case GameState::PLAYING:
+	case GameState::LEVEL:
 		_levelManager->Render(deltaTime);
 		break;
 	}
@@ -63,13 +64,13 @@ void GameManager::Render(const float deltaTime)
 void GameManager::Update_PlayerSettings(const float deltaTime)
 {
 	if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_DOWN) ||
-		IsKeyPressed(KEY_LEFT_CONTROL))
+		IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_RIGHT_CONTROL))
 	{
 		TryToAddPlayer(PlayerControllerType::KEYBOARD_ARROW, 0);
 	}
 
 	if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_D) || IsKeyPressed(KEY_W) || IsKeyPressed(KEY_S) ||
-		IsKeyPressed(KEY_SPACE))
+		IsKeyPressed(KEY_LEFT_SHIFT) || IsKeyPressed(KEY_LEFT_CONTROL))
 	{
 		TryToAddPlayer(PlayerControllerType::KEYBOARD_WASD, 0);
 	}

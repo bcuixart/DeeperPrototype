@@ -1,6 +1,8 @@
 #ifndef MENUCURSOR_HH
 #define MENUCURSOR_HH
 
+#include <raylib.h>
+
 class MenuCursor {
 public:
 	MenuCursor(int playerIndex, bool isActive);
@@ -12,6 +14,8 @@ public:
 private:
 	bool _isActive;
 	int _playerIndex;
+
+	Rectangle _bounds;
 };
 
 #endif
