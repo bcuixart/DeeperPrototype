@@ -58,8 +58,19 @@ void MenuCursor::Render(const float deltaTime)
 {
 	if (!_isActive) return;
 
-	DrawRectangleRec(_bounds, _isActive ? RED : GRAY);
-	DrawText(std::to_string(_playerIndex + 1).c_str(), _bounds.x + 4, _bounds.y + 4, 8, WHITE);
+	const Texture2D& tex = AssetManager::instance->GetTexture(TextureId::MenuCursorTest);
+
+    Rectangle src = { 0.0f, 0.0f, 16.0f, 16.0f };
+    Rectangle dst = {
+        _bounds.x,
+        _bounds.y,
+        16.0f,
+        16.0f
+    };
+
+    DrawTexturePro(tex, src, dst, { 0.0f, 0.0f }, 0.0f, WHITE);
+
+	DrawText(std::to_string(_playerIndex + 1).c_str(), _bounds.x + 14, _bounds.y + 10, 8, WHITE);
 }
 
 void MenuCursor::ReceiveInput(uint8_t input)

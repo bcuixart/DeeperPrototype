@@ -18,6 +18,7 @@ AssetManager::~AssetManager()
 
 void AssetManager::LoadTextures()
 {
+	_textures[(size_t)TextureId::MenuCursorTest] = LoadTexture("assets/sprites/menu/Menu_Cursor_Test.png");
 	_textures[(size_t)TextureId::DogTest_Long] = LoadTexture("assets/sprites/dog/long/Dog_Long_Idle000.png");
 	_textures[(size_t)TextureId::DogTest_Hairy] = LoadTexture("assets/sprites/dog/hairy/Dog_Hairy_Idle000.png");
 	_textures[(size_t)TextureId::DogTest_Derpy] = LoadTexture("assets/sprites/dog/derpy/Dog_Derpy_Idle000.png");

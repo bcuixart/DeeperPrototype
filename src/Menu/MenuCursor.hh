@@ -6,6 +6,7 @@
 #include <string>
 
 #include "InputManager.hh"
+#include "AssetManager.hh"
 
 class MenuCursor {
 public:

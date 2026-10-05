@@ -7,6 +7,7 @@
 
 enum class TextureId 
 {
+    MenuCursorTest,
     DogTest_Long,
     DogTest_Hairy,
     DogTest_Derpy,
