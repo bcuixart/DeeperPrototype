@@ -34,11 +34,17 @@ private:
     void Update_InDirt(const float deltaTime);
     void Update_Flung(const float deltaTime);
 
+    void StartJump();
+
     static constexpr float kWidth = 0.7f;
     static constexpr float kHeight = 0.625f;
 
     static constexpr float kWalkSpeed = 10.0f;
     static constexpr float kGroundFriction = 0.1f;
+
+    static constexpr float kJumpVelocity = -10.0f;
+    static constexpr float kJumpHoldTime = 0.25f;
+    static constexpr float kJumpReleasedVelocityMultiplier = 0.75f;
 
     static constexpr float kInteractionVelocity = 15.0f;
 
@@ -46,6 +52,12 @@ private:
     static constexpr float kSlideAcceleration = 20.0f;
 
     static constexpr float kDigHorizontalOffset = 0.01f;
+
+    static constexpr float kCoyoteTime = 0.1f;
+    float _coyoteTimer{0.0f};
+
+    static constexpr float kJumpInputBufferTime = 0.1f;
+    float _jumpInputBufferTimer{0.0f};
 
     bool _inputJump{false};
     bool _inputDig{false};
@@ -57,11 +69,13 @@ private:
     bool _inputBarkPrev{false};
     float _inputAxisXPrev{0.0f};
 
+    DogState _state{DogState::Default};
+
     bool _isFacingLeft = false;
+    bool _isJumping = false;
+    float _jumpTimer{0.0f};
 
     bool _isSlidingLeft = false;
-
-    DogState _state{DogState::Default};
 
     uint8_t _dogType{0};
 

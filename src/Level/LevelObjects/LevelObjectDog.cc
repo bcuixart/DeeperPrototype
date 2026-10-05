@@ -9,6 +9,10 @@ LevelObjectDog::LevelObjectDog(const Vector2& position, LevelManager* levelManag
 
 void LevelObjectDog::Update(const float deltaTime) 
 {
+    _coyoteTimer = _isGrounded ? kCoyoteTime : std::max(0.0f, _coyoteTimer - deltaTime);
+    const bool jumpPressedThisFrame = _inputJump && !_inputJumpPrev;
+    _jumpInputBufferTimer = jumpPressedThisFrame ? kJumpInputBufferTime : std::max(0.0f, _jumpInputBufferTimer - deltaTime);
+
     switch (_state)
     {
         case DogState::Default:
@@ -33,10 +37,25 @@ void LevelObjectDog::Update(const float deltaTime)
 
 void LevelObjectDog::Update_Default(const float deltaTime)
 {
-    if (_inputJump && !_inputJumpPrev)
+    // Coyote time accounts for grounded check, input buffer accounts for input
+    if (_coyoteTimer > 0.0f && _jumpInputBufferTimer > 0.0f && !_isJumping)
     {
-        if (_isGrounded) SetVelocityY(-12.0f);
-    } 
+        StartJump();
+    }
+    else if (_isJumping)
+    {
+        _jumpTimer -= deltaTime;
+        
+        // Stop jump if button is released, timer is over, or bumped into ceiling
+        if (GetVelocityY() >= 0.0f) _isJumping = false;
+        else if (!_inputJump || _jumpTimer <= 0.0f)
+        {
+            _isJumping = false;
+            SetVelocityY(GetVelocityY() * kJumpReleasedVelocityMultiplier);
+        }
+        else SetVelocityY(kJumpVelocity);
+
+    }
 
     float currentVelocityX = GetVelocityX();
     float desiredVelocityX = kWalkSpeed * _inputAxisX;
@@ -83,9 +102,11 @@ void LevelObjectDog::Update_Sliding(const float deltaTime)
 
 	_isFacingLeft = (GetVelocityX() < 0.0f);
 
-    if (_inputJump && !_inputJumpPrev)
+    // Coyote time accounts for grounded check, input buffer accounts for input
+    if (_coyoteTimer > 0.0f && _jumpInputBufferTimer > 0.0f)
     {
-        SetVelocityY(-12.0f);
+        StartJump();
+
         _state = DogState::Default;
         return;
     }
@@ -100,10 +121,31 @@ void LevelObjectDog::Update_Sliding(const float deltaTime)
 
 void LevelObjectDog::Update_InDirt(const float deltaTime)
 {
+    _coyoteTimer = 0.0f;
+    _jumpInputBufferTimer = 0.0f;
+    _isJumping = false;
+    _jumpTimer = 0.0f;
 }
 
 void LevelObjectDog::Update_Flung(const float deltaTime)
 {
+    _coyoteTimer = 0.0f;
+    _jumpInputBufferTimer = 0.0f;
+    _isJumping = false;
+    _jumpTimer = 0.0f;
+}
+
+void LevelObjectDog::StartJump()
+{
+    if (_isJumping) return;
+
+    SetVelocityY(kJumpVelocity);
+
+    _isJumping = true;
+    _jumpTimer = kJumpHoldTime;
+
+    _coyoteTimer = 0.0f;
+    _jumpInputBufferTimer = 0.0f;
 }
 
 void LevelObjectDog::ReceiveInput(uint8_t input)
@@ -136,6 +178,7 @@ void LevelObjectDog::StartSliding()
     bool startingOnLeftSlope = _surfaceTypeStandingOn == SurfaceType::SlopedRightGround;
 
     _state = DogState::Sliding;
+    _isJumping = false;
     if (GetVelocityX() == 0.0f) SetVelocityX(startingOnLeftSlope ? -kSlideInitialSpeed : kSlideInitialSpeed);
     if (GetVelocityY() == 0.0f) SetVelocityY(kSlideInitialSpeed);
 }

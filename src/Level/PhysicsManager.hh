@@ -64,7 +64,7 @@ private:
 
     LevelManager* _levelManager{nullptr};
 
-    constexpr static float kGravity = 20.0f;
+    constexpr static float kGravity = 25.0f;
 };
 
 #endif
