@@ -55,10 +55,10 @@ public:
 
 private:
     static constexpr float kWidth = 1.3125f;
-    static constexpr float kHeight = 1.3f;
+    static constexpr float kHeight = 1.1875f;
 
     static constexpr float kHorizontalOffset = 0.4375f;
-    static constexpr float kVerticalOffset = -0.0625f;
+    static constexpr float kVerticalOffset = 0.0625f;
 
     static constexpr float kForceFieldDirectionX = 100.0f;
     static constexpr float kForceFieldDirectionY = -25.0f;
