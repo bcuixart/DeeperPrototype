@@ -11,6 +11,7 @@
 #include "InputManager.hh"
 #include "MenuCursor.hh"
 #include "MenuObject.hh"
+#include "MenuObjects/MenuObjectButton.hh"
 
 class MenuManager {
 public:

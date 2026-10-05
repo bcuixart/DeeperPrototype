@@ -9,6 +9,8 @@ MenuCursor::MenuCursor(int playerIndex, bool isActive)
 
 	_input = 0;
 	_prevInput = 0;
+
+	_selecting = false;
 }
 
 MenuCursor::~MenuCursor()
@@ -41,6 +43,8 @@ void MenuCursor::Update(const float deltaTime)
 	_bounds.x += movementX * kCursorSpeed * deltaTime;
 	_bounds.y += movementY * kCursorSpeed * deltaTime;
 
+	_selecting = (_input & BITMASK_MENU_SELECT) != 0 && (_prevInput & BITMASK_MENU_SELECT) == 0;
+
 	_prevInput = _input;
 }
 
@@ -49,6 +53,7 @@ void MenuCursor::Render(const float deltaTime)
 	if (!_isActive) return;
 
 	DrawRectangleRec(_bounds, _isActive ? RED : GRAY);
+	DrawText(std::to_string(_playerIndex + 1).c_str(), _bounds.x + 4, _bounds.y + 4, 8, WHITE);
 }
 
 void MenuCursor::ReceiveInput(uint8_t input)
