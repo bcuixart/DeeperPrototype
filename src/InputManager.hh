@@ -26,6 +26,8 @@ struct PlayerInfo
 	char playerName[16];
 	PlayerControllerType controllerType;
 	uint8_t gamepadIndex;
+
+	uint8_t dogType;
 };
 
 #define BITMASK_MENU_SELECT		0x01

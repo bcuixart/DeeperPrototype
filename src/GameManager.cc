@@ -83,8 +83,11 @@ void GameManager::StartLevel(const std::string& levelName)
 
 	_gameState = GameState::LEVEL;
 
+	std::array<uint8_t, MAX_LOCAL_PLAYERS> dogTypes;
+	for (int i = 0; i < _playersActive; i++) dogTypes[i] = _playerInfo[i].dogType;
+
 	_levelManager = std::make_unique<LevelManager>(_playersActive);
-	_levelManager->LoadLevel(levelName);
+	_levelManager->LoadLevel(levelName, dogTypes);
 }
 
 bool GameManager::TryToAddPlayer(PlayerControllerType type, uint8_t gamepadIndex)
@@ -96,6 +99,7 @@ bool GameManager::TryToAddPlayer(PlayerControllerType type, uint8_t gamepadIndex
 	_playerInfo[_playersActive].isActive = true;
 	_playerInfo[_playersActive].controllerType = type;
 	_playerInfo[_playersActive].gamepadIndex = gamepadIndex;
+	_playerInfo[_playersActive].dogType = 0;
 	_playersActive++;
 
 

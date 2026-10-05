@@ -11,16 +11,21 @@ MenuManager::MenuManager()
     _menuObjectsCallbacks = {
         { "start_game",    [this](int)             { _pendingMenuObjectInteractions.push_back([]                 { GameManager::instance->OnPlayerSelectedStartGame(); }); } },
         { "remove_player", [this](int cursorIndex) { _pendingMenuObjectInteractions.push_back([cursorIndex]      { GameManager::instance->TryToRemovePlayer(cursorIndex); }); } },
+        { "set_dog_type_long",  [this](int cursorIndex)  { _pendingMenuObjectInteractions.push_back([cursorIndex]       { GameManager::instance->SetPlayerDogType(cursorIndex, 0); }); } },
+        { "set_dog_type_hairy",  [this](int cursorIndex)  { _pendingMenuObjectInteractions.push_back([cursorIndex]       { GameManager::instance->SetPlayerDogType(cursorIndex, 1); }); } },
+        { "set_dog_type_derpy",  [this](int cursorIndex)  { _pendingMenuObjectInteractions.push_back([cursorIndex]       { GameManager::instance->SetPlayerDogType(cursorIndex, 2); }); } },
+        { "set_dog_type_deeerpy",  [this](int cursorIndex)  { _pendingMenuObjectInteractions.push_back([cursorIndex]       { GameManager::instance->SetPlayerDogType(cursorIndex, 3); }); } },
+        { "set_dog_type_puppy",  [this](int cursorIndex)  { _pendingMenuObjectInteractions.push_back([cursorIndex]       { GameManager::instance->SetPlayerDogType(cursorIndex, 4); }); } },
     };
 
 	_menuObjects.push_back(std::make_unique<MenuObjectButton>(Rectangle{ 100, 350, 200, 50 }, _menuObjectsCallbacks.at("start_game"), "Start game"));
 	_menuObjects.push_back(std::make_unique<MenuObjectButton>(Rectangle{ 100, 425, 200, 50 }, _menuObjectsCallbacks.at("remove_player"), "Self-destruct player"));
 
-	//_menuObjects.push_back(std::make_unique<MenuObjectButton>(Rectangle{ 100, 100, 50, 50 }, "Long dog"));
-	//_menuObjects.push_back(std::make_unique<MenuObjectButton>(Rectangle{ 250, 100, 50, 50 }, "Hairy dog"));
-	//_menuObjects.push_back(std::make_unique<MenuObjectButton>(Rectangle{ 100, 175, 50, 50 }, "Derpy dog"));
-	//_menuObjects.push_back(std::make_unique<MenuObjectButton>(Rectangle{ 250, 175, 50, 50 }, "Deeeeeerpy dog"));
-	//_menuObjects.push_back(std::make_unique<MenuObjectButton>(Rectangle{ 166, 250, 50, 50 }, "Puppy"));
+	_menuObjects.push_back(std::make_unique<MenuObjectButton>(Rectangle{ 100, 100, 50, 50 }, _menuObjectsCallbacks.at("set_dog_type_long"), "Long dog"));
+	_menuObjects.push_back(std::make_unique<MenuObjectButton>(Rectangle{ 250, 100, 50, 50 }, _menuObjectsCallbacks.at("set_dog_type_hairy"), "Hairy dog"));
+	_menuObjects.push_back(std::make_unique<MenuObjectButton>(Rectangle{ 100, 175, 50, 50 }, _menuObjectsCallbacks.at("set_dog_type_derpy"), "Derpy dog"));
+	_menuObjects.push_back(std::make_unique<MenuObjectButton>(Rectangle{ 250, 175, 50, 50 }, _menuObjectsCallbacks.at("set_dog_type_deeerpy"), "Deeeeeerpy dog"));
+	_menuObjects.push_back(std::make_unique<MenuObjectButton>(Rectangle{ 166, 250, 50, 50 }, _menuObjectsCallbacks.at("set_dog_type_puppy"), "Puppy"));
 }
 
 MenuManager::~MenuManager()

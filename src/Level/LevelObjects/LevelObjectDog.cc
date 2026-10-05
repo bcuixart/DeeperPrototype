@@ -142,7 +142,7 @@ void LevelObjectDog::StartSliding()
 
 void LevelObjectDog::Render(const float deltaTime) const 
 {
-    const Texture2D& tex = AssetManager::instance->GetTexture(TextureId::DogTest);
+    const Texture2D& tex = AssetManager::instance->GetTexture(TextureId((uint8_t)TextureId::DogTest_Long + _dogType));
 
     const float spriteSize = 2.0f;
 
@@ -156,6 +156,13 @@ void LevelObjectDog::Render(const float deltaTime) const
 
     DrawTexturePro(tex, src, dst, { 0.0f, 0.0f }, 0.0f, WHITE);
     
+
+}
+
+void LevelObjectDog::RenderBounds(const float deltaTime, const Color& color) const
+{
+    LevelObject::RenderBounds(deltaTime, color);
+
     DrawCircleV({ _bounds.x + kDigHorizontalOffset, _bounds.y + _bounds.height }, 0.1f, RED);
     DrawCircleV({ _bounds.x + _bounds.width - kDigHorizontalOffset, _bounds.y + _bounds.height }, 0.1f, RED);
 }

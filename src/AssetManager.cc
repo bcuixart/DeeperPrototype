@@ -18,7 +18,11 @@ AssetManager::~AssetManager()
 
 void AssetManager::LoadTextures()
 {
-	_textures[(size_t)TextureId::DogTest] = LoadTexture("assets/sprites/dog/derpy/Dog_Derpy_Idle000.png");
+	_textures[(size_t)TextureId::DogTest_Long] = LoadTexture("assets/sprites/dog/long/Dog_Long_Idle000.png");
+	_textures[(size_t)TextureId::DogTest_Hairy] = LoadTexture("assets/sprites/dog/hairy/Dog_Hairy_Idle000.png");
+	_textures[(size_t)TextureId::DogTest_Derpy] = LoadTexture("assets/sprites/dog/derpy/Dog_Derpy_Idle000.png");
+	_textures[(size_t)TextureId::DogTest_Deeerpy] = LoadTexture("assets/sprites/dog/deeerpy/Dog_Deeerpy_Idle000.png");
+	_textures[(size_t)TextureId::DogTest_Puppy] = LoadTexture("assets/sprites/dog/puppy/Dog_Puppy_Idle000.png");
 	_textures[(size_t)TextureId::TilesetGround] = LoadTexture("assets/sprites/tilesets/Tileset_Grass.png");
 	_textures[(size_t)TextureId::TilesetSand] = LoadTexture("assets/sprites/tilesets/Tileset_Sand.png");
 	_textures[(size_t)TextureId::TilesetDirt] = LoadTexture("assets/sprites/tilesets/Tileset_Dirt.png");

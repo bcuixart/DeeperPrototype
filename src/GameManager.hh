@@ -32,6 +32,8 @@ public:
 
 	void OnPlayerSelectedStartGame() { _playerSelectedStartGame = true; };
 
+	void SetPlayerDogType(uint8_t playerNum, uint8_t dogType) { if (playerNum < _playersActive) _playerInfo[playerNum].dogType = dogType; }
+
 	static GameManager* instance;
 
 protected:

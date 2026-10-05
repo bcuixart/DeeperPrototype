@@ -7,7 +7,11 @@
 
 enum class TextureId 
 {
-    DogTest,
+    DogTest_Long,
+    DogTest_Hairy,
+    DogTest_Derpy,
+    DogTest_Deeerpy,
+    DogTest_Puppy,
     TilesetGround,
     TilesetSand,
     TilesetDirt,

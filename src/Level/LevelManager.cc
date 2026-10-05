@@ -81,7 +81,7 @@ void LevelManager::ReceiveInput(const std::array<uint8_t, MAX_LOCAL_PLAYERS>& in
 	}
 }
 
-void LevelManager::LoadLevel(const std::string& levelName)
+void LevelManager::LoadLevel(const std::string& levelName, const std::array<uint8_t, MAX_LOCAL_PLAYERS>& dogTypes)
 {
     std::ifstream file("assets/levels/" + levelName + ".dgl");
     if (!file.is_open()) {
@@ -163,6 +163,7 @@ void LevelManager::LoadLevel(const std::string& levelName)
         Vector2 dogPos = { dogHouses[houseIndex]->GetPosition().x, dogHouses[houseIndex]->GetPosition().y };
 
         auto dog = std::make_unique<LevelObjectDog>(dogPos, this);
+        dog->SetDogType(dogTypes[i]);
         _dogs.push_back(dog.get());
         InstantiateLevelObject(std::move(dog));
     }

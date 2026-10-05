@@ -35,7 +35,7 @@ public:
 
 	void ReceiveInput(const std::array<uint8_t, MAX_LOCAL_PLAYERS>& input);
 
-	void LoadLevel(const std::string& levelName);
+	void LoadLevel(const std::string& levelName, const std::array<uint8_t, MAX_LOCAL_PLAYERS>& dogTypes);
 
 	int GetLevelWidth() const;
 	int GetLevelHeight() const;

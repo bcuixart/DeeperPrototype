@@ -14,10 +14,13 @@ public:
 
     void Update(const float deltaTime) override;
     void Render(const float deltaTime) const override;
+    void RenderBounds(const float deltaTime, const Color& color) const override;
 
     HitboxType GetHitboxType() const override { return HitboxType::Entity; }
 
     void ReceiveInput(uint8_t input);
+
+    void SetDogType(uint8_t dogType) { _dogType = dogType % 5; }
 
     void DropThroughSemisolid(const Rectangle& semisolidBounds);
 
@@ -32,7 +35,7 @@ private:
     void Update_Flung(const float deltaTime);
 
     static constexpr float kWidth = 0.7f;
-    static constexpr float kHeight = 0.5f;
+    static constexpr float kHeight = 0.625f;
 
     static constexpr float kWalkSpeed = 10.0f;
     static constexpr float kGroundFriction = 0.1f;
@@ -59,6 +62,8 @@ private:
     bool _isSlidingLeft = false;
 
     DogState _state{DogState::Default};
+
+    uint8_t _dogType{0};
 
     LevelManager* _levelManager;
 };
