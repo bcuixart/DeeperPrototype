@@ -12,6 +12,8 @@ public:
 	MenuCursor(int playerIndex, bool isActive);
 	~MenuCursor();
 
+	void ResetCursor();
+
 	void Update(const float deltaTime);
 	void Render(const float deltaTime);
 
@@ -25,6 +27,7 @@ public:
 	float GetY() const { return _bounds.y; }
 
 	int GetPlayerIndex() const { return _playerIndex; }
+	void SetPlayerIndex(int index) { _playerIndex = index; }
 
 private:
 	bool _isActive;

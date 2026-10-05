@@ -1,6 +1,6 @@
 #include "MenuObjectButton.hh"
 
-MenuObjectButton::MenuObjectButton(const Rectangle& bounds, const std::string& text) : _bounds(bounds), _text(text)
+MenuObjectButton::MenuObjectButton(const Rectangle& bounds, Callback onInteractCallback, const std::string& text) : _bounds(bounds), _onInteractCallback(std::move(onInteractCallback)), _text(text)
 {
 }
 
@@ -10,7 +10,7 @@ MenuObjectButton::~MenuObjectButton()
 
 void MenuObjectButton::Update(const float deltaTime)
 {
-	// We set _isHovered to false here. It will be set to true in the next frame if needed.
+	// We set _isHovered to false here. It will be set to true by the MenuManager after Update.
 	_isHovered = false;
 }
 
@@ -32,5 +32,6 @@ void MenuObjectButton::OnHover(const int cursorIndex)
 
 void MenuObjectButton::OnInteract(const int cursorIndex)
 {
-	std::cout << "Button interacted with cursor index " << cursorIndex << "!" << std::endl;
+	if (!_onInteractCallback) return;
+	_onInteractCallback(cursorIndex);
 }

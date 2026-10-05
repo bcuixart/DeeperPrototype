@@ -2,19 +2,25 @@
 
 MenuCursor::MenuCursor(int playerIndex, bool isActive)
 {
+	ResetCursor();
+
 	_playerIndex = playerIndex;
 	_isActive = isActive;
+}
 
+MenuCursor::~MenuCursor()
+{
+}
+
+void MenuCursor::ResetCursor()
+{
 	_bounds = { 0, 0, 16, 16 };
 
 	_input = 0;
 	_prevInput = 0;
 
+	_isActive = false;
 	_selecting = false;
-}
-
-MenuCursor::~MenuCursor()
-{
 }
 
 void MenuCursor::Update(const float deltaTime)

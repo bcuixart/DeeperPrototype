@@ -3,9 +3,12 @@
 
 #include <raylib.h>
 #include <iostream>
+#include <functional>
 
 class MenuObject {
 public:
+	using Callback = std::function<void(int cursorIndex)>;
+
 	MenuObject();
 	~MenuObject();
 

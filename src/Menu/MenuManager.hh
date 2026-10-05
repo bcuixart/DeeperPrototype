@@ -3,6 +3,8 @@
 
 #include <vector>
 #include <array>
+#include <functional>
+#include <unordered_map>
 #include <memory>
 #include <fstream>
 #include <iostream>
@@ -12,6 +14,8 @@
 #include "MenuCursor.hh"
 #include "MenuObject.hh"
 #include "MenuObjects/MenuObjectButton.hh"
+
+class GameManager;
 
 class MenuManager {
 public:
@@ -26,10 +30,14 @@ public:
 	void ReceiveInput(const std::array<uint8_t, MAX_LOCAL_PLAYERS>& input);
 
 	void SetMenuCursorActive(uint8_t playerIndex, bool isActive);
+	void RemoveCursorAndShift(uint8_t removedIndex, uint8_t activeCountBefore);
 
 private:
 	std::vector<std::unique_ptr<MenuCursor>> _menuCursors;
 	std::vector<std::unique_ptr<MenuObject>> _menuObjects;
+
+    std::unordered_map<std::string, MenuObject::Callback> _menuObjectsCallbacks;
+    std::vector<std::function<void()>> _pendingMenuObjectInteractions;
 };
 
 #endif

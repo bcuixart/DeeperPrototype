@@ -74,10 +74,7 @@ void GameManager::Update_PlayerSettings(const float deltaTime)
 
 	CheckForDisconnectedGamepadPlayers();
 
-	if (IsKeyPressed(KEY_ENTER))
-	{
-		StartLevel("test_level");
-	}
+	if (_playerSelectedStartGame) StartLevel("test_level");
 }
 
 void GameManager::StartLevel(const std::string& levelName)
@@ -109,20 +106,18 @@ bool GameManager::TryToAddPlayer(PlayerControllerType type, uint8_t gamepadIndex
 
 bool GameManager::TryToRemovePlayer(uint8_t playerNum)
 {
-	if (playerNum >= _playersActive) return false;
-	if (!_playerInfo[playerNum].isActive) return false;
+    if (playerNum >= _playersActive) return false;
+    if (!_playerInfo[playerNum].isActive) return false;
 
-	_playerInfo[playerNum].isActive = false;
-	_menuManager->SetMenuCursorActive(playerNum, false);
+    const uint8_t activeBefore = _playersActive;
 
-	if (playerNum == MAX_LOCAL_PLAYERS - 1) return true;
-	for (int i = playerNum; i < _playersActive - 1; i++)
-	{
-		_playerInfo[i] = _playerInfo[i + 1];
-	}
-	_playersActive--;
+    for (int i = playerNum; i < _playersActive - 1; i++)
+        _playerInfo[i] = _playerInfo[i + 1];
+    _playerInfo[_playersActive - 1].isActive = false;
+    _playersActive--;
 
-	return true;
+    _menuManager->RemoveCursorAndShift(playerNum, activeBefore);
+    return true;
 }
 
 bool GameManager::IsControllerTypeInUse(PlayerControllerType type) const

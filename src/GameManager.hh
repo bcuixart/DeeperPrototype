@@ -28,6 +28,10 @@ public:
 	void Update(const float deltaTime);
 	void Render(const float deltaTime);
 
+	bool TryToRemovePlayer(uint8_t playerNum);
+
+	void OnPlayerSelectedStartGame() { _playerSelectedStartGame = true; };
+
 	static GameManager* instance;
 
 protected:
@@ -38,7 +42,6 @@ private:
 	void StartLevel(const std::string& levelName);
 
 	bool TryToAddPlayer(PlayerControllerType type, uint8_t gamepadIndex);
-	bool TryToRemovePlayer(uint8_t playerNum);
 
 	bool IsControllerTypeInUse(PlayerControllerType type) const;
 	bool AnyGamepadButtonPressed(int gamepadIndex) const;
@@ -53,6 +56,8 @@ private:
 	std::unique_ptr<LevelManager> _levelManager = nullptr;
 
 	uint8_t _playersActive;
+
+	bool _playerSelectedStartGame = false;
 };
 
 #endif

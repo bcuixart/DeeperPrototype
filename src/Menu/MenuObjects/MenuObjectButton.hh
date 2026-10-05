@@ -7,7 +7,7 @@
 
 class MenuObjectButton : public MenuObject {
 public:
-	MenuObjectButton(const Rectangle& bounds, const std::string& text);
+	MenuObjectButton(const Rectangle& bounds, Callback onInteractCallback, const std::string& text);
 	~MenuObjectButton();
 
 	virtual void Update(const float deltaTime) override;
@@ -19,6 +19,8 @@ public:
 
 private:
 	Rectangle _bounds;
+	Callback _onInteractCallback;
+
 	std::string _text;
 
 	bool _isHovered;

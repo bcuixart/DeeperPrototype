@@ -37,7 +37,7 @@ std::array<uint8_t, MAX_LOCAL_PLAYERS> InputManager::GetMenuInput(const std::arr
 
 uint8_t InputManager::GetMenuInput_KeyboardArrow()
 {
-	uint8_t select = IsKeyDown(KEY_ENTER) ? 1 : 0;
+	uint8_t select = IsKeyDown(KEY_SPACE) || IsKeyDown(KEY_ENTER) ? 1 : 0;
 	uint8_t secondary = IsKeyDown(KEY_RIGHT_CONTROL) ? 1 : 0;
 
 	uint8_t up = IsKeyDown(KEY_UP) ? 1 : 0;
