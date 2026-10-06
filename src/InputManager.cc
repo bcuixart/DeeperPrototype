@@ -251,16 +251,19 @@ bool InputManager::AnyKeyboardIJKLKeyPressed() const
 		IsKeyPressed(KEY_U) || IsKeyPressed(KEY_O);
 }
 
-bool InputManager::AnyGamepadButtonPressed(int gamepadIndex) const
+bool InputManager::AnyGamepadButtonPressed(int gamepadIndex)
 {
-	// GAMEPAD_BUTTON_UNKNOWN (0) is excluded
-	for (int button = GAMEPAD_BUTTON_LEFT_FACE_UP; button <= GAMEPAD_BUTTON_RIGHT_THUMB; button++)
-	{
-		if (IsGamepadButtonPressed(gamepadIndex, button)) return true;
+    const bool stickActive =
+        fabsf(GetGamepadAxisMovement(gamepadIndex, GAMEPAD_AXIS_LEFT_X)) > kStickJoinThreshold ||
+        fabsf(GetGamepadAxisMovement(gamepadIndex, GAMEPAD_AXIS_LEFT_Y)) > kStickJoinThreshold;
+    const bool stickJustActivated = stickActive && !_gamepadStickWasActiveToJoin[gamepadIndex];
+    _gamepadStickWasActiveToJoin[gamepadIndex] = stickActive;
 
-		if (fabs(GetGamepadAxisMovement(gamepadIndex, 0)) > InputManager::kStickDeadZone) return true;
-		if (fabs(GetGamepadAxisMovement(gamepadIndex, 1)) > InputManager::kStickDeadZone) return true;
-	}
+    // GAMEPAD_BUTTON_UNKNOWN (0) is excluded
+    for (int button = GAMEPAD_BUTTON_LEFT_FACE_UP; button <= GAMEPAD_BUTTON_RIGHT_THUMB; button++)
+    {
+        if (IsGamepadButtonPressed(gamepadIndex, button)) return true;
+    }
 
-	return false;
+    return stickJustActivated;
 }

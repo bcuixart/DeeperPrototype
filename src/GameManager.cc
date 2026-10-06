@@ -59,6 +59,17 @@ void GameManager::Render(const float deltaTime)
 
 void GameManager::Update_PlayerSettings(const float deltaTime)
 {
+	if (_playerSelectedStartGame) 
+	{
+		_playerSelectedStartGame = false;
+		StartLevel("test_level");
+	}
+}
+
+void GameManager::PollInputToAddPlayers()
+{
+	if (_gameState != GameState::PLAYER_SETTINGS) return;
+
 	if (_inputManager->AnyKeyboardArrowKeyPressed()) TryToAddPlayer(PlayerControllerType::KEYBOARD_ARROW, 0);
 	if (_inputManager->AnyKeyboardWASDKeyPressed()) TryToAddPlayer(PlayerControllerType::KEYBOARD_WASD, 0);
 	if (_inputManager->AnyKeyboardIJKLKeyPressed()) TryToAddPlayer(PlayerControllerType::KEYBOARD_IJKL, 0);
@@ -73,8 +84,6 @@ void GameManager::Update_PlayerSettings(const float deltaTime)
 	}
 
 	CheckForDisconnectedGamepadPlayers();
-
-	if (_playerSelectedStartGame) StartLevel("test_level");
 }
 
 void GameManager::StartLevel(const std::string& levelName)

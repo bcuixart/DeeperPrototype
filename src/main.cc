@@ -35,8 +35,10 @@ int main(int argc, char* argv[])
 
     while (!WindowShouldClose())
     {
-        const float frameTime = std::max(kMaxFrameTime/10.f, std::min(GetFrameTime(), kMaxFrameTime));
+        const float frameTime = std::min(GetFrameTime(), kMaxFrameTime);
         accumulator += frameTime;
+
+        gameManager->PollInputToAddPlayers();
 
         while (accumulator >= kFixedDeltaTime)
         {

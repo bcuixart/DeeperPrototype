@@ -51,7 +51,7 @@ public:
 	bool AnyKeyboardArrowKeyPressed() const;
 	bool AnyKeyboardWASDKeyPressed() const;
 	bool AnyKeyboardIJKLKeyPressed() const;
-	bool AnyGamepadButtonPressed(int gamepadIndex) const;
+	bool AnyGamepadButtonPressed(int gamepadIndex);
 
 protected:
 	uint8_t GetMenuInput_KeyboardArrow();
@@ -66,6 +66,9 @@ protected:
 
 	static constexpr float kStickDeadZone = 0.1f;
 	static constexpr float kDigThreshold = 0.5f;
+
+	static constexpr float kStickJoinThreshold = 0.5f;
+	std::array<bool, MAX_GAMEPADS> _gamepadStickWasActiveToJoin = {};
 };
 
 #endif

@@ -86,6 +86,7 @@ void LevelManager::LoadLevel(const std::string& levelName, const std::array<uint
     std::ifstream file("assets/levels/" + levelName + ".dgl");
     if (!file.is_open()) {
         std::cerr << "[LevelManager] No s'ha pogut obrir el nivell: " << levelName << "\n";
+        _numDogs = 0;
         return;
     }
 

@@ -28,6 +28,8 @@ public:
 	void Update(const float deltaTime);
 	void Render(const float deltaTime);
 
+	void PollInputToAddPlayers();
+
 	bool TryToRemovePlayer(uint8_t playerNum);
 
 	void OnPlayerSelectedStartGame() { _playerSelectedStartGame = true; };
