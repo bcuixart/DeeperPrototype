@@ -17,7 +17,7 @@ TARGET := game.exe
 
 INCLUDES := -I$(SRC_DIR) -I$(RAYLIB_PATH)/include
 LIBPATHS := -L$(RAYLIB_PATH)/lib
-LDFLAGS  := -lraylib -lopengl32 -lgdi32 -lwinmm -static-libgcc -static-libstdc++
+LDFLAGS  := -lraylib -lopengl32 -lenet -lws2_32 -lgdi32 -lwinmm -static-libgcc -static-libstdc++
 
 all: $(TARGET)
 
@@ -31,6 +31,27 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cc
 clean:
 	rm -rf $(BUILD_DIR) $(TARGET)
 
+NET_DIR       := $(SRC_DIR)/Network
+NET_FLAGS     := -Wall -std=c++17 -g -I$(SRC_DIR)
+NET_LIBS      := -lenet -lws2_32 -lwinmm
+
+TRANSPORT_SRC := $(NET_DIR)/Transport/EnetTransport.cc \
+                 $(NET_DIR)/Transport/LagSimTransport.cc
+PROTOCOL_SRC  := $(NET_DIR)/Protocol/ByteStream.cc \
+                 $(NET_DIR)/Protocol/NetworkProtocol.cc
+
+network_tests: nettest.exe lobbytest.exe
+
+nettest.exe: $(NET_DIR)/Tests/NetTest.cc \
+             $(NET_DIR)/Protocol/ByteStream.cc \
+             $(TRANSPORT_SRC)
+	$(CXX) $(NET_FLAGS) -o $@ $^ $(NET_LIBS)
+
+lobbytest.exe: $(NET_DIR)/Tests/LobbyTest.cc \
+               $(NET_DIR)/NetworkManager.cc \
+               $(PROTOCOL_SRC) $(TRANSPORT_SRC)
+	$(CXX) $(NET_FLAGS) -o $@ $^ $(NET_LIBS)
+
 -include $(DEP)
 
-.PHONY: all clean
+.PHONY: all clean network_tests

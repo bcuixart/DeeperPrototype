@@ -1,0 +1,138 @@
+HOTDOG FEST - NETWORKING OVERVIEW
+=================================
+
+Goal: online multiplayer, up to 8 players, one host.
+This file explains how the networking code is organised so it is easy to pick up again.
+
+Current state: lobby works (host, join, slots, rejection, timeouts).
+
+
+1. FOLDER STRUCTURE
+-------------------
+
+src/Network/
+    Transport/
+        ITransport.hh            Generic transport interface + PeerId, Channel, NetEvent
+        EnetTransport.hh/.cc     ITransport implemented with ENet
+        LagSimTransport.hh/.cc   Decorator over any ITransport: simulates latency, jitter, packet loss
+    Protocol/
+        ByteStream.hh/.cc        ByteWriter / ByteReader: turns values into bytes and back
+        NetworkProtocol.hh/.cc   Game messages: message ids, Encode*/Decode* functions
+    NetworkManager.hh/.cc        The only thing the game talks to
+    NetworkTypes.hh              Shared plain data: kMaxSlots, SlotInfo, LobbyState, protocol version
+
+    Tests/ (standalone executables, not part of the game)
+        NetTest.cc               Raw transport roundtrip (host/client, no game messages)
+        LobbyTest.cc             NetworkManager lobby test: --host [n] | --join [address] [n]
+
+
+2. LAYERS AND DEPENDENCY RULES
+------------------------------
+
+    Game  ->  NetworkManager  ->  NetworkProtocol / ByteStream
+                              ->  ITransport  ->  EnetTransport (or LagSimTransport -> EnetTransport)
+
+Rules (do not break them, they keep the code replaceable):
+  - Transport knows NOTHING about the game or the protocol. It only moves byte arrays.
+  - Protocol knows NOTHING about the transport. It only converts messages <-> bytes.
+  - NetworkManager is the only place that uses both.
+  - The game only includes NetworkManager.hh and NetworkTypes.hh.
+  - enet/enet.h is included ONLY in EnetTransport.cc. ENet pulls in windows.h/winsock2.h,
+    which clash with raylib. EnetTransport.cc must never include raylib.
+
+Transport layer
+  ITransport: StartHost, Connect, Disconnect, Send, Poll, GetRttMs.
+  - Peers are identified by PeerId (uint16). On the client, the server is one peer.
+  - Two channels: Reliable (ordered, retransmitted) and Unreliable (for inputs, snapshots).
+  - Poll() returns NetEvents: Connected, Disconnected, Received.
+  - EnetTransport: channel 0 = reliable, channel 1 = unreliable.
+  - LagSimTransport: wraps another transport. Only OUTGOING packets are delayed, so if both
+    sides use it, RTT is about 2 x latency. Loss only affects the Unreliable channel (ENet
+    already retransmits reliable packets; dropping them above ENet would lose them forever).
+    Reliable packets and Disconnect keep their relative order. Needs Poll() to be called to
+    release delayed packets.
+  - A future SteamTransport must implement the same interface.
+
+Protocol layer
+  Every message starts with 1 byte = MsgType. Then the payload (all values via ByteWriter):
+
+    Hello      (client -> host)   u16 version, u8 numPlayers
+    Welcome    (host -> client)   u8 machineId
+    Reject     (host -> client)   u8 reason (VersionMismatch, LobbyFull, BadRequest)
+    LobbyState (host -> clients)  8 x u8 machineId per slot (0xFF = empty slot)
+
+  Anything received from the network is untrusted: decoders check ByteReader::Ok(), and the
+  host validates contents (version, number of players).
+
+NetworkManager
+  State: Idle, Connecting, InLobby, Failed.
+  API: Host(port, localPlayers), Join(address, port, localPlayers), Leave(), Update() once
+  per frame, GetState(), GetLobby(), GetMyMachineId(), GetFailReason().
+  - A "machine" is one connected computer. machineId 0 is always the host.
+  - A machine owns 1 to 4 slots. There are at most 8 slots in total.
+  - Host keeps a map PeerId -> machineId and assigns slots in order.
+
+
+3. CONNECTION FLOW
+------------------
+
+  Client: Join() -> state Connecting -> transport Connected event -> sends Hello
+  Host:   receives Hello -> validates -> allocates slots -> sends Welcome -> broadcasts LobbyState
+  Client: receives Welcome -> state InLobby; receives LobbyState -> updates local lobby
+  Rejected: host sends Reject and disconnects the peer; client goes to Failed with the reason.
+  Disconnect: host frees that machine's slots and broadcasts LobbyState again.
+  Host leaves: clients go to Failed ("host closed the room"). The lobby closes.
+
+
+4. DESIGN DECISIONS AND LESSONS LEARNED
+---------------------------------------
+
+  - Do not trust ENet to tell us a connection attempt failed quickly. ENet reports a
+    failed connect only after 10-30 s. NetworkManager has its own 5 s connect timeout.
+  - A Disconnected event is not guaranteed on exit (the other side may already be gone).
+    The reliable way to detect a missing player is a timeout. Disconnect is just a courtesy.
+  - Leave() blocks ~100 ms to let disconnect messages go out. Only call it on exit / leaving
+    a lobby, never in the middle of a match.
+  - Reject must arrive BEFORE the disconnect. Order of Send and Disconnect matters (this was
+    a LagSimTransport bug: Disconnect used to skip the delay queue and overtook the Reject).
+
+
+5. KNOWN LIMITATIONS / TODO
+---------------------------
+
+  - A peer that connects but never sends Hello keeps a connection slot. Add a ~3 s timeout.
+  - SlotInfo only has machineId. Later: dog type, name, colour.
+  - kMaxSlots should be unified with the game's MAX_PLAYERS.
+  - No silent-peer timeout yet (no gameplay traffic exists yet).
+
+
+6. ROADMAP (next steps)
+-----------------------
+
+  Step 6  Integrate with GameManager: inputs indexed by global slot (array of 8), dogs per
+          occupied slot, level start triggered by NetworkManager.
+  Then    - Exchange inputs every tick (unreliable, with a few redundant past inputs).
+          - Reliable level transfer + hash + ACKs + common start tick.
+          - Periodic host snapshots; clients compare with their own history at the same tick
+            and apply the difference.
+          - Clock sync so clients run slightly ahead of the host.
+          - Reliable events (sand, hydrant, rules) and host-only game rules (score, round end).
+          - Menu clicks as reliable events validated by the host.
+          - Disconnect handling in game (dog turns black and white, host announces tick).
+          - SteamTransport behind ITransport.
+
+
+7. HOW TO TEST
+--------------
+
+  Build (adapt paths):
+    g++ -Wall -std=c++17 -g -o lobbytest.exe Tests/LobbyTest.cc Network/NetworkManager.cc
+        Network/Protocol/NetworkProtocol.cc Network/Protocol/ByteStream.cc
+        Network/Transport/EnetTransport.cc Network/Transport/LagSimTransport.cc
+        -I. -lenet -lws2_32 -lwinmm
+
+  Run:  lobbytest --host 2        (host with 2 local players)
+        lobbytest --join 127.0.0.1 1
+
+  Things to try: several clients, full room, join without host, close host, Ctrl+C a client,
+  different LagSimSettings.
