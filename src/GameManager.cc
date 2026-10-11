@@ -13,6 +13,7 @@ GameManager::GameManager()
 	for (int i = 0; i < MAX_LOCAL_PLAYERS; i++)
 	{
 		_playerInfo[i].isActive = false;
+		_slotOfLocalPlayers[i] = i;
 	}
 	_playersActive = 0;
 
@@ -36,7 +37,7 @@ void GameManager::Update(const float deltaTime)
 		_menuManager->Update(deltaTime);
 		break;
 	case GameState::LEVEL:
-		_levelManager->ReceiveInput(_inputManager->GetLevelInput(_playerInfo));
+		_levelManager->ReceiveInput(BuildSlotInput());
 		_levelManager->Update(deltaTime);
 		break;
 	}
@@ -88,15 +89,20 @@ void GameManager::PollInputToAddPlayers()
 
 void GameManager::StartLevel(const std::string& levelName)
 {
-	if (_playersActive == 0) return;
+    if (_playersActive == 0) return;
 
-	_gameState = GameState::LEVEL;
+    _gameState = GameState::LEVEL;
 
-	std::array<uint8_t, MAX_LOCAL_PLAYERS> dogTypes;
-	for (int i = 0; i < _playersActive; i++) dogTypes[i] = _playerInfo[i].dogType;
+    LevelPlayers players;
+    for (int i = 0; i < _playersActive; i++)
+    {
+        const int slot = _slotOfLocalPlayers[i];
+        players[slot].active = true;
+        players[slot].dogType = _playerInfo[i].dogType;
+    }
 
-	_levelManager = std::make_unique<LevelManager>(_playersActive);
-	_levelManager->LoadLevel(levelName, dogTypes);
+    _levelManager = std::make_unique<LevelManager>();
+    _levelManager->LoadLevel(levelName, players);
 }
 
 bool GameManager::TryToAddPlayer(PlayerControllerType type, uint8_t gamepadIndex)
@@ -158,4 +164,17 @@ void GameManager::CheckForDisconnectedGamepadPlayers()
 			i--;
 		}
 	}
+}
+
+std::array<uint8_t, MAX_PLAYERS> GameManager::BuildSlotInput()
+{
+    std::array<uint8_t, MAX_PLAYERS> slotInput;
+    slotInput.fill(16 << 3); // Neutral axis value (0b00010000 << 3)
+
+    const auto localInput = _inputManager->GetLevelInput(_playerInfo);
+    for (int i = 0; i < _playersActive; i++)
+    {
+        slotInput[_slotOfLocalPlayers[i]] = localInput[i];
+    }
+    return slotInput;
 }

@@ -1,10 +1,8 @@
 #include "LevelManager.hh"
 
-LevelManager::LevelManager(int numDogs)
+LevelManager::LevelManager()
 {
     _physicsManager = std::make_unique<PhysicsManager>(*this);
-
-    _numDogs = numDogs;
 }
 
 LevelManager::~LevelManager()
@@ -73,20 +71,21 @@ void LevelManager::RenderBounds(const float deltaTime) const
     for (auto& object : _levelObjects) object->RenderBounds(deltaTime, ORANGE);
 } 
 
-void LevelManager::ReceiveInput(const std::array<uint8_t, MAX_LOCAL_PLAYERS>& input)
+void LevelManager::ReceiveInput(const std::array<uint8_t, MAX_PLAYERS>& input)
 {
-	for (int i = 0; i < _numDogs; i++)
-	{
-		_dogs[i]->ReceiveInput(input[i]);
-	}
+    for (int slot = 0; slot < MAX_PLAYERS; slot++)
+    {
+        if (_dogBySlot[slot]) _dogBySlot[slot]->ReceiveInput(input[slot]);
+    }
 }
 
-void LevelManager::LoadLevel(const std::string& levelName, const std::array<uint8_t, MAX_LOCAL_PLAYERS>& dogTypes)
+void LevelManager::LoadLevel(const std::string& levelName, const LevelPlayers& players)
 {
+    _dogBySlot.fill(nullptr);
+
     std::ifstream file("assets/levels/" + levelName + ".dgl");
     if (!file.is_open()) {
         std::cerr << "[LevelManager] No s'ha pogut obrir el nivell: " << levelName << "\n";
-        _numDogs = 0;
         return;
     }
 
@@ -153,18 +152,22 @@ void LevelManager::LoadLevel(const std::string& levelName, const std::array<uint
         for (int x = 0; x < _levelWidth; ++x)
             if (_levelTiles[y][x]) SetTileSideCollisionMask(x, y);
 
-    if (dogHouses.empty()) { _numDogs = 0; return; }
+    if (dogHouses.empty()) return;
 
     // Randomly shuffle the dog houses to ensure random placement of dogs, even if there are more dogs than houses
     static std::mt19937 rng{ std::random_device{}() };
     std::shuffle(dogHouses.begin(), dogHouses.end(), rng);
-    for (int i = 0; i < _numDogs; ++i) 
+    int spawnIndex = 0;
+    for (int slot = 0; slot < MAX_PLAYERS; ++slot)
     {
-        int houseIndex = i % dogHouses.size();
+        if (!players[slot].active) continue;
+
+        int houseIndex = spawnIndex++ % dogHouses.size();
         Vector2 dogPos = { dogHouses[houseIndex]->GetPosition().x, dogHouses[houseIndex]->GetPosition().y };
 
         auto dog = std::make_unique<LevelObjectDog>(dogPos, this);
-        dog->SetDogType(dogTypes[i]);
+        dog->SetDogType(players[slot].dogType);
+        _dogBySlot[slot] = dog.get();
         _dogs.push_back(dog.get());
         InstantiateLevelObject(std::move(dog));
     }

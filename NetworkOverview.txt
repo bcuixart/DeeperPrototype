@@ -125,11 +125,7 @@ NetworkManager
 7. HOW TO TEST
 --------------
 
-  Build (adapt paths):
-    g++ -Wall -std=c++17 -g -o lobbytest.exe Tests/LobbyTest.cc Network/NetworkManager.cc
-        Network/Protocol/NetworkProtocol.cc Network/Protocol/ByteStream.cc
-        Network/Transport/EnetTransport.cc Network/Transport/LagSimTransport.cc
-        -I. -lenet -lws2_32 -lwinmm
+  Build:  make network_tests
 
   Run:  lobbytest --host 2        (host with 2 local players)
         lobbytest --join 127.0.0.1 1

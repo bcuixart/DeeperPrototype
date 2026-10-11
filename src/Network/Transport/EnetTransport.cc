@@ -49,7 +49,7 @@ bool EnetTransport::Connect(const std::string& address, uint16_t port)
 void EnetTransport::Disconnect(PeerId peer)
 {
     ENetPeer* p = GetPeer(peer);
-    if (p) enet_peer_disconnect(p, 0);
+    if (p) enet_peer_disconnect_later(p, 0);
 }
 
 void EnetTransport::Send(PeerId peer, Channel channel, const uint8_t* data, size_t size)

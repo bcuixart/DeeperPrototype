@@ -10,6 +10,7 @@ BUILD_DIR := build
 rwildcard = $(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 
 SRC := $(call rwildcard,$(SRC_DIR)/,*.cc)
+SRC := $(filter-out $(SRC_DIR)/Network/Tests/%,$(SRC))
 OBJ := $(patsubst $(SRC_DIR)/%.cc,$(BUILD_DIR)/%.o,$(SRC))
 DEP := $(OBJ:.o=.d)
 
@@ -29,7 +30,7 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cc
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD -MP -c $< -o $@
 
 clean:
-	rm -rf $(BUILD_DIR) $(TARGET)
+	rm -rf $(BUILD_DIR) $(TARGET) nettest.exe lobbytest.exe
 
 NET_DIR       := $(SRC_DIR)/Network
 NET_FLAGS     := -Wall -std=c++17 -g -I$(SRC_DIR)
@@ -42,12 +43,12 @@ PROTOCOL_SRC  := $(NET_DIR)/Protocol/ByteStream.cc \
 
 network_tests: nettest.exe lobbytest.exe
 
-nettest.exe: $(NET_DIR)/Tests/NetTest.cc \
+nettest.exe: $(NET_DIR)/Test/NetTest.cc \
              $(NET_DIR)/Protocol/ByteStream.cc \
              $(TRANSPORT_SRC)
 	$(CXX) $(NET_FLAGS) -o $@ $^ $(NET_LIBS)
 
-lobbytest.exe: $(NET_DIR)/Tests/LobbyTest.cc \
+lobbytest.exe: $(NET_DIR)/Test/LobbyTest.cc \
                $(NET_DIR)/NetworkManager.cc \
                $(PROTOCOL_SRC) $(TRANSPORT_SRC)
 	$(CXX) $(NET_FLAGS) -o $@ $^ $(NET_LIBS)

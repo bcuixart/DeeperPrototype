@@ -24,18 +24,21 @@
 #include "LevelObjects/Objects/LevelObjectDogHouse.hh"
 #include "LevelObjects/Objects/LevelObjectUmbrellaTall.hh"
 
+struct LevelPlayerSlot { bool active = false; uint8_t dogType = 0; };
+using LevelPlayers = std::array<LevelPlayerSlot, MAX_PLAYERS>;
+
 class LevelManager {
 public:
-	LevelManager(int numDogs);
+	LevelManager();
 	~LevelManager();
 
 	void Update(const float deltaTime);
 	void Render(const float deltaTime);
 	void RenderBounds(const float deltaTime) const;
 
-	void ReceiveInput(const std::array<uint8_t, MAX_LOCAL_PLAYERS>& input);
+	void ReceiveInput(const std::array<uint8_t, MAX_PLAYERS>& input);
 
-	void LoadLevel(const std::string& levelName, const std::array<uint8_t, MAX_LOCAL_PLAYERS>& dogTypes);
+	void LoadLevel(const std::string& levelName, const LevelPlayers& players);
 
 	int GetLevelWidth() const;
 	int GetLevelHeight() const;
@@ -80,8 +83,8 @@ private:
 	std::vector<std::unique_ptr<LevelObject>> _levelObjects;
 	std::vector<std::vector<std::unique_ptr<LevelObjectTile>>> _levelTiles;
 
+	std::array<LevelObjectDog*, MAX_PLAYERS> _dogBySlot{};
 	std::vector<LevelObjectDog*> _dogs;
-	int _numDogs = 0;
 
 	constexpr static bool DEBUG_DRAW_BOUNDS = false;
 };

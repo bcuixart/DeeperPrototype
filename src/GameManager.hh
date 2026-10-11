@@ -51,8 +51,11 @@ private:
 	bool AnyGamepadButtonPressed(int gamepadIndex) const;
 	void CheckForDisconnectedGamepadPlayers();
 
+	std::array<uint8_t, MAX_PLAYERS> BuildSlotInput();
+
 	GameState _gameState;
 	std::array<PlayerInfo, MAX_LOCAL_PLAYERS> _playerInfo;
+	std::array<uint8_t, MAX_LOCAL_PLAYERS> _slotOfLocalPlayers;
 
 	std::unique_ptr<AssetManager> _assetManager = nullptr;
 	std::unique_ptr<InputManager> _inputManager = nullptr;
