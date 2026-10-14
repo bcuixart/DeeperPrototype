@@ -72,6 +72,23 @@ std::vector<uint8_t> EncodeInput(const InputPacket& packet)
     return w.Data();
 }
 
+std::vector<uint8_t> EncodeTimePing(uint32_t sentMs) 
+{
+    ByteWriter w;
+    w.U8((uint8_t)MsgType::TimePing);
+    w.U32(sentMs);
+    return w.Data();
+}
+
+std::vector<uint8_t> EncodeTimePong(uint32_t echoMs, uint32_t hostTick) 
+{
+    ByteWriter w;
+    w.U8((uint8_t)MsgType::TimePong);
+    w.U32(echoMs);
+    w.U32(hostTick);
+    return w.Data();
+}
+
 /* DECODING */
 
 bool DecodeHello(ByteReader& r, MsgHello& out) 
@@ -127,5 +144,18 @@ bool DecodeInput(ByteReader& r, InputPacket& out)
         for (uint8_t k = 0; k < s.count; ++k) s.inputs[k] = r.U8();
         out.slots.push_back(s);
     }
+    return r.Ok();
+}
+
+bool DecodeTimePing(ByteReader& r, uint32_t& sentMs) 
+{
+    sentMs = r.U32();
+    return r.Ok();
+}
+
+bool DecodeTimePong(ByteReader& r, uint32_t& echoMs, uint32_t& hostTick) 
+{
+    echoMs = r.U32();
+    hostTick = r.U32();
     return r.Ok();
 }

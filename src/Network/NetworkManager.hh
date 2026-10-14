@@ -33,6 +33,10 @@ public:
     void SendLocalInputs(uint32_t tick, const std::vector<uint8_t>& mySlots, const std::array<uint8_t, kMaxSlots>& slotInput);
     bool PopReceivedInput(InputPacket& out);
     int GetRttMs() const;
+    
+    void SetLocalTick(uint32_t tick) { _localTick = tick; }
+    void SendTimePing();
+    bool PopTimePong(uint32_t& hostTick, int& rttMs);
 
     State GetState() const { return _state; }
     bool IsHost() const { return _isHost; }
@@ -76,6 +80,12 @@ private:
     LobbyState _lobby;
     std::string _failReason;
     std::optional<LevelStartInfo> _pendingLevelStart;
+
+    struct TimePong { uint32_t hostTick; int rttMs; };
+    std::optional<TimePong> _timePong;
+    uint32_t _localTick = 0;
+    Clock::time_point _epoch = Clock::now();
+    uint32_t NowMs() const;
 
     // Només host: quina màquina és cada peer.
     std::map<PeerId, uint8_t> _machineOfPeer;

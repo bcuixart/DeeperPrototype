@@ -30,13 +30,12 @@ int main(int argc, char* argv[])
     gameManager->SetNetLaunchOptions(netOptions);
 
     float accumulator = 0.0f;
-    constexpr float kFixedDeltaTime = 1.0f / 60.0f;
     constexpr float kMaxFrameTime = 1.0f / 20.0f;
 
     while (!WindowShouldClose())
     {
         const float frameTime = std::min(GetFrameTime(), kMaxFrameTime);
-        accumulator += frameTime;
+        accumulator += frameTime * gameManager->GetTimeScale();
 
         gameManager->PollInputToAddPlayers();
         gameManager->PollNetwork();

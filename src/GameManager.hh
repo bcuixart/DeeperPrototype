@@ -11,12 +11,15 @@
 #include "AssetManager.hh"
 #include "InputManager.hh"
 #include "Network/NetworkManager.hh"
+#include "Network/ClockSync.hh"
 #include "Network/RemoteInputBuffer.hh"
 #include "Level/LevelManager.hh"
 #include "Menu/MenuManager.hh"
 #include "Utils/DeterministicRNG.hh"
 
 using namespace std;
+
+constexpr float kFixedDeltaTime = 1.0f / 60.0f;
 
 enum class GameState {
 	MAIN_MENU,
@@ -51,6 +54,7 @@ public:
 
 	void SetPlayerDogType(uint8_t playerNum, uint8_t dogType) { if (playerNum < _playersActive) _playerInfo[playerNum].dogType = dogType; }
 
+	float GetTimeScale() const;
 	void SetNetLaunchOptions(const NetLaunchOptions& options) { _netOptions = options; }
 
 	static GameManager* instance;
@@ -87,6 +91,10 @@ private:
 	uint32_t _levelTick = 0;
 	RemoteInputBuffer _remoteInputs;
 	std::vector<uint8_t> _mySlots;
+
+	ClockSync _clockSync;
+	uint32_t _inputLookups = 0;
+	uint32_t _inputMisses = 0;
 
 	std::unique_ptr<AssetManager> _assetManager = nullptr;
 	std::unique_ptr<InputManager> _inputManager = nullptr;

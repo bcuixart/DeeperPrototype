@@ -45,10 +45,24 @@ void GameManager::Update(const float deltaTime)
 		break;
 	case GameState::LEVEL:
     {
+        if (_networkManager)
+        {
+            _networkManager->SetLocalTick(_levelTick);
+            if (!_networkManager->IsHost() && _levelTick % 15 == 0) _networkManager->SendTimePing();
+        }
+
         const auto slotInput = BuildSlotInput();
         _levelManager->ReceiveInput(slotInput);
         if (_networkManager) _networkManager->SendLocalInputs(_levelTick, _mySlots, slotInput);
         _levelManager->Update(deltaTime);
+
+        if (_networkManager && _levelTick % 120 == 0)
+        {
+            printf("[net] tick %u | rtt %d ms | inputs remots no exactes: %u/%u | rellotge: error %.1f ticks, escala %.2f\n",
+                _levelTick, _networkManager->GetRttMs(), _inputMisses, _inputLookups,
+                _clockSync.GetErrorTicks(), _clockSync.GetTimeScale());
+            _inputLookups = _inputMisses = 0;
+        }
         _levelTick++;
         break;
     }
@@ -214,6 +228,8 @@ void GameManager::StartOnlineLevel(const LevelStartInfo& info)
 void GameManager::BeginLevel(const std::string& levelName, const LevelPlayers& players, uint32_t seed)
 {
     _levelTick = 0; 
+    _clockSync.Reset(); 
+    _inputLookups = _inputMisses = 0;
     _remoteInputs.Reset();
 
     _gameState = GameState::LEVEL;
@@ -293,6 +309,11 @@ void GameManager::PollNetwork()
                 _remoteInputs.Store(s.slot, packet.tick - k, s.inputs[k]);
         }
     }
+
+    uint32_t hostTick;
+    int rttMs;
+    if (_networkManager->PopTimePong(hostTick, rttMs) && _gameState == GameState::LEVEL)
+        _clockSync.OnSample(hostTick, _levelTick, rttMs, kFixedDeltaTime);
 }
 
 void GameManager::RenderLobby()
@@ -338,7 +359,10 @@ std::array<uint8_t, MAX_PLAYERS> GameManager::BuildSlotInput()
         {
             if (!lobby.slots[slot].Occupied()) continue;
             if (lobby.slots[slot].machineId == _networkManager->GetMyMachineId()) continue;
-            slotInput[slot] = _remoteInputs.Get(slot, _levelTick, kNeutralLevelInput);
+            bool exact = true;
+            slotInput[slot] = _remoteInputs.Get(slot, _levelTick, kNeutralLevelInput, &exact);
+            _inputLookups++;
+            if (!exact) _inputMisses++;
         }
     }
 
@@ -348,4 +372,10 @@ std::array<uint8_t, MAX_PLAYERS> GameManager::BuildSlotInput()
         slotInput[_slotOfLocalPlayers[i]] = localInput[i];
     }
     return slotInput;
+}
+
+float GameManager::GetTimeScale() const
+{
+    if (_gameState != GameState::LEVEL || !_networkManager || _networkManager->IsHost()) return 1.0f;
+    return _clockSync.GetTimeScale();
 }

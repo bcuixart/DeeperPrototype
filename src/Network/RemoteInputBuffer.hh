@@ -15,7 +15,7 @@ public:
 
     // L'input del slot per a aquest tick. Si no el tenim, l'últim conegut de poc abans;
     // si fa massa que no sabem res d'aquest slot, retorna `neutral`. Mai espera.
-    uint8_t Get(uint8_t slot, uint32_t tick, uint8_t neutral) const;
+    uint8_t Get(uint8_t slot, uint32_t tick, uint8_t neutral, bool* exact = nullptr) const;
 
 private:
     static constexpr int      kRingSize = 64;

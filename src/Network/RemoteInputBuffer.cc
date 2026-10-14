@@ -20,20 +20,23 @@ void RemoteInputBuffer::Store(uint8_t slot, uint32_t tick, uint8_t input)
     }
 }
 
-uint8_t RemoteInputBuffer::Get(uint8_t slot, uint32_t tick, uint8_t neutral) const
+uint8_t RemoteInputBuffer::Get(uint8_t slot, uint32_t tick, uint8_t neutral, bool* exact) const
 {
+    if (exact) *exact = false;
     if (slot >= kMaxSlots) return neutral;
     const SlotData& d = _slots[slot];
     if (!d.any) return neutral;
 
-    // 1. L'input d'aquest tick, o el més recent dels últims ticks.
     for (uint32_t k = 0; k <= kLookback && k <= tick; ++k)
     {
         const Entry& e = d.ring[(tick - k) % kRingSize];
-        if (e.valid && e.tick == tick - k) return e.input;
+        if (e.valid && e.tick == tick - k)
+        {
+            if (exact) *exact = (k == 0);
+            return e.input;
+        }
     }
 
-    // 2. Res de recent: repetim l'últim input conegut, i amb el temps tornem a neutre.
     const uint32_t stale = (tick > d.lastTick) ? tick - d.lastTick : 0;
     return (stale > kDecayTicks) ? neutral : d.lastInput;
 }

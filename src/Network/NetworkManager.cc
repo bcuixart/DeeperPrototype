@@ -48,6 +48,7 @@ void NetworkManager::Leave() {
     _receivedInputs.clear(); 
     _inputHistory = {};
     _state = State::Idle;
+    _timePong.reset();
     _failReason.clear();
 }
 
@@ -81,6 +82,7 @@ bool NetworkManager::HostStartLevel(const std::string& levelName) {
 
     _state = State::InGame;           // el lobby es tanca: ningú més pot entrar
     _pendingLevelStart = info;        // el host també ho rep pel mateix camí
+    _timePong.reset();
     return true;
 }
 
@@ -127,6 +129,26 @@ bool NetworkManager::PopReceivedInput(InputPacket& out)
 int NetworkManager::GetRttMs() const
 {
     return _isHost ? 0 : _transport->GetRttMs(_serverPeer);
+}
+
+uint32_t NetworkManager::NowMs() const
+{
+    return (uint32_t)std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - _epoch).count();
+}
+
+void NetworkManager::SendTimePing()
+{
+    if (_isHost || _state != State::InGame) return;
+    SendTo(_serverPeer, Channel::Unreliable, EncodeTimePing(NowMs()));
+}
+
+bool NetworkManager::PopTimePong(uint32_t& hostTick, int& rttMs)
+{
+    if (!_timePong) return false;
+    hostTick = _timePong->hostTick;
+    rttMs = _timePong->rttMs;
+    _timePong.reset();
+    return true;
 }
 
 
@@ -205,6 +227,12 @@ void NetworkManager::HostHandleMessage(PeerId peer, ByteReader& r) {
     {
         HostHandleInput(peer, r);
     }
+    else if (type == MsgType::TimePing) 
+    {
+        uint32_t sentMs;
+        if (_state == State::InGame && _machineOfPeer.count(peer) && DecodeTimePing(r, sentMs))
+            SendTo(peer, Channel::Unreliable, EncodeTimePong(sentMs, _localTick));
+    }
     // Altres missatges d'un peer sense Hello es descarten.
 }
 
@@ -244,6 +272,7 @@ void NetworkManager::ClientHandleMessage(ByteReader& r) {
             _state = State::InGame;
             _pendingLevelStart = info;
             _receivedInputs.clear(); 
+            _timePong.reset();
             _inputHistory = {};
         }
         break;
@@ -251,6 +280,12 @@ void NetworkManager::ClientHandleMessage(ByteReader& r) {
     case MsgType::Input: {
         InputPacket packet;
         if (_state == State::InGame && DecodeInput(r, packet)) PushReceivedInput(std::move(packet));
+        break;
+    }
+    case MsgType::TimePong: {
+        uint32_t echoMs, hostTick;
+        if (_state == State::InGame && DecodeTimePong(r, echoMs, hostTick))
+            _timePong = TimePong{ hostTick, (int)(NowMs() - echoMs) };
         break;
     }
     default: break;
