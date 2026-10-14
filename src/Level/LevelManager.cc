@@ -90,7 +90,7 @@ void LevelManager::LoadLevel(const std::string& levelName, const LevelPlayers& p
     }
 
     file >> _levelWidth >> _levelHeight;
-    file.ignore();
+    file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
     _levelObjects.clear();
     _dogs.clear();

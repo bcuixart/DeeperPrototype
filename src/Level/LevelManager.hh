@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <random>
+#include <limits>
 
 #include "Utils/DeterministicRNG.hh"
 #include "PhysicsManager.hh"

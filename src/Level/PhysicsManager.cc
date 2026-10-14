@@ -72,7 +72,7 @@ void PhysicsManager::MoveAndResolveMovement(const std::vector<LevelObject*>& obj
 
 		if (MoveAndResolveCollisionsY(o, deltaTime, checkSemisolidPartialBottom, affectedByEntitiesTop))
 		{
-			printf("Collision with slope caused whole move to be canceled for object %p\n", o);
+			//printf("Collision with slope caused whole move to be canceled for object %p\n", o);
 			o->SetBoundsX(startX);
 			o->SetVelocityX(0.0f);
 		}
@@ -111,6 +111,8 @@ void PhysicsManager::MoveAndResolveCollisionsX(LevelObject* object, const float 
 		}
 	}
 
+	std::vector<LevelObject*> breakablesToBreak;
+	std::vector<float> breakablesT;
 	for (LevelObject* breakable : _solidBreakableObjects)
 	{
 		if (breakable->GetBreakableIsBroken()) continue;
@@ -120,7 +122,8 @@ void PhysicsManager::MoveAndResolveCollisionsX(LevelObject* object, const float 
 
 		if (object->GetVelocityMagnitude() >= object->GetInteractionVelocity())
 		{
-			breakable->BreakableBreak(object);
+			breakablesToBreak.push_back(breakable);
+			breakablesT.push_back(t);
 			continue; // Ignore collision if it goes fast enough to break it
 		}
 
@@ -136,6 +139,10 @@ void PhysicsManager::MoveAndResolveCollisionsX(LevelObject* object, const float 
 		}
 	}
 
+	// Break the breakables that were hit by the moving object
+	for (int i = 0; i < (int)breakablesToBreak.size(); ++i)
+		if (breakablesT[i] <= tMin) breakablesToBreak[i]->BreakableBreak(object);
+
 	// Move the object to the new position based on tMin
 	object->SetBoundsX(bounds.x + dx * tMin);
 	if (hitFound)
@@ -147,11 +154,10 @@ void PhysicsManager::MoveAndResolveCollisionsX(LevelObject* object, const float 
 
 	// After moving, we check for collisions with actually sloped tiles and resolve them if necessary.
 	// This is done after the initial move to ensure that we handle slopes correctly, especially if the object is moving into a slope.
-	bounds = object->GetBounds();
 	for (LevelObject* solidMaybeSloped : _solidMaybeSlopedObjects)
 	{
 		if (!solidMaybeSloped->HasActualSlopedHitbox()) continue;
-		if (CheckAndResolveCollisionXSlope(solidMaybeSloped, object, affectedByPartialSemisolids, blockedByRealSlopes, vel)) bounds = object->GetBounds();
+		CheckAndResolveCollisionXSlope(solidMaybeSloped, object, affectedByPartialSemisolids, blockedByRealSlopes, vel);
 	}
 }
 
@@ -320,6 +326,8 @@ bool PhysicsManager::MoveAndResolveCollisionsY(LevelObject* object, const float 
 		else { if (SweepY(startBounds, dy, slope, t) && t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; willBounceTrampoline = false; hitObject = slope; } }
 	}
 
+	std::vector<LevelObject*> breakablesToBreak;
+	std::vector<float> breakablesT;
 	for (LevelObject* breakable : _solidBreakableObjects)
 	{
 		if (breakable->GetBreakableIsBroken()) continue;
@@ -329,7 +337,8 @@ bool PhysicsManager::MoveAndResolveCollisionsY(LevelObject* object, const float 
 
 		if (object->GetVelocityMagnitude() >= object->GetInteractionVelocity())
 		{
-			breakable->BreakableBreak(object);
+			breakablesToBreak.push_back(breakable);
+			breakablesT.push_back(t);
 			continue; // Ignore collision if it goes fast enough to break it
 		}
 
@@ -368,6 +377,10 @@ bool PhysicsManager::MoveAndResolveCollisionsY(LevelObject* object, const float 
 		if (SweepYOnlyFromTop(startBounds, dy, trampoline, t) && t < tMin) { tMin = t; hitFound = true; willGround = false; willBounceTrampoline = true; hitObject = trampoline; }
 	}
 
+	// Break the breakables that were hit by the moving object
+	for (int i = 0; i < (int)breakablesToBreak.size(); ++i)
+		if (breakablesT[i] <= tMin) breakablesToBreak[i]->BreakableBreak(object);
+
 	// Move the object to the new position based on tMin
 	object->SetBoundsY(startBounds.y + dy * tMin);
 	if (hitFound)
@@ -391,7 +404,6 @@ bool PhysicsManager::MoveAndResolveCollisionsY(LevelObject* object, const float 
 
 	// After moving, we check for collisions with actually sloped tiles and resolve them if necessary.
 	// This is done after the initial move to ensure that we handle slopes correctly, especially if the object is moving into a slope.
-	Rectangle bounds = object->GetBounds();
 	for (LevelObject* solidMaybeSloped : _solidMaybeSlopedObjects)
 	{
 		if (!solidMaybeSloped->HasActualSlopedHitbox()) continue;
@@ -399,7 +411,6 @@ bool PhysicsManager::MoveAndResolveCollisionsY(LevelObject* object, const float 
 		bool cancelWholeMove = false;
 		if (CheckAndResolveCollisionYSlope(solidMaybeSloped, object, vel, cancelWholeMove))
 		{
-			bounds = object->GetBounds();
 			if (cancelWholeMove) return true;
 		}
 	}
@@ -585,9 +596,9 @@ LevelObject* PhysicsManager::FindBlockingSolidY(const LevelObject* ignore, const
 		{
 			if (movingDown && !o->GetSolidSideCollisionMask(SOLID_SIDE_TOP)) continue;
 			else if (!movingDown && !o->GetSolidSideCollisionMask(SOLID_SIDE_BOTTOM)) continue;
-			printf("Found blocking solid Y: %p\n", o);
-			printf("Dog bounds: (%f, %f, %f, %f), proposedY: %f\n", bounds.x, bounds.y, bounds.width, bounds.height, proposedY);
-			printf("Collided object bounds: (%f, %f, %f, %f)\n", o->GetBounds().x, o->GetBounds().y, o->GetBounds().width, o->GetBounds().height);
+			//printf("Found blocking solid Y: %p\n", o);
+			//printf("Dog bounds: (%f, %f, %f, %f), proposedY: %f\n", bounds.x, bounds.y, bounds.width, bounds.height, proposedY);
+			//printf("Collided object bounds: (%f, %f, %f, %f)\n", o->GetBounds().x, o->GetBounds().y, o->GetBounds().width, o->GetBounds().height);
 			return o;
 		}
 	}
@@ -595,7 +606,7 @@ LevelObject* PhysicsManager::FindBlockingSolidY(const LevelObject* ignore, const
 	for (LevelObject* o : _solidBreakableObjects)
 		if (o != ignore && !o->GetBreakableIsBroken() && overlaps(o->GetBounds())) 
 		{
-			printf("Found blocking solid breakable Y: %p\n", o);
+			//printf("Found blocking solid breakable Y: %p\n", o);
 			return o;
 		}
 
@@ -610,7 +621,7 @@ LevelObject* PhysicsManager::FindBlockingSolidY(const LevelObject* ignore, const
 			if (bounds.y + bounds.height > b.y + kAboveEpsilon) continue;
 			if (proposedY + bounds.height > b.y) 
 			{
-				printf("Found blocking semisolid total Y: %p\n", o);
+				//printf("Found blocking semisolid total Y: %p\n", o);
 				return o;
 			}
 		}
@@ -622,7 +633,7 @@ LevelObject* PhysicsManager::FindBlockingSolidY(const LevelObject* ignore, const
 			if (bounds.y + bounds.height > b.y + kAboveEpsilon) continue;
 			if (proposedY + bounds.height > b.y) 
 			{
-				printf("Found blocking semisolid partial Y: %p\n", o);
+				//printf("Found blocking semisolid partial Y: %p\n", o);
 				return o;
 			}
 		}
@@ -647,7 +658,7 @@ LevelObject* PhysicsManager::FindBlockingSolidX(const LevelObject* ignore, const
 		{
 			if (movingRight && !o->GetSolidSideCollisionMask(SOLID_SIDE_LEFT)) continue;
 			else if (!movingRight && !o->GetSolidSideCollisionMask(SOLID_SIDE_RIGHT)) continue;
-			printf("Found blocking solid X: %p\n", o);
+			//printf("Found blocking solid X: %p\n", o);
 			return o;
 		}
 	}
@@ -655,7 +666,7 @@ LevelObject* PhysicsManager::FindBlockingSolidX(const LevelObject* ignore, const
 	for (LevelObject* o : _solidBreakableObjects)
 		if (o != ignore && !o->GetBreakableIsBroken() && overlaps(o->GetBounds()))
 		{
-			printf("Found blocking solid breakable X: %p\n", o);
+			//printf("Found blocking solid breakable X: %p\n", o);
 			return o;
 		}
 
@@ -664,7 +675,7 @@ LevelObject* PhysicsManager::FindBlockingSolidX(const LevelObject* ignore, const
 		for (LevelObject* o : _semisolidPartialObjects)
 			if (o != ignore && overlaps(o->GetBounds()))
 			{
-				printf("Found blocking semisolid partial X: %p\n", o);
+				//printf("Found blocking semisolid partial X: %p\n", o);
 				return o;
 			}
 	}
