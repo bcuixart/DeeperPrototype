@@ -58,6 +58,20 @@ std::vector<uint8_t> EncodeStartLevel(const LevelStartInfo& info)
     return w.Data();
 }
 
+std::vector<uint8_t> EncodeInput(const InputPacket& packet) 
+{
+    ByteWriter w;
+    w.U8((uint8_t)MsgType::Input);
+    w.U32(packet.tick);
+    w.U8((uint8_t)packet.slots.size());
+    for (const SlotInputs& s : packet.slots) {
+        w.U8(s.slot);
+        w.U8(s.count);
+        for (uint8_t i = 0; i < s.count; ++i) w.U8(s.inputs[i]);
+    }
+    return w.Data();
+}
+
 /* DECODING */
 
 bool DecodeHello(ByteReader& r, MsgHello& out) 
@@ -96,5 +110,22 @@ bool DecodeStartLevel(ByteReader& r, LevelStartInfo& out)
     if (!r.Ok() || r.Remaining() < len) return false;
     out.levelName.resize(len);
     for (uint8_t i = 0; i < len; ++i) out.levelName[i] = (char)r.U8();
+    return r.Ok();
+}
+
+bool DecodeInput(ByteReader& r, InputPacket& out) 
+{
+    out.tick = r.U32();
+    const uint8_t n = r.U8();
+    if (!r.Ok() || n > kMaxSlots) return false;
+    out.slots.clear();
+    for (uint8_t i = 0; i < n; ++i) {
+        SlotInputs s;
+        s.slot = r.U8();
+        s.count = r.U8();
+        if (!r.Ok() || s.slot >= kMaxSlots || s.count > kInputRedundancy) return false;
+        for (uint8_t k = 0; k < s.count; ++k) s.inputs[k] = r.U8();
+        out.slots.push_back(s);
+    }
     return r.Ok();
 }

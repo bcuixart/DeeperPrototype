@@ -1,4 +1,6 @@
-#pragma once
+#ifndef NETWORK_MANAGER_HH
+#define NETWORK_MANAGER_HH
+
 #include "NetworkTypes.hh"
 #include "Protocol/NetworkProtocol.hh"
 #include "Transport/ITransport.hh"
@@ -8,6 +10,8 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <array>
+#include <deque>
 
 class NetworkManager {
 public:
@@ -25,6 +29,10 @@ public:
     bool HostStartLevel(const std::string& levelName);
     // Retorna true un cop quan s'ha de començar el nivell (també al host).
     bool PopLevelStart(LevelStartInfo& out);
+
+    void SendLocalInputs(uint32_t tick, const std::vector<uint8_t>& mySlots, const std::array<uint8_t, kMaxSlots>& slotInput);
+    bool PopReceivedInput(InputPacket& out);
+    int GetRttMs() const;
 
     State GetState() const { return _state; }
     bool IsHost() const { return _isHost; }
@@ -49,6 +57,18 @@ private:
     void SendTo(PeerId peer, Channel ch, const std::vector<uint8_t>& msg);
     void Fail(const std::string& reason);
 
+    void SendToAll(Channel ch, const std::vector<uint8_t>& msg, PeerId except = kInvalidPeer);
+    void HostHandleInput(PeerId peer, ByteReader& r);
+    void PushReceivedInput(InputPacket&& packet);
+
+    struct InputHistory 
+    {
+        std::array<uint8_t, kInputRedundancy> inputs{};
+        uint8_t count = 0;
+    };
+    std::array<InputHistory, kMaxSlots> _inputHistory;
+    std::deque<InputPacket> _receivedInputs;
+
     std::unique_ptr<ITransport> _transport;
     State _state = State::Idle;
     bool _isHost = false;
@@ -65,3 +85,5 @@ private:
     std::vector<uint8_t> _localDogTypes;
     Clock::time_point _connectStart;
 };
+
+#endif

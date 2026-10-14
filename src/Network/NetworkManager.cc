@@ -45,6 +45,8 @@ void NetworkManager::Leave() {
     _isHost = false;
     _myMachineId = kNoMachine;
     _pendingLevelStart.reset();
+    _receivedInputs.clear(); 
+    _inputHistory = {};
     _state = State::Idle;
     _failReason.clear();
 }
@@ -88,6 +90,45 @@ bool NetworkManager::PopLevelStart(LevelStartInfo& out) {
     _pendingLevelStart.reset();
     return true;
 }
+
+void NetworkManager::SendLocalInputs(uint32_t tick, const std::vector<uint8_t>& mySlots, const std::array<uint8_t, kMaxSlots>& slotInput)
+{
+    if (_state != State::InGame) return;
+
+    InputPacket packet;
+    packet.tick = tick;
+    for (uint8_t slot : mySlots)
+    {
+        InputHistory& h = _inputHistory[slot];
+        // Desplacem l'historial una posició i posem l'input d'aquest tick al davant.
+        for (int i = kInputRedundancy - 1; i > 0; --i) h.inputs[i] = h.inputs[i - 1];
+        h.inputs[0] = slotInput[slot];
+        if (h.count < kInputRedundancy) ++h.count;
+
+        SlotInputs s;
+        s.slot = slot;
+        s.count = h.count;
+        s.inputs = h.inputs;
+        packet.slots.push_back(s);
+    }
+    if (packet.slots.empty()) return;
+
+    SendToAll(Channel::Unreliable, EncodeInput(packet));
+}
+
+bool NetworkManager::PopReceivedInput(InputPacket& out)
+{
+    if (_receivedInputs.empty()) return false;
+    out = std::move(_receivedInputs.front());
+    _receivedInputs.pop_front();
+    return true;
+}
+
+int NetworkManager::GetRttMs() const
+{
+    return _isHost ? 0 : _transport->GetRttMs(_serverPeer);
+}
+
 
 std::vector<uint8_t> NetworkManager::GetMySlots() const {
     std::vector<uint8_t> mine;
@@ -160,6 +201,10 @@ void NetworkManager::HostHandleMessage(PeerId peer, ByteReader& r) {
         SendTo(peer, Channel::Reliable, EncodeWelcome(id));
         BroadcastLobby();
     }
+    else if (type == MsgType::Input) 
+    {
+        HostHandleInput(peer, r);
+    }
     // Altres missatges d'un peer sense Hello es descarten.
 }
 
@@ -198,7 +243,14 @@ void NetworkManager::ClientHandleMessage(ByteReader& r) {
             _lobby = info.lobby;
             _state = State::InGame;
             _pendingLevelStart = info;
+            _receivedInputs.clear(); 
+            _inputHistory = {};
         }
+        break;
+    }
+    case MsgType::Input: {
+        InputPacket packet;
+        if (_state == State::InGame && DecodeInput(r, packet)) PushReceivedInput(std::move(packet));
         break;
     }
     default: break;
@@ -246,4 +298,40 @@ void NetworkManager::SendTo(PeerId peer, Channel ch, const std::vector<uint8_t>&
 void NetworkManager::Fail(const std::string& reason) {
     _failReason = reason;
     _state = State::Failed;
+}
+
+void NetworkManager::SendToAll(Channel ch, const std::vector<uint8_t>& msg, PeerId except)
+{
+    if (_isHost)
+    {
+        for (const auto& [peer, id] : _machineOfPeer)
+            if (peer != except) SendTo(peer, ch, msg);
+    }
+    else SendTo(_serverPeer, ch, msg);
+}
+
+void NetworkManager::PushReceivedInput(InputPacket&& packet)
+{
+    if (_receivedInputs.size() >= 256) _receivedInputs.pop_front();   // si el joc no els consumeix, no creix sense límit
+    _receivedInputs.push_back(std::move(packet));
+}
+
+void NetworkManager::HostHandleInput(PeerId peer, ByteReader& r)
+{
+    if (_state != State::InGame) return;
+    auto it = _machineOfPeer.find(peer);
+    if (it == _machineOfPeer.end()) return;
+
+    InputPacket packet;
+    if (!DecodeInput(r, packet)) return;
+
+    // Només acceptem slots que pertanyen realment a la màquina que els envia.
+    std::vector<SlotInputs> valid;
+    for (const SlotInputs& s : packet.slots)
+        if (_lobby.slots[s.slot].machineId == it->second) valid.push_back(s);
+    packet.slots = std::move(valid);
+    if (packet.slots.empty()) return;
+
+    SendToAll(Channel::Unreliable, EncodeInput(packet), peer);   // reenviem als altres clients
+    PushReceivedInput(std::move(packet));
 }

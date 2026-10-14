@@ -44,9 +44,14 @@ void GameManager::Update(const float deltaTime)
 	case GameState::LOBBY:
 		break;
 	case GameState::LEVEL:
-		_levelManager->ReceiveInput(BuildSlotInput());
-		_levelManager->Update(deltaTime);
-		break;
+    {
+        const auto slotInput = BuildSlotInput();
+        _levelManager->ReceiveInput(slotInput);
+        if (_networkManager) _networkManager->SendLocalInputs(_levelTick, _mySlots, slotInput);
+        _levelManager->Update(deltaTime);
+        _levelTick++;
+        break;
+    }
 	}
 }
 
@@ -168,6 +173,8 @@ void GameManager::OnStartGamePressed()
 
 void GameManager::StartOfflineLevel(const std::string& levelName)
 {
+    _mySlots.clear();
+
     LevelPlayers players;
     for (int i = 0; i < MAX_LOCAL_PLAYERS; i++) _slotOfLocalPlayers[i] = i;
     for (int i = 0; i < _playersActive; i++)
@@ -192,6 +199,8 @@ void GameManager::StartOnlineLevel(const LevelStartInfo& info)
         _slotOfLocalPlayers[i] = mine[i];
     }
 
+    _mySlots = mine;
+
     LevelPlayers players;
     for (int slot = 0; slot < MAX_PLAYERS; slot++)
     {
@@ -204,6 +213,9 @@ void GameManager::StartOnlineLevel(const LevelStartInfo& info)
 
 void GameManager::BeginLevel(const std::string& levelName, const LevelPlayers& players, uint32_t seed)
 {
+    _levelTick = 0; 
+    _remoteInputs.Reset();
+
     _gameState = GameState::LEVEL;
     _levelManager = std::make_unique<LevelManager>();
     _levelManager->LoadLevel(levelName, players, seed);
@@ -270,6 +282,17 @@ void GameManager::PollNetwork()
 
     LevelStartInfo info;
     if (_networkManager->PopLevelStart(info)) StartOnlineLevel(info);
+
+    InputPacket packet;
+    while (_networkManager->PopReceivedInput(packet))
+    {
+        if (_gameState != GameState::LEVEL) continue;
+        for (const SlotInputs& s : packet.slots)
+        {
+            for (uint8_t k = 0; k < s.count && k <= packet.tick; ++k)
+                _remoteInputs.Store(s.slot, packet.tick - k, s.inputs[k]);
+        }
+    }
 }
 
 void GameManager::RenderLobby()
@@ -306,7 +329,18 @@ void GameManager::RenderLobby()
 std::array<uint8_t, MAX_PLAYERS> GameManager::BuildSlotInput()
 {
     std::array<uint8_t, MAX_PLAYERS> slotInput;
-    slotInput.fill(16 << 3); // Neutral axis value (0b00010000 << 3)
+    slotInput.fill(kNeutralLevelInput);
+
+    if (_networkManager && _networkManager->GetState() == NetworkManager::State::InGame)
+    {
+        const LobbyState& lobby = _networkManager->GetLobby();
+        for (int slot = 0; slot < MAX_PLAYERS; slot++)
+        {
+            if (!lobby.slots[slot].Occupied()) continue;
+            if (lobby.slots[slot].machineId == _networkManager->GetMyMachineId()) continue;
+            slotInput[slot] = _remoteInputs.Get(slot, _levelTick, kNeutralLevelInput);
+        }
+    }
 
     const auto localInput = _inputManager->GetLevelInput(_playerInfo);
     for (int i = 0; i < _playersActive; i++)

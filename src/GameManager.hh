@@ -11,6 +11,7 @@
 #include "AssetManager.hh"
 #include "InputManager.hh"
 #include "Network/NetworkManager.hh"
+#include "Network/RemoteInputBuffer.hh"
 #include "Level/LevelManager.hh"
 #include "Menu/MenuManager.hh"
 #include "Utils/DeterministicRNG.hh"
@@ -83,6 +84,9 @@ private:
 	std::array<uint8_t, MAX_LOCAL_PLAYERS> _slotOfLocalPlayers;
 
 	NetLaunchOptions _netOptions;
+	uint32_t _levelTick = 0;
+	RemoteInputBuffer _remoteInputs;
+	std::vector<uint8_t> _mySlots;
 
 	std::unique_ptr<AssetManager> _assetManager = nullptr;
 	std::unique_ptr<InputManager> _inputManager = nullptr;

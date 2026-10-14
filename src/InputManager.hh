@@ -40,6 +40,8 @@ struct PlayerInfo
 #define BITMASK_LEVEL_BARK		0x04
 #define BITMASK_LEVEL_AXIS_X	0xF1
 
+static constexpr uint8_t kNeutralLevelInput = 16 << 3; 
+
 class InputManager {
 public:
 	InputManager();
