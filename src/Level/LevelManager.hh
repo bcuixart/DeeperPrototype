@@ -8,6 +8,7 @@
 #include <iostream>
 #include <random>
 
+#include "Utils/DeterministicRNG.hh"
 #include "PhysicsManager.hh"
 #include "LevelObject.hh"
 #include "LevelObjects/LevelObjectDog.hh"
@@ -38,7 +39,7 @@ public:
 
 	void ReceiveInput(const std::array<uint8_t, MAX_PLAYERS>& input);
 
-	void LoadLevel(const std::string& levelName, const LevelPlayers& players);
+	void LoadLevel(const std::string& levelName, const LevelPlayers& players, uint32_t spawnSeed);
 
 	int GetLevelWidth() const;
 	int GetLevelHeight() const;

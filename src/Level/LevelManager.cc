@@ -79,7 +79,7 @@ void LevelManager::ReceiveInput(const std::array<uint8_t, MAX_PLAYERS>& input)
     }
 }
 
-void LevelManager::LoadLevel(const std::string& levelName, const LevelPlayers& players)
+void LevelManager::LoadLevel(const std::string& levelName, const LevelPlayers& players, uint32_t spawnSeed)
 {
     _dogBySlot.fill(nullptr);
 
@@ -155,8 +155,8 @@ void LevelManager::LoadLevel(const std::string& levelName, const LevelPlayers& p
     if (dogHouses.empty()) return;
 
     // Randomly shuffle the dog houses to ensure random placement of dogs, even if there are more dogs than houses
-    static std::mt19937 rng{ std::random_device{}() };
-    std::shuffle(dogHouses.begin(), dogHouses.end(), rng);
+    DeterministicRng rng(spawnSeed);
+    DeterministicShuffle(dogHouses, rng);
     int spawnIndex = 0;
     for (int slot = 0; slot < MAX_PLAYERS; ++slot)
     {

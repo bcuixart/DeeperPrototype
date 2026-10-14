@@ -43,12 +43,12 @@ PROTOCOL_SRC  := $(NET_DIR)/Protocol/ByteStream.cc \
 
 network_tests: nettest.exe lobbytest.exe
 
-nettest.exe: $(NET_DIR)/Test/NetTest.cc \
+nettest.exe: $(NET_DIR)/Tests/NetTest.cc \
              $(NET_DIR)/Protocol/ByteStream.cc \
              $(TRANSPORT_SRC)
 	$(CXX) $(NET_FLAGS) -o $@ $^ $(NET_LIBS)
 
-lobbytest.exe: $(NET_DIR)/Test/LobbyTest.cc \
+lobbytest.exe: $(NET_DIR)/Tests/LobbyTest.cc \
                $(NET_DIR)/NetworkManager.cc \
                $(PROTOCOL_SRC) $(TRANSPORT_SRC)
 	$(CXX) $(NET_FLAGS) -o $@ $^ $(NET_LIBS)
