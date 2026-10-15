@@ -8,6 +8,7 @@
 
 #include "AssetManager.hh"
 #include "PhysicsProperties.hh"
+#include "NetworkLevelObjectDynEntState.hh"
 
 class LevelManager;
 
@@ -27,6 +28,9 @@ public:
 	virtual void Update(const float deltaTime);
 	virtual void Render(const float deltaTime) const;
 	virtual void RenderBounds(const float deltaTime, const Color& color) const;
+
+	virtual bool NetGet(NetworkLevelObjectDynEntState& state) const { return false; }
+	virtual void NetSet(const NetworkLevelObjectDynEntState& state) {}
 
 	Rectangle GetBounds() const { return _bounds; }
 	Vector2 GetPosition() const { return { _bounds.x, _bounds.y }; }

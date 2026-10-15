@@ -11,6 +11,8 @@ constexpr int      kMaxPlayersPerMachine = 4;
 constexpr uint16_t kProtocolVersion = 3;
 constexpr uint8_t  kNoMachine       = 0xFF;
 constexpr int      kInputRedundancy = 6;
+constexpr uint32_t kSnapshotInterval = 6;
+constexpr size_t   kMaxSnapshotBytes = 1000;
 
 // A machine represents a single instance of the game running on a computer. Each machine can have multiple players connected to it.
 // The host will always be machine 0.

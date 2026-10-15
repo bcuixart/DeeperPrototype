@@ -46,6 +46,7 @@ void NetworkManager::Leave() {
     _myMachineId = kNoMachine;
     _pendingLevelStart.reset();
     _receivedInputs.clear(); 
+    _hasSnapshot = false;
     _inputHistory = {};
     _state = State::Idle;
     _timePong.reset();
@@ -148,6 +149,19 @@ bool NetworkManager::PopTimePong(uint32_t& hostTick, int& rttMs)
     hostTick = _timePong->hostTick;
     rttMs = _timePong->rttMs;
     _timePong.reset();
+    return true;
+}
+
+void NetworkManager::HostSendSnapshot(uint32_t tick, const std::vector<uint8_t>& blob) {
+    if (!IsHost() || _state != State::InGame) return;
+    SendToAll(Channel::Unreliable, EncodeSnapshot(tick, blob), kInvalidPeer);
+}
+
+bool NetworkManager::PopSnapshot(uint32_t& tick, std::vector<uint8_t>& blob) {
+    if (!_hasSnapshot) return false;
+    tick = _snapTick;
+    blob = std::move(_snapBlob);
+    _hasSnapshot = false;
     return true;
 }
 
@@ -274,6 +288,7 @@ void NetworkManager::ClientHandleMessage(ByteReader& r) {
             _receivedInputs.clear(); 
             _timePong.reset();
             _inputHistory = {};
+            _hasSnapshot = false;
         }
         break;
     }
@@ -286,6 +301,14 @@ void NetworkManager::ClientHandleMessage(ByteReader& r) {
         uint32_t echoMs, hostTick;
         if (_state == State::InGame && DecodeTimePong(r, echoMs, hostTick))
             _timePong = TimePong{ hostTick, (int)(NowMs() - echoMs) };
+        break;
+    }
+    case MsgType::Snapshot: {
+        uint32_t tick; std::vector<uint8_t> blob;
+        if (!DecodeSnapshot(r, tick, blob)) break;
+        if (!_hasSnapshot || static_cast<int32_t>(tick - _snapTick) > 0) {
+            _snapTick = tick; _snapBlob = std::move(blob); _hasSnapshot = true;
+        }
         break;
     }
     default: break;

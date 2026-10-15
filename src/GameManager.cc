@@ -14,6 +14,7 @@ GameManager::GameManager()
 
 	_assetManager = std::make_unique<AssetManager>();
 	_inputManager = std::make_unique<InputManager>();
+    _levelNetworkSync = std::make_unique<LevelNetworkSync>();
 
 	for (int i = 0; i < MAX_LOCAL_PLAYERS; i++)
 	{
@@ -56,11 +57,19 @@ void GameManager::Update(const float deltaTime)
         if (_networkManager) _networkManager->SendLocalInputs(_levelTick, _mySlots, slotInput);
         _levelManager->Update(deltaTime);
 
+        if (_netOptions.mode != NetLaunchOptions::Mode::Offline) 
+        {
+            _levelNetworkSync->Record(_levelTick);
+            if (_networkManager->IsHost() && _levelTick % kSnapshotInterval == 0)
+                _networkManager->HostSendSnapshot(_levelTick, _levelNetworkSync->BuildSnapshot());
+        }
+
         if (_networkManager && _levelTick % 120 == 0)
         {
-            printf("[net] tick %u | rtt %d ms | inputs remots no exactes: %u/%u | rellotge: error %.1f ticks, escala %.2f\n",
+            printf("[net] tick %u | rtt %d ms | inputs remots no exactes: %u/%u | rellotge: error %.1f ticks, escala %.2f, err=%.3f corr=%d\n",
                 _levelTick, _networkManager->GetRttMs(), _inputMisses, _inputLookups,
-                _clockSync.GetErrorTicks(), _clockSync.GetTimeScale());
+                _clockSync.GetErrorTicks(), _clockSync.GetTimeScale(),
+                _levelNetworkSync->TakeMaxError(), _levelNetworkSync->TakeCorrections());
             _inputLookups = _inputMisses = 0;
         }
         _levelTick++;
@@ -235,6 +244,8 @@ void GameManager::BeginLevel(const std::string& levelName, const LevelPlayers& p
     _gameState = GameState::LEVEL;
     _levelManager = std::make_unique<LevelManager>();
     _levelManager->LoadLevel(levelName, players, seed);
+
+    _levelNetworkSync->Reset(_levelManager->GetNetBodies());
 }
 
 void GameManager::EnterOnlineLobby()
@@ -308,6 +319,10 @@ void GameManager::PollNetwork()
             for (uint8_t k = 0; k < s.count && k <= packet.tick; ++k)
                 _remoteInputs.Store(s.slot, packet.tick - k, s.inputs[k]);
         }
+
+        uint32_t snapTick; std::vector<uint8_t> snapBlob;
+        if (!_networkManager->IsHost() && _levelTick > 0 && _networkManager->PopSnapshot(snapTick, snapBlob))
+            _levelNetworkSync->ApplySnapshot(snapTick, snapBlob, _levelTick - 1);
     }
 
     uint32_t hostTick;

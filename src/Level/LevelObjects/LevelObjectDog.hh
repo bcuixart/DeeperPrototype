@@ -16,6 +16,9 @@ public:
     void Render(const float deltaTime) const override;
     void RenderBounds(const float deltaTime, const Color& color) const override;
 
+    bool NetGet(NetworkLevelObjectDynEntState& state) const override;
+    void NetSet(const NetworkLevelObjectDynEntState& state) override;
+
     HitboxType GetHitboxType() const override { return HitboxType::Entity; }
 
     void ReceiveInput(uint8_t input);

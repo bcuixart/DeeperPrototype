@@ -38,6 +38,9 @@ public:
     void SendTimePing();
     bool PopTimePong(uint32_t& hostTick, int& rttMs);
 
+    void HostSendSnapshot(uint32_t tick, const std::vector<uint8_t>& blob);
+    bool PopSnapshot(uint32_t& tick, std::vector<uint8_t>& blob);
+
     State GetState() const { return _state; }
     bool IsHost() const { return _isHost; }
     uint8_t GetMyMachineId() const { return _myMachineId; }
@@ -80,6 +83,10 @@ private:
     LobbyState _lobby;
     std::string _failReason;
     std::optional<LevelStartInfo> _pendingLevelStart;
+
+    bool _hasSnapshot = false;
+    uint32_t _snapTick = 0;
+    std::vector<uint8_t> _snapBlob;
 
     struct TimePong { uint32_t hostTick; int rttMs; };
     std::optional<TimePong> _timePong;

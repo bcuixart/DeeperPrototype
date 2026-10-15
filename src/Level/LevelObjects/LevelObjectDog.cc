@@ -209,3 +209,23 @@ void LevelObjectDog::RenderBounds(const float deltaTime, const Color& color) con
     DrawCircleV({ _bounds.x + kDigHorizontalOffset, _bounds.y + _bounds.height }, 0.1f, RED);
     DrawCircleV({ _bounds.x + _bounds.width - kDigHorizontalOffset, _bounds.y + _bounds.height }, 0.1f, RED);
 }
+
+bool LevelObjectDog::NetGet(NetworkLevelObjectDynEntState& state) const
+{
+    state.x = _bounds.x;  state.y = _bounds.y;
+    state.vx = _velocity.x; state.vy = _velocity.y;
+    state.mode = static_cast<uint8_t>(_state);
+    state.flags = (_isJumping ? 1 : 0) | (_isSlidingLeft ? 2 : 0);
+    state.t0 = _jumpTimer; state.t1 = _coyoteTimer; state.t2 = _jumpInputBufferTimer;
+    return true;
+}
+
+void LevelObjectDog::NetSet(const NetworkLevelObjectDynEntState& state)
+{
+    SetBoundsX(state.x);  SetBoundsY(state.y);
+    SetVelocityX(state.vx); SetVelocityY(state.vy);
+    _state = static_cast<DogState>(state.mode);
+    _isJumping = (state.flags & 1) != 0;
+    _isSlidingLeft = (state.flags & 2) != 0;
+    _jumpTimer = state.t0; _coyoteTimer = state.t1; _jumpInputBufferTimer = state.t2;
+}

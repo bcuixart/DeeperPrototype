@@ -89,6 +89,16 @@ std::vector<uint8_t> EncodeTimePong(uint32_t echoMs, uint32_t hostTick)
     return w.Data();
 }
 
+std::vector<uint8_t> EncodeSnapshot(uint32_t tick, const std::vector<uint8_t>& blob) 
+{
+    ByteWriter w;
+    w.U8(static_cast<uint8_t>(MsgType::Snapshot));
+    w.U32(tick);
+    w.U16(static_cast<uint16_t>(blob.size()));
+    for (uint8_t b : blob) w.U8(b);
+    return w.Data();
+}
+
 /* DECODING */
 
 bool DecodeHello(ByteReader& r, MsgHello& out) 
@@ -157,5 +167,15 @@ bool DecodeTimePong(ByteReader& r, uint32_t& echoMs, uint32_t& hostTick)
 {
     echoMs = r.U32();
     hostTick = r.U32();
+    return r.Ok();
+}
+
+bool DecodeSnapshot(ByteReader& r, uint32_t& tick, std::vector<uint8_t>& blob) 
+{
+    tick = r.U32();
+    uint16_t n = r.U16();
+    if (!r.Ok() || n > kMaxSnapshotBytes || r.Remaining() < n) return false;
+    blob.resize(n);
+    for (uint16_t i = 0; i < n; ++i) blob[i] = r.U8();
     return r.Ok();
 }

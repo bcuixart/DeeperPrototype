@@ -584,3 +584,10 @@ bool LevelManager::IsTileSlope(int x, int y) const
     if (low == 8 || low == 16) return false;
     return slopeAutotileMap.find(low) != slopeAutotileMap.end();
 }
+
+std::vector<LevelObject*> LevelManager::GetNetBodies() const 
+{
+    std::vector<LevelObject*> v;
+    for (LevelObjectDog* d : _dogs) v.push_back(d);
+    return v;
+}

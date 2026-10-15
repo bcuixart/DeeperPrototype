@@ -14,6 +14,7 @@
 #include "Network/ClockSync.hh"
 #include "Network/RemoteInputBuffer.hh"
 #include "Level/LevelManager.hh"
+#include "Level/LevelNetworkSync.hh"
 #include "Menu/MenuManager.hh"
 #include "Utils/DeterministicRNG.hh"
 
@@ -101,6 +102,7 @@ private:
 	std::unique_ptr<NetworkManager> _networkManager = nullptr;
 	std::unique_ptr<MenuManager> _menuManager = nullptr;
 	std::unique_ptr<LevelManager> _levelManager = nullptr;
+	std::unique_ptr<LevelNetworkSync> _levelNetworkSync = nullptr;
 
 	uint8_t _playersActive;
 

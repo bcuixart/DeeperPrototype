@@ -52,6 +52,8 @@ public:
 
 	void DigAt(LevelObjectDog* digger, const Vector2& dogFeetPositionLeft, const Vector2& dogFeetPositionRight);
 
+	std::vector<LevelObject*> GetNetBodies() const;
+
 protected:
 
 private:
