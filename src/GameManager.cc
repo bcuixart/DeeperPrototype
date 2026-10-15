@@ -53,9 +53,10 @@ void GameManager::Update(const float deltaTime)
         }
 
         const auto slotInput = BuildSlotInput();
-        _levelManager->ReceiveInput(slotInput);
         if (_networkManager) _networkManager->SendLocalInputs(_levelTick, _mySlots, slotInput);
-        _levelManager->Update(deltaTime);
+        _usedInputs[_levelTick % kInputHistory] = slotInput;
+
+        SimulateTick(slotInput, deltaTime);
 
         if (_netOptions.mode != NetLaunchOptions::Mode::Offline) 
         {
@@ -246,6 +247,7 @@ void GameManager::BeginLevel(const std::string& levelName, const LevelPlayers& p
     _levelManager->LoadLevel(levelName, players, seed);
 
     _levelNetworkSync->Reset(_levelManager->GetNetBodies());
+    for (auto& a : _usedInputs) a.fill(kNeutralLevelInput);
 }
 
 void GameManager::EnterOnlineLobby()
@@ -319,9 +321,12 @@ void GameManager::PollNetwork()
             for (uint8_t k = 0; k < s.count && k <= packet.tick; ++k)
                 _remoteInputs.Store(s.slot, packet.tick - k, s.inputs[k]);
         }
+    }
 
+    if (_gameState == GameState::LEVEL && !_networkManager->IsHost() && _levelTick > 0)
+    {
         uint32_t snapTick; std::vector<uint8_t> snapBlob;
-        if (!_networkManager->IsHost() && _levelTick > 0 && _networkManager->PopSnapshot(snapTick, snapBlob))
+        if (_networkManager->PopSnapshot(snapTick, snapBlob))
             _levelNetworkSync->ApplySnapshot(snapTick, snapBlob, _levelTick - 1);
     }
 
@@ -360,6 +365,12 @@ void GameManager::RenderLobby()
     }
 
     EndDrawing();
+}
+
+void GameManager::SimulateTick(const std::array<uint8_t, MAX_PLAYERS>& slotInput, float deltaTime)
+{
+    _levelManager->ReceiveInput(slotInput);
+    _levelManager->Update(deltaTime);
 }
 
 std::array<uint8_t, MAX_PLAYERS> GameManager::BuildSlotInput()

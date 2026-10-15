@@ -63,6 +63,8 @@ public:
 protected:
 
 private:
+	void SimulateTick(const std::array<uint8_t, MAX_PLAYERS>& slotInput, float deltaTime);
+
 	void Update_PlayerSettings(const float deltaTime);
 
 	bool TryToAddPlayer(PlayerControllerType type, uint8_t gamepadIndex);
@@ -96,6 +98,9 @@ private:
 	ClockSync _clockSync;
 	uint32_t _inputLookups = 0;
 	uint32_t _inputMisses = 0;
+
+	static constexpr uint32_t kInputHistory = 64;
+	std::array<std::array<uint8_t, MAX_PLAYERS>, kInputHistory> _usedInputs{};
 
 	std::unique_ptr<AssetManager> _assetManager = nullptr;
 	std::unique_ptr<InputManager> _inputManager = nullptr;
