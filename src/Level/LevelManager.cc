@@ -588,6 +588,8 @@ bool LevelManager::IsTileSlope(int x, int y) const
 std::vector<LevelObject*> LevelManager::GetNetBodies() const 
 {
     std::vector<LevelObject*> v;
-    for (LevelObjectDog* d : _dogs) v.push_back(d);
+    NetworkLevelObjectDynEntState probe;
+    for (const auto& o : _levelObjects)
+        if (o->NetGet(probe)) v.push_back(o.get());
     return v;
 }

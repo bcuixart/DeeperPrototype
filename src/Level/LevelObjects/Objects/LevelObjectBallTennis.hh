@@ -11,6 +11,9 @@ public:
     void Update(const float deltaTime) override;
     void Render(const float deltaTime) const override;
 
+    bool NetGet(NetworkLevelObjectDynEntState& state) const override;
+    void NetSet(const NetworkLevelObjectDynEntState& state) override;
+
     void CollidedWithX(LevelObject* other, float prevVelocityX) override;
     void CollidedWithY(LevelObject* other, float prevVelocityY) override;
 

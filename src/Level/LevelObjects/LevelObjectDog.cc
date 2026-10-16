@@ -210,22 +210,33 @@ void LevelObjectDog::RenderBounds(const float deltaTime, const Color& color) con
     DrawCircleV({ _bounds.x + _bounds.width - kDigHorizontalOffset, _bounds.y + _bounds.height }, 0.1f, RED);
 }
 
-bool LevelObjectDog::NetGet(NetworkLevelObjectDynEntState& state) const
+bool LevelObjectDog::NetGet(NetworkLevelObjectDynEntState& s) const 
 {
-    state.x = _bounds.x;  state.y = _bounds.y;
-    state.vx = _velocity.x; state.vy = _velocity.y;
-    state.mode = static_cast<uint8_t>(_state);
-    state.flags = (_isJumping ? 1 : 0) | (_isSlidingLeft ? 2 : 0);
-    state.t0 = _jumpTimer; state.t1 = _coyoteTimer; state.t2 = _jumpInputBufferTimer;
+    s.x = _bounds.x;  s.y = _bounds.y;
+    s.vx = _velocity.x; s.vy = _velocity.y;
+    s.mode = static_cast<uint8_t>(_state);
+    s.flags = (_isJumping ? 1 : 0) | (_isSlidingLeft ? 2 : 0) | (_isFacingLeft ? 4 : 0)
+        | (_inputJumpPrev ? 8 : 0) | (_inputDigPrev ? 16 : 0) | (_inputBarkPrev ? 32 : 0)
+        | (_isGrounded ? 64 : 0);
+    s.aux = static_cast<uint8_t>(_surfaceTypeStandingOn);
+    s.t0 = _jumpTimer; s.t1 = _coyoteTimer; s.t2 = _jumpInputBufferTimer;
+    s.t3 = _inputAxisXPrev;
     return true;
 }
 
-void LevelObjectDog::NetSet(const NetworkLevelObjectDynEntState& state)
+void LevelObjectDog::NetSet(const NetworkLevelObjectDynEntState& s) 
 {
-    SetBoundsX(state.x);  SetBoundsY(state.y);
-    SetVelocityX(state.vx); SetVelocityY(state.vy);
-    _state = static_cast<DogState>(state.mode);
-    _isJumping = (state.flags & 1) != 0;
-    _isSlidingLeft = (state.flags & 2) != 0;
-    _jumpTimer = state.t0; _coyoteTimer = state.t1; _jumpInputBufferTimer = state.t2;
+    _bounds.x = s.x; _bounds.y = s.y;
+    _velocity.x = s.vx; _velocity.y = s.vy;
+    _state = static_cast<DogState>(s.mode);
+    _isJumping = (s.flags & 1) != 0;
+    _isSlidingLeft = (s.flags & 2) != 0;
+    _isFacingLeft = (s.flags & 4) != 0;
+    _inputJumpPrev = (s.flags & 8) != 0;
+    _inputDigPrev = (s.flags & 16) != 0;
+    _inputBarkPrev = (s.flags & 32) != 0;
+    _isGrounded = (s.flags & 64) != 0;
+    _surfaceTypeStandingOn = static_cast<SurfaceType>(s.aux);
+    _jumpTimer = s.t0; _coyoteTimer = s.t1; _jumpInputBufferTimer = s.t2;
+    _inputAxisXPrev = s.t3;
 }

@@ -149,3 +149,18 @@ Vector2 LevelObjectHydrant001Water::GetForceFieldForce() const
 {
     return { (_isLeft) ? -kForceFieldDirectionX : kForceFieldDirectionX, kForceFieldDirectionY };
 }
+
+bool LevelObjectHydrant001::NetGet(NetworkLevelObjectDynEntState& s) const 
+{
+    s.x = _bounds.x; s.y = _bounds.y;
+    s.flags = _isActive ? 1 : 0;
+    s.t0 = _activeTimer;
+    return true;
+}
+
+void LevelObjectHydrant001::NetSet(const NetworkLevelObjectDynEntState& s) 
+{
+    const bool active = (s.flags & 1) != 0;
+    if (active != _isActive) { if (active) Activate(); else Deactivate(); }
+    _activeTimer = s.t0;
+}

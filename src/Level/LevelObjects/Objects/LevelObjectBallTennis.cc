@@ -127,3 +127,21 @@ void LevelObjectBallTennis::BounceOffBall(LevelObjectBallTennis* otherBall)
 		AddVelocityY(normal.y * overlapDepth * kSeparationSpeed);
 	}
 }
+
+bool LevelObjectBallTennis::NetGet(NetworkLevelObjectDynEntState& s) const 
+{
+	s.x = _bounds.x; s.y = _bounds.y; s.vx = _velocity.x; s.vy = _velocity.y;
+	s.flags = _isGrounded ? 64 : 0;
+	s.aux = static_cast<uint8_t>(_surfaceTypeStandingOn);
+	s.t0 = _kickCooldown;
+	return true;
+}
+
+void LevelObjectBallTennis::NetSet(const NetworkLevelObjectDynEntState& s) 
+{
+	_bounds.x = s.x; _bounds.y = s.y;
+	_velocity.x = s.vx; _velocity.y = s.vy;
+	_isGrounded = (s.flags & 64) != 0;
+	_surfaceTypeStandingOn = static_cast<SurfaceType>(s.aux);
+	_kickCooldown = s.t0;
+}

@@ -12,6 +12,9 @@ public:
     void Update(const float deltaTime) override;
     void Render(const float deltaTime) const override;
 
+    bool NetGet(NetworkLevelObjectDynEntState& state) const override;
+    void NetSet(const NetworkLevelObjectDynEntState& state) override;
+
     HitboxType GetHitboxType() const override { return HitboxType::SemisolidPartial; }
 
     void CollidedWithX(LevelObject* other, float prevVelocityX) override;

@@ -28,64 +28,46 @@ std::vector<uint8_t> LevelNetworkSync::BuildSnapshot() const {
     return w.Data();
 }
 
-void LevelNetworkSync::ApplySnapshot(uint32_t hostTick, const std::vector<uint8_t>& blob, uint32_t latestTick) {
-    // El client va per davant del host, així que normalment latestTick >= hostTick.
+void LevelNetworkSync::ApplySnapshot(uint32_t hostTick, const std::vector<uint8_t>& blob,
+    uint32_t latestTick, const ReplayFn& replayTick) {
     if (latestTick < hostTick || latestTick - hostTick >= kHistory) return;
 
-    const Frame& mine = _history[hostTick % kHistory];
-    const Frame& latest = _history[latestTick % kHistory];
+    Frame& mine = _history[hostTick % kHistory];
     if (!mine.valid || mine.tick != hostTick) return;
-    if (!latest.valid || latest.tick != latestTick) return;
 
     ByteReader r(blob.data(), blob.size());
     const size_t n = r.U8();
     if (!r.Ok() || n != _bodies.size() || mine.bodies.size() != n) return;
 
     std::vector<NetworkLevelObjectDynEntState> host(n);
-    for (NetworkLevelObjectDynEntState& h : host) ReadBody(r, h);
+    for (auto& h : host) ReadBody(r, h);
     if (!r.Ok()) return;
 
+    // Ens val la pena resimular? Només si algun cos difereix del que va dir el host.
+    bool mismatch = false;
+    float worst = 0.0f;
     for (size_t i = 0; i < n; ++i) {
-        const NetworkLevelObjectDynEntState& h = host[i];
-        const NetworkLevelObjectDynEntState& m = mine.bodies[i]; // còpia: més avall modifiquem aquest frame
-
+        const auto& h = host[i];
+        const auto& m = mine.bodies[i];
         const float err = std::hypot(h.x - m.x, h.y - m.y);
-        _maxError = std::max(_maxError, err);
+        const float verr = std::hypot(h.vx - m.vx, h.vy - m.vy);
+        worst = std::max(worst, err);
+        if (err > kIgnoreError || verr > kIgnoreVelocity || h.mode != m.mode || h.flags != m.flags)
+            mismatch = true;
+    }
+    _maxError = std::max(_maxError, worst);
+    if (!mismatch) return;
+    ++_corrections;
 
-        const bool discrete = (h.mode != m.mode) || (h.flags != m.flags);
-        float s;
-        if (discrete || err >= kSnapError) s = 1.0f;
-        else if (err < kIgnoreError)       s = 0.0f;
-        else                               s = kBlend;
-        if (s == 0.0f) continue;
-        ++_corrections;
+    if (worst > 1.0f)
+        printf("[rollback] T=%u L=%u (%u ticks) error maxim %.2f\n", hostTick, latestTick, latestTick - hostTick, worst);
 
-        if (err > 1.0f) 
-        {
-            const NetworkLevelObjectDynEntState& c = latest.bodies[i];
-            printf("[snap] cos %zu T=%u L=%u s=%.2f | host(%.2f,%.2f v%.1f,%.1f m%d) | meu@T(%.2f,%.2f v%.1f,%.1f m%d) | meu@L(%.2f,%.2f v%.1f,%.1f)\n",
-                   i, hostTick, latestTick, s,
-                   h.x, h.y, h.vx, h.vy, h.mode,
-                   m.x, m.y, m.vx, m.vy, m.mode,
-                   c.x, c.y, c.vx, c.vy);
-        }
+    // L'estat del host al tick T és la veritat: l'adoptem i tornem a simular fins ara.
+    mine.bodies = host;
+    for (size_t i = 0; i < n; ++i) _bodies[i]->NetSet(host[i]);
 
-        const float dx = (h.x - m.x) * s,   dy = (h.y - m.y) * s;
-        const float dvx = (h.vx - m.vx) * s, dvy = (h.vy - m.vy) * s;
-        const float d0 = (h.t0 - m.t0) * s, d1 = (h.t1 - m.t1) * s, d2 = (h.t2 - m.t2) * s;
-
-        // Desplacem tot l'historial a partir de hostTick perquè el proper
-        // snapshot no vegi (i corregeixi) un error que ja hem corregit.
-        for (uint32_t t = hostTick; t <= latestTick; ++t) {
-            Frame& f = _history[t % kHistory];
-            if (!f.valid || f.tick != t) continue;
-            NetworkLevelObjectDynEntState& b = f.bodies[i];
-            b.x += dx; b.y += dy; b.vx += dvx; b.vy += dvy;
-            b.t0 = std::max(0.0f, b.t0 + d0);
-            b.t1 = std::max(0.0f, b.t1 + d1);
-            b.t2 = std::max(0.0f, b.t2 + d2);
-            if (discrete) { b.mode = h.mode; b.flags = h.flags; }
-        }
-        _bodies[i]->NetSet(latest.bodies[i]);
+    for (uint32_t t = hostTick + 1; t <= latestTick; ++t) {
+        replayTick(t);
+        Record(t);
     }
 }

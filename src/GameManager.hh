@@ -64,6 +64,7 @@ protected:
 
 private:
 	void SimulateTick(const std::array<uint8_t, MAX_PLAYERS>& slotInput, float deltaTime);
+	void ReplayTick(uint32_t tick);
 
 	void Update_PlayerSettings(const float deltaTime);
 
