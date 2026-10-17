@@ -14,6 +14,7 @@ GameManager::GameManager()
 
 	_assetManager = std::make_unique<AssetManager>();
 	_inputManager = std::make_unique<InputManager>();
+    _roundManager = std::make_unique<RoundManager>();
     _levelNetworkSync = std::make_unique<LevelNetworkSync>();
 
 	for (int i = 0; i < MAX_LOCAL_PLAYERS; i++)
@@ -46,6 +47,12 @@ void GameManager::Update(const float deltaTime)
 		break;
 	case GameState::LEVEL:
     {
+        if (_roundManager->IsOver(_levelTick))
+        {
+            AnnounceRoundEnd();
+            break;
+        }
+
         if (_networkManager)
         {
             _networkManager->SetLocalTick(_levelTick);
@@ -61,7 +68,8 @@ void GameManager::Update(const float deltaTime)
         if (_netOptions.mode != NetLaunchOptions::Mode::Offline) 
         {
             _levelNetworkSync->Record(_levelTick);
-            if (_networkManager->IsHost() && _levelTick % kSnapshotInterval == 0)
+            if (_networkManager->IsHost() &&
+                (_levelTick % kSnapshotInterval == 0 || _levelNetworkSync->SandChanged()))
                 _networkManager->HostSendSnapshot(_levelTick, _levelNetworkSync->BuildSnapshot());
         }
 
@@ -92,7 +100,7 @@ void GameManager::Render(const float deltaTime)
 		RenderLobby();
 		break;
 	case GameState::LEVEL:
-		_levelManager->Render(deltaTime);
+		_levelManager->Render(deltaTime, [this]() { DrawRoundOverlay(); });
 		break;
 	}
 }
@@ -208,7 +216,7 @@ void GameManager::StartOfflineLevel(const std::string& levelName)
     }
 
     static std::mt19937 rng{ std::random_device{}() };
-    BeginLevel(levelName, players, rng());
+    BeginLevel(levelName, players, rng(), RoundManager::kDefaultDurationTicks);
 }
 
 void GameManager::StartOnlineLevel(const LevelStartInfo& info)
@@ -232,10 +240,10 @@ void GameManager::StartOnlineLevel(const LevelStartInfo& info)
         players[slot].dogType = info.lobby.slots[slot].dogType;
     }
 
-    BeginLevel(info.levelName, players, info.spawnSeed);
+    BeginLevel(info.levelName, players, info.spawnSeed, info.roundTicks); 
 }
 
-void GameManager::BeginLevel(const std::string& levelName, const LevelPlayers& players, uint32_t seed)
+void GameManager::BeginLevel(const std::string& levelName, const LevelPlayers& players, uint32_t seed, uint32_t roundTicks)
 {
     _levelTick = 0; 
     _clockSync.Reset(); 
@@ -246,8 +254,17 @@ void GameManager::BeginLevel(const std::string& levelName, const LevelPlayers& p
     _levelManager = std::make_unique<LevelManager>();
     _levelManager->LoadLevel(levelName, players, seed);
 
-    _levelNetworkSync->Reset(_levelManager->GetNetBodies());
+    _levelNetworkSync->Reset(_levelManager->GetNetBodies(), _levelManager->GetNetSandTiles());
+
+    const bool onlineClient = _netOptions.mode != NetLaunchOptions::Mode::Offline
+                              && _networkManager && !_networkManager->IsHost();
+    _levelManager->SetNetAuthority(onlineClient, _mySlots);
     for (auto& a : _usedInputs) a.fill(kNeutralLevelInput);
+
+    std::array<bool, kMaxSlots> activeSlots{};
+    for (int s = 0; s < MAX_PLAYERS; ++s) activeSlots[s] = players[s].active;
+    _roundManager->Begin(roundTicks, !onlineClient, activeSlots);
+    _levelManager->SetScoreCallback([this](uint8_t slot, int points) { OnScore(slot, points); });
 }
 
 void GameManager::EnterOnlineLobby()
@@ -306,7 +323,7 @@ void GameManager::PollNetwork()
 
     if (_gameState == GameState::LOBBY && _networkManager->IsHost() && IsKeyPressed(KEY_ENTER))
     {
-        _networkManager->HostStartLevel("test_level");
+        _networkManager->HostStartLevel("test_level", RoundManager::kDefaultDurationTicks);
     }
 
     LevelStartInfo info;
@@ -321,6 +338,42 @@ void GameManager::PollNetwork()
             for (uint8_t k = 0; k < s.count && k <= packet.tick; ++k)
                 _remoteInputs.Store(s.slot, packet.tick - k, s.inputs[k]);
         }
+    }
+
+    GameEventMsg ev;
+    while (_networkManager->PopEvent(ev))
+    {
+        if (_gameState != GameState::LEVEL) continue;
+
+        if (_networkManager->IsHost())
+        {
+            printf("[net] intencio de la maquina %u, tipus %u, %zu bytes\n", ev.fromMachine, ev.kind, ev.payload.size());
+            continue;
+        }
+
+        ByteReader r(ev.payload.data(), ev.payload.size());
+        switch ((RoundEvent)ev.kind)
+        {
+        case RoundEvent::ScoreChanged:
+        {
+            uint8_t slot; uint16_t score;
+            if (DecodeScoreChanged(r, slot, score)) _roundManager->SetScore(slot, score);
+            break;
+        }
+        case RoundEvent::RoundEnd:
+        {
+            uint32_t endTick; std::array<uint16_t, MAX_PLAYERS> scores;
+            if (DecodeRoundEnd(r, endTick, scores)) OnRoundEndReceived(endTick, scores);
+            break;
+        }
+        default: break;
+        }
+    }
+
+    if (_gameState == GameState::LEVEL)
+    {
+        if (_networkManager->IsHost() && IsKeyPressed(KEY_F2)) _roundManager->EndEarly(_levelTick);   // acabar ronda ara
+        if (!_networkManager->IsHost() && IsKeyPressed(KEY_F1)) _networkManager->SendEventToHost(200, { 1, 2, 3 });
     }
 
     if (_gameState == GameState::LEVEL && !_networkManager->IsHost() && _levelTick > 0)
@@ -422,4 +475,46 @@ float GameManager::GetTimeScale() const
 {
     if (_gameState != GameState::LEVEL || !_networkManager || _networkManager->IsHost()) return 1.0f;
     return _clockSync.GetTimeScale();
+}
+
+void GameManager::OnScore(uint8_t slot, int points)
+{
+    if (!_roundManager->IsAuthority() || _roundManager->IsOver(_levelTick)) return;   // els clients no puntuen
+    uint16_t score;
+    if (!_roundManager->AddScore(slot, points, score)) return;
+    if (_networkManager && _netOptions.mode != NetLaunchOptions::Mode::Offline)
+        _networkManager->HostBroadcastEvent((uint8_t)RoundEvent::ScoreChanged, EncodeScoreChanged(slot, score));
+}
+
+void GameManager::AnnounceRoundEnd()
+{
+    if (!_roundManager->IsAuthority() || !_roundManager->TakeEndAnnounce()) return;
+    printf("[ronda] acabada al tick %u\n", _roundManager->EndTick());
+    if (_networkManager && _netOptions.mode != NetLaunchOptions::Mode::Offline)
+        _networkManager->HostBroadcastEvent((uint8_t)RoundEvent::RoundEnd,
+                                            EncodeRoundEnd(_roundManager->EndTick(), _roundManager->GetScores()));
+}
+
+void GameManager::OnRoundEndReceived(uint32_t endTick, const std::array<uint16_t, MAX_PLAYERS>& scores)
+{
+    _roundManager->ApplyEnd(endTick, scores);
+    // Si el client s'ha passat del final (acabada anticipada), tornem a l'estat d'aquell tick.
+    if (_levelTick > endTick && endTick > 0 && _levelNetworkSync->RestoreTo(endTick - 1))
+        _levelTick = endTick;
+    printf("[ronda] acabada al tick %u\n", endTick);
+}
+
+void GameManager::DrawRoundOverlay() const
+{
+    const int secs = (int)((_roundManager->TicksLeft(_levelTick) + 59) / 60);
+    DrawText(TextFormat("%d:%02d", secs / 60, secs % 60), 20, 10, 30, WHITE);
+
+    int y = 50;
+    for (int s = 0; s < MAX_PLAYERS; ++s)
+    {
+        if (!_roundManager->IsActive(s)) continue;
+        DrawText(TextFormat("Jugador %d: %d", s, _roundManager->GetScore(s)), 20, y, 20, WHITE);
+        y += 24;
+    }
+    if (_roundManager->IsOver(_levelTick)) DrawText("FI DE RONDA", 20, y + 10, 30, YELLOW);
 }

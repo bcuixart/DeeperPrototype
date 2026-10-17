@@ -38,11 +38,11 @@ std::vector<uint8_t> EncodeReject(RejectReason reason)
     return w.Data();
 }
 
-std::vector<uint8_t> EncodeLobbyState(const LobbyState& lobby) 
+std::vector<uint8_t> EncodeLobbyState(const LobbyState& lobby)
 {
     ByteWriter w;
     w.U8((uint8_t)MsgType::LobbyState);
-    for (const SlotInfo& s : lobby.slots) w.U8(s.machineId);
+    WriteLobby(w, lobby);
     return w.Data();
 }
 
@@ -52,6 +52,7 @@ std::vector<uint8_t> EncodeStartLevel(const LevelStartInfo& info)
     w.U8((uint8_t)MsgType::StartLevel);
     WriteLobby(w, info.lobby);
     w.U32(info.spawnSeed);
+    w.U32(info.roundTicks);
     const uint8_t len = (uint8_t)std::min<size_t>(info.levelName.size(), 255);
     w.U8(len);
     for (uint8_t i = 0; i < len; ++i) w.U8((uint8_t)info.levelName[i]);
@@ -99,6 +100,16 @@ std::vector<uint8_t> EncodeSnapshot(uint32_t tick, const std::vector<uint8_t>& b
     return w.Data();
 }
 
+std::vector<uint8_t> EncodeGameEvent(uint8_t kind, const std::vector<uint8_t>& payload)
+{
+    ByteWriter w;
+    w.U8((uint8_t)MsgType::GameEvent);
+    w.U8(kind);
+    w.U8((uint8_t)std::min<size_t>(payload.size(), kMaxEventBytes));
+    for (size_t i = 0; i < payload.size() && i < kMaxEventBytes; ++i) w.U8(payload[i]);
+    return w.Data();
+}
+
 /* DECODING */
 
 bool DecodeHello(ByteReader& r, MsgHello& out) 
@@ -123,9 +134,9 @@ bool DecodeReject(ByteReader& r, RejectReason& out)
     return r.Ok();
 }
 
-bool DecodeLobbyState(ByteReader& r, LobbyState& out) 
+bool DecodeLobbyState(ByteReader& r, LobbyState& out)
 {
-    for (SlotInfo& s : out.slots) s.machineId = r.U8();
+    ReadLobby(r, out);
     return r.Ok();
 }
 
@@ -133,6 +144,7 @@ bool DecodeStartLevel(ByteReader& r, LevelStartInfo& out)
 {
     ReadLobby(r, out.lobby);
     out.spawnSeed = r.U32();
+    out.roundTicks = r.U32();
     const uint8_t len = r.U8();
     if (!r.Ok() || r.Remaining() < len) return false;
     out.levelName.resize(len);
@@ -177,5 +189,15 @@ bool DecodeSnapshot(ByteReader& r, uint32_t& tick, std::vector<uint8_t>& blob)
     if (!r.Ok() || n > kMaxSnapshotBytes || r.Remaining() < n) return false;
     blob.resize(n);
     for (uint16_t i = 0; i < n; ++i) blob[i] = r.U8();
+    return r.Ok();
+}
+
+bool DecodeGameEvent(ByteReader& r, uint8_t& kind, std::vector<uint8_t>& payload)
+{
+    kind = r.U8();
+    const uint8_t n = r.U8();
+    if (!r.Ok() || r.Remaining() < n) return false;
+    payload.resize(n);
+    for (uint8_t i = 0; i < n; ++i) payload[i] = r.U8();
     return r.Ok();
 }

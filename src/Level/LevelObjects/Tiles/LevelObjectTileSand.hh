@@ -18,6 +18,7 @@ public:
 
 	void BreakableBreak(const LevelObject* other) override;
 	bool GetBreakableIsBroken() const override { return _isBroken; }
+	void NetworkSetBroken(bool broken) override;
 
 	void OnDug(LevelObject* digger) override { BreakableBreak(digger); }
 

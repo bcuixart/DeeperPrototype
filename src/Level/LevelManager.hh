@@ -8,6 +8,7 @@
 #include <iostream>
 #include <random>
 #include <limits>
+#include <functional>
 
 #include "Utils/DeterministicRNG.hh"
 #include "PhysicsManager.hh"
@@ -35,12 +36,15 @@ public:
 	~LevelManager();
 
 	void Update(const float deltaTime);
-	void Render(const float deltaTime);
+	void Render(const float deltaTime, const std::function<void()>& overlay = nullptr);
 	void RenderBounds(const float deltaTime) const;
 
 	void ReceiveInput(const std::array<uint8_t, MAX_PLAYERS>& input);
 
 	void LoadLevel(const std::string& levelName, const LevelPlayers& players, uint32_t spawnSeed);
+
+	void SetScoreCallback(std::function<void(uint8_t, int)> cb) { _onScore = std::move(cb); }
+	void NotifyScore(const LevelObject* cause, int points);
 
 	int GetLevelWidth() const;
 	int GetLevelHeight() const;
@@ -52,7 +56,11 @@ public:
 
 	void DigAt(LevelObjectDog* digger, const Vector2& dogFeetPositionLeft, const Vector2& dogFeetPositionRight);
 
+    void SetNetAuthority(bool isClient, const std::vector<uint8_t>& mySlots);
+    bool CanApplyBreak(const LevelObject* cause) const;
+
 	std::vector<LevelObject*> GetNetBodies() const;
+	const std::vector<LevelObject*>& GetNetSandTiles() const { return _sandTiles; }
 
 protected:
 
@@ -82,6 +90,8 @@ private:
 	int _levelWidth = 0;
 	int _levelHeight = 0;
 
+	std::function<void(uint8_t, int)> _onScore;
+
 	std::unique_ptr<PhysicsManager> _physicsManager;
 
 	std::vector<std::unique_ptr<LevelObject>> _levelObjects;
@@ -89,6 +99,11 @@ private:
 
 	std::array<LevelObjectDog*, MAX_PLAYERS> _dogBySlot{};
 	std::vector<LevelObjectDog*> _dogs;
+
+	std::vector<LevelObject*> _sandTiles;
+
+    bool _isNetClient = false;
+    uint8_t _localSlotMask = 0;
 
 	constexpr static bool DEBUG_DRAW_BOUNDS = false;
 };

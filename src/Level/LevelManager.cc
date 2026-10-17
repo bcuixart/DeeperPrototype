@@ -17,7 +17,7 @@ void LevelManager::Update(const float deltaTime)
     _physicsManager->Update(deltaTime);
 }
 
-void LevelManager::Render(const float deltaTime)
+void LevelManager::Render(const float deltaTime, const std::function<void()>& overlay)
 {
     float zoomX = (float)GetScreenWidth() / GetLevelWidth();
     float zoomY = (float)GetScreenHeight() / GetLevelHeight();
@@ -49,6 +49,7 @@ void LevelManager::Render(const float deltaTime)
     DrawFPS(-500, -500);
 
     EndMode2D();
+    if (overlay) overlay();
     EndDrawing();
 }
 
@@ -95,6 +96,7 @@ void LevelManager::LoadLevel(const std::string& levelName, const LevelPlayers& p
     _levelObjects.clear();
     _dogs.clear();
     _levelTiles.clear();
+    _sandTiles.clear();
 
     std::vector<LevelObjectDogHouse*> dogHouses;
 
@@ -113,7 +115,13 @@ void LevelManager::LoadLevel(const std::string& levelName, const LevelPlayers& p
             switch (row[j]) {
             case 'G': InstantiateLevelTile(std::make_unique<LevelObjectTileGround>(pos), i, j); break;
             case 's': InstantiateLevelTile(std::make_unique<LevelObjectTileSlope>(pos), i, j); break;
-            case 'S': InstantiateLevelTile(std::make_unique<LevelObjectTileSand>(pos, this), i, j); break;
+            case 'S':
+            {
+                auto sand = std::make_unique<LevelObjectTileSand>(pos, this);
+                _sandTiles.push_back(sand.get());
+                InstantiateLevelTile(std::move(sand), i, j);
+                break;
+            }
             case 'd': InstantiateLevelTile(std::make_unique<LevelObjectTileDirt>(pos), i, j); break;
             case 'B': InstantiateLevelTile(std::make_unique<LevelObjectTileBridge>(pos), i, j); break;
             case 't': InstantiateLevelObject(std::make_unique<LevelObjectBallTennis>(pos)); break;
@@ -166,6 +174,7 @@ void LevelManager::LoadLevel(const std::string& levelName, const LevelPlayers& p
         Vector2 dogPos = { dogHouses[houseIndex]->GetPosition().x, dogHouses[houseIndex]->GetPosition().y };
 
         auto dog = std::make_unique<LevelObjectDog>(dogPos, this);
+        dog->SetSlot(static_cast<uint8_t>(slot));
         dog->SetDogType(players[slot].dogType);
         _dogBySlot[slot] = dog.get();
         _dogs.push_back(dog.get());
@@ -592,4 +601,26 @@ std::vector<LevelObject*> LevelManager::GetNetBodies() const
     for (const auto& o : _levelObjects)
         if (o->NetGet(probe)) v.push_back(o.get());
     return v;
+}
+
+void LevelManager::SetNetAuthority(bool isClient, const std::vector<uint8_t>& mySlots)
+{
+    _isNetClient = isClient;
+    _localSlotMask = 0;
+    for (uint8_t s : mySlots) if (s < MAX_PLAYERS) _localSlotMask |= (1u << s);
+}
+
+bool LevelManager::CanApplyBreak(const LevelObject* cause) const
+{
+    if (!_isNetClient) return true;
+    if (!cause) return false;
+    const uint8_t slot = cause->GetInteractionCauseSlot();
+    return slot < MAX_PLAYERS && (_localSlotMask & (1u << slot)) != 0;
+}
+
+void LevelManager::NotifyScore(const LevelObject* cause, int points)
+{
+    if (!_onScore || !cause) return;
+    const uint8_t slot = cause->GetInteractionCauseSlot();
+    if (slot < MAX_PLAYERS) _onScore(slot, points);
 }

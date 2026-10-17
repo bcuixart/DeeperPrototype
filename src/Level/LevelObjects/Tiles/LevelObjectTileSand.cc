@@ -57,8 +57,17 @@ LevelObjectTileType LevelObjectTileSand::GetTileType() const
 void LevelObjectTileSand::BreakableBreak(const LevelObject* other)
 {
     if (_isBroken) return;
+    if (!_levelManager->CanApplyBreak(other)) return; // Only host or local player can break tiles
 
-    _isBroken = true;
+    NetworkSetBroken(true);
 
+    _levelManager->NotifyScore(other, 1);
+}
+
+void LevelObjectTileSand::NetworkSetBroken(bool broken)
+{
+    if (_isBroken == broken) return;
+
+    _isBroken = broken;
     _levelManager->UpdateAutotileNeighbors((int)GetPosition().x, (int)GetPosition().y);
 }

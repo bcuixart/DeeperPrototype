@@ -20,6 +20,8 @@ enum class SurfaceType { None, FlatGround, SlopedLeftGround, SlopedRightGround }
 #define SOLID_SIDE_TOP 4
 #define SOLID_SIDE_BOTTOM 8
 
+static constexpr uint8_t kInteractionNoCause = 0xFF;
+
 class LevelObject {
 public:
 	LevelObject();
@@ -70,10 +72,12 @@ public:
 
 	virtual void OnDug(LevelObject* digger) { }
 
+	virtual uint8_t GetInteractionCauseSlot() const { return kInteractionNoCause; }
 	virtual float GetInteractionVelocity() const { return kTerminalVelocityX; };
 
 	virtual void BreakableBreak(const LevelObject* other) { }
 	virtual bool GetBreakableIsBroken() const { return false; }
+	virtual void NetworkSetBroken(bool broken) { }
 
 	virtual bool GetForceFieldIsActive() const { return false; }
 	virtual Vector2 GetForceFieldForce() const { return { 0.0f, 0.0f }; }

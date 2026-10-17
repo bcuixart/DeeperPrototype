@@ -46,6 +46,7 @@ void NetworkManager::Leave() {
     _myMachineId = kNoMachine;
     _pendingLevelStart.reset();
     _receivedInputs.clear(); 
+    _events.clear();
     _hasSnapshot = false;
     _inputHistory = {};
     _state = State::Idle;
@@ -68,7 +69,7 @@ void NetworkManager::Update() {
     }
 }
 
-bool NetworkManager::HostStartLevel(const std::string& levelName) {
+bool NetworkManager::HostStartLevel(const std::string& levelName, uint32_t roundTicks) {
     if (!_isHost || _state != State::InLobby) return false;
 
     static std::mt19937 rng{ std::random_device{}() };
@@ -77,6 +78,8 @@ bool NetworkManager::HostStartLevel(const std::string& levelName) {
     info.lobby = _lobby;
     info.levelName = levelName;
     info.spawnSeed = rng();
+    info.roundTicks = roundTicks;
+    _events.clear();
 
     const auto msg = EncodeStartLevel(info);
     for (const auto& [peer, id] : _machineOfPeer) SendTo(peer, Channel::Reliable, msg);
@@ -154,6 +157,7 @@ bool NetworkManager::PopTimePong(uint32_t& hostTick, int& rttMs)
 
 void NetworkManager::HostSendSnapshot(uint32_t tick, const std::vector<uint8_t>& blob) {
     if (!IsHost() || _state != State::InGame) return;
+    if (blob.size() > kMaxSnapshotBytes) { printf("[net] ERROR: snapshot massa gran (%zu bytes)\n", blob.size()); return; }
     SendToAll(Channel::Unreliable, EncodeSnapshot(tick, blob), kInvalidPeer);
 }
 
@@ -247,6 +251,13 @@ void NetworkManager::HostHandleMessage(PeerId peer, ByteReader& r) {
         if (_state == State::InGame && _machineOfPeer.count(peer) && DecodeTimePing(r, sentMs))
             SendTo(peer, Channel::Unreliable, EncodeTimePong(sentMs, _localTick));
     }
+    else if (type == MsgType::GameEvent)
+    {
+        auto it = _machineOfPeer.find(peer);
+        uint8_t kind; std::vector<uint8_t> payload;
+        if (_state == State::InGame && it != _machineOfPeer.end() && DecodeGameEvent(r, kind, payload))
+            PushEvent(GameEventMsg{ kind, it->second, std::move(payload) });
+    }
     // Altres missatges d'un peer sense Hello es descarten.
 }
 
@@ -287,6 +298,7 @@ void NetworkManager::ClientHandleMessage(ByteReader& r) {
             _pendingLevelStart = info;
             _receivedInputs.clear(); 
             _timePong.reset();
+            _events.clear();
             _inputHistory = {};
             _hasSnapshot = false;
         }
@@ -309,6 +321,12 @@ void NetworkManager::ClientHandleMessage(ByteReader& r) {
         if (!_hasSnapshot || static_cast<int32_t>(tick - _snapTick) > 0) {
             _snapTick = tick; _snapBlob = std::move(blob); _hasSnapshot = true;
         }
+        break;
+    }
+    case MsgType::GameEvent: {
+        uint8_t kind; std::vector<uint8_t> payload;
+        if (_state == State::InGame && DecodeGameEvent(r, kind, payload))
+            PushEvent(GameEventMsg{ kind, 0, std::move(payload) });
         break;
     }
     default: break;
@@ -392,4 +410,32 @@ void NetworkManager::HostHandleInput(PeerId peer, ByteReader& r)
 
     SendToAll(Channel::Unreliable, EncodeInput(packet), peer);   // reenviem als altres clients
     PushReceivedInput(std::move(packet));
+}
+
+void NetworkManager::HostBroadcastEvent(uint8_t kind, const std::vector<uint8_t>& payload) 
+{
+    if (!_isHost || _state != State::InGame) return;
+    if (payload.size() > kMaxEventBytes) { printf("[net] ERROR: esdeveniment massa gran\n"); return; }
+    SendToAll(Channel::Reliable, EncodeGameEvent(kind, payload));
+}
+
+void NetworkManager::SendEventToHost(uint8_t kind, const std::vector<uint8_t>& payload) 
+{
+    if (_isHost || _state != State::InGame) return;
+    if (payload.size() > kMaxEventBytes) { printf("[net] ERROR: esdeveniment massa gran\n"); return; }
+    SendTo(_serverPeer, Channel::Reliable, EncodeGameEvent(kind, payload));
+}
+
+bool NetworkManager::PopEvent(GameEventMsg& out) 
+{
+    if (_events.empty()) return false;
+    out = std::move(_events.front());
+    _events.pop_front();
+    return true;
+}
+
+void NetworkManager::PushEvent(GameEventMsg&& ev) 
+{
+    if (_events.size() >= 256) _events.pop_front();
+    _events.push_back(std::move(ev));
 }

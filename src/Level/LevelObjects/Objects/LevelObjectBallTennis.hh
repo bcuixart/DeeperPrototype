@@ -21,6 +21,7 @@ public:
 
     HitboxType GetHitboxType() const override { return HitboxType::Dynamic; }
 
+    uint8_t GetInteractionCauseSlot() const override { return _causeSlot; }
 	float GetInteractionVelocity() const override { return kInteractionVelocity; }
 
 private:
@@ -40,6 +41,8 @@ private:
     static constexpr float kKickSpeedMinUpwardsVelocity = 5.0f;
     static constexpr float kKickCooldownDuration = 0.5f;
     static constexpr float kSeparationSpeed = 2.0f;
+
+    uint8_t _causeSlot{ kInteractionNoCause };
 };
 
 #endif

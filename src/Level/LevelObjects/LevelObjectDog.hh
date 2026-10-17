@@ -22,6 +22,8 @@ public:
     HitboxType GetHitboxType() const override { return HitboxType::Entity; }
 
     void ReceiveInput(uint8_t input);
+    void SetSlot(uint8_t slot) { _slot = slot; }
+    uint8_t GetInteractionCauseSlot() const override { return _slot; }
 
     void SetDogType(uint8_t dogType) { _dogType = dogType % 5; }
 
@@ -80,6 +82,7 @@ private:
 
     bool _isSlidingLeft = false;
 
+    uint8_t _slot{kInteractionNoCause};
     uint8_t _dogType{0};
 
     LevelManager* _levelManager;

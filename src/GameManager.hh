@@ -15,6 +15,7 @@
 #include "Network/RemoteInputBuffer.hh"
 #include "Level/LevelManager.hh"
 #include "Level/LevelNetworkSync.hh"
+#include "Level/RoundManager.hh"
 #include "Menu/MenuManager.hh"
 #include "Utils/DeterministicRNG.hh"
 
@@ -58,6 +59,11 @@ public:
 	float GetTimeScale() const;
 	void SetNetLaunchOptions(const NetLaunchOptions& options) { _netOptions = options; }
 
+	void OnScore(uint8_t slot, int points);
+	void AnnounceRoundEnd();
+	void OnRoundEndReceived(uint32_t endTick, const std::array<uint16_t, MAX_PLAYERS>& scores);
+	void DrawRoundOverlay() const;
+
 	static GameManager* instance;
 
 protected:
@@ -81,7 +87,7 @@ private:
 
 	void StartOfflineLevel(const std::string& levelName);
 	void StartOnlineLevel(const LevelStartInfo& info);
-	void BeginLevel(const std::string& levelName, const LevelPlayers& players, uint32_t seed);
+	void BeginLevel(const std::string& levelName, const LevelPlayers& players, uint32_t seed, uint32_t roundTicks);
 
 	void RenderLobby();
 
@@ -108,6 +114,7 @@ private:
 	std::unique_ptr<NetworkManager> _networkManager = nullptr;
 	std::unique_ptr<MenuManager> _menuManager = nullptr;
 	std::unique_ptr<LevelManager> _levelManager = nullptr;
+	std::unique_ptr<RoundManager> _roundManager = nullptr;
 	std::unique_ptr<LevelNetworkSync> _levelNetworkSync = nullptr;
 
 	uint8_t _playersActive;

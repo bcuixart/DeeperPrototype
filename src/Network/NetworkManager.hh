@@ -26,7 +26,7 @@ public:
     void Update();   // cridar un cop per frame
 
     // Només host, només al lobby. Tanca el lobby i avisa a tothom.
-    bool HostStartLevel(const std::string& levelName);
+    bool HostStartLevel(const std::string& levelName, uint32_t roundTicks);
     // Retorna true un cop quan s'ha de començar el nivell (també al host).
     bool PopLevelStart(LevelStartInfo& out);
 
@@ -40,6 +40,10 @@ public:
 
     void HostSendSnapshot(uint32_t tick, const std::vector<uint8_t>& blob);
     bool PopSnapshot(uint32_t& tick, std::vector<uint8_t>& blob);
+
+    void HostBroadcastEvent(uint8_t kind, const std::vector<uint8_t>& payload);
+    void SendEventToHost(uint8_t kind, const std::vector<uint8_t>& payload);
+    bool PopEvent(GameEventMsg& out);
 
     State GetState() const { return _state; }
     bool IsHost() const { return _isHost; }
@@ -67,6 +71,9 @@ private:
     void SendToAll(Channel ch, const std::vector<uint8_t>& msg, PeerId except = kInvalidPeer);
     void HostHandleInput(PeerId peer, ByteReader& r);
     void PushReceivedInput(InputPacket&& packet);
+
+    void PushEvent(GameEventMsg&& ev);
+    std::deque<GameEventMsg> _events;
 
     struct InputHistory 
     {

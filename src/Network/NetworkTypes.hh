@@ -13,6 +13,7 @@ constexpr uint8_t  kNoMachine       = 0xFF;
 constexpr int      kInputRedundancy = 6;
 constexpr uint32_t kSnapshotInterval = 6;
 constexpr size_t   kMaxSnapshotBytes = 1000;
+constexpr size_t   kMaxEventBytes = 255;
 
 // A machine represents a single instance of the game running on a computer. Each machine can have multiple players connected to it.
 // The host will always be machine 0.
@@ -38,7 +39,15 @@ struct LevelStartInfo
 {
     LobbyState  lobby;
     uint32_t    spawnSeed = 0;  // Random seed for assigning houses to dogs.
+    uint32_t    roundTicks = 1200;
     std::string levelName;
+};
+
+struct GameEventMsg 
+{
+    uint8_t kind = 0;
+    uint8_t fromMachine = kNoMachine;
+    std::vector<uint8_t> payload;
 };
 
 struct SlotInputs 
