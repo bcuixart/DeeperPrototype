@@ -618,9 +618,9 @@ bool LevelManager::CanApplyBreak(const LevelObject* cause) const
     return slot < MAX_PLAYERS && (_localSlotMask & (1u << slot)) != 0;
 }
 
-void LevelManager::NotifyScore(const LevelObject* cause, int points)
+void LevelManager::NotifyScore(const LevelObject* cause, int basePoints)
 {
     if (!_onScore || !cause) return;
     const uint8_t slot = cause->GetInteractionCauseSlot();
-    if (slot < MAX_PLAYERS) _onScore(slot, points);
+    if (slot < MAX_PLAYERS) _onScore(slot, basePoints + cause->GetInteractionDepth());
 }

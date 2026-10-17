@@ -21,8 +21,11 @@ public:
 
     HitboxType GetHitboxType() const override { return HitboxType::Dynamic; }
 
-    uint8_t GetInteractionCauseSlot() const override { return _causeSlot; }
+    uint8_t GetInteractionCauseSlot() const override { return _interactionCauseSlot; }
+    uint8_t GetInteractionDepth() const override { return _interactionDepth; }
 	float GetInteractionVelocity() const override { return kInteractionVelocity; }
+
+    void OnForceField(const LevelObject* field) override;
 
 private:
     void KickFromDog(LevelObjectDog* dog);
@@ -35,6 +38,8 @@ private:
     static constexpr float kGroundFriction = 0.1f;
 
     static constexpr float kInteractionVelocity = 10.0f;
+    static constexpr float kInteractionStopVelocityX = 0.05f;
+    static constexpr float kInteractionStopVelocityY = 0.25f;
 
     float _kickCooldown = 0.0f;
     static constexpr float kKickSpeed = 2.0f;
@@ -42,7 +47,8 @@ private:
     static constexpr float kKickCooldownDuration = 0.5f;
     static constexpr float kSeparationSpeed = 2.0f;
 
-    uint8_t _causeSlot{ kInteractionNoCause };
+    uint8_t _interactionCauseSlot{ kInteractionNoCause };
+    uint8_t _interactionDepth{ 0 };
 };
 
 #endif

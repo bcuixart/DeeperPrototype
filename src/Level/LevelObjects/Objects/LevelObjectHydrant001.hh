@@ -22,8 +22,11 @@ public:
 
     void OnDug(LevelObject* digger) override;
 
+    uint8_t GetInteractionCauseSlot() const override { return _interactionCauseSlot; }
+    uint8_t GetInteractionDepth() const override { return _interactionDepth; }
+
 private:
-    void Activate();
+    void Activate(const LevelObject* cause = nullptr);
     void Deactivate();
 
     static constexpr float kWidth = 0.5f;
@@ -36,6 +39,9 @@ private:
 
     float _activeTimer = 0.0f;
 
+    uint8_t _interactionCauseSlot{ kInteractionNoCause };
+    uint8_t _interactionDepth{ 0 };
+
     bool _isActive = false;
 };
 
@@ -43,6 +49,8 @@ private:
 class LevelObjectHydrant001Water : public LevelObject {
 public:
     LevelObjectHydrant001Water(const Vector2& position, bool isLeft);
+
+    void SetOwner(const LevelObject* owner) { _owner = owner; }
 
     void Update(const float deltaTime) override;
     void Render(const float deltaTime) const override;
@@ -56,6 +64,9 @@ public:
     bool GetForceFieldIsActive() const override { return _isActive; }
     Vector2 GetForceFieldForce() const override;
 
+    uint8_t GetInteractionCauseSlot() const override { return _owner ? _owner->GetInteractionCauseSlot() : kInteractionNoCause; }
+    uint8_t GetInteractionDepth() const override { return _owner ? _owner->GetInteractionDepth() : 0; }
+
 private:
     static constexpr float kWidth = 1.3125f;
     static constexpr float kHeight = 1.1875f;
@@ -65,6 +76,8 @@ private:
 
     static constexpr float kForceFieldDirectionX = 100.0f;
     static constexpr float kForceFieldDirectionY = -25.0f;
+
+    const LevelObject* _owner{ nullptr };
 
     bool _isLeft;
 

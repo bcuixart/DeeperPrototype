@@ -12,6 +12,12 @@ void LevelObjectBallTennis::Update(const float deltaTime)
     if (_isGrounded) SetVelocityX(GetVelocityX() * powf(kGroundFriction, deltaTime));
 
 	if (_kickCooldown > 0.0f) _kickCooldown -= deltaTime;
+
+	if (fabsf(GetVelocityX()) < kInteractionStopVelocityX && fabsf(GetVelocityY()) < kInteractionStopVelocityY && _isGrounded)
+	{
+		_interactionCauseSlot = kInteractionNoCause;
+		_interactionDepth = 0;
+	}
 }
 
 void LevelObjectBallTennis::Render(const float deltaTime) const 
@@ -61,7 +67,8 @@ void LevelObjectBallTennis::KickFromDog(LevelObjectDog* dog)
 {
 	if (_kickCooldown > 0.0f) return;
 
-	_causeSlot = dog->GetInteractionCauseSlot();
+	_interactionCauseSlot = dog->GetInteractionCauseSlot();
+	_interactionDepth = NextInteractionDepth(dog->GetInteractionDepth());
 
 	Rectangle dogBounds = dog->GetBounds();
 	Rectangle bounds = GetBounds();
@@ -135,7 +142,8 @@ bool LevelObjectBallTennis::NetGet(NetworkLevelObjectDynEntState& s) const
 	s.x = _bounds.x; s.y = _bounds.y; s.vx = _velocity.x; s.vy = _velocity.y;
 	s.flags = _isGrounded ? 64 : 0;
 	s.aux = static_cast<uint8_t>(_surfaceTypeStandingOn);
-	s.interactionCause = _causeSlot;
+	s.interactionCause = _interactionCauseSlot;
+	s.interactionDepth = _interactionDepth;
 	s.t0 = _kickCooldown;
 	return true;
 }
@@ -145,7 +153,16 @@ void LevelObjectBallTennis::NetSet(const NetworkLevelObjectDynEntState& s)
 	_bounds.x = s.x; _bounds.y = s.y;
 	_velocity.x = s.vx; _velocity.y = s.vy;
 	_isGrounded = (s.flags & 64) != 0;
-	_causeSlot = s.interactionCause;
+	_interactionCauseSlot = s.interactionCause;
+	_interactionDepth = s.interactionDepth;
 	_surfaceTypeStandingOn = static_cast<SurfaceType>(s.aux);
 	_kickCooldown = s.t0;
+}
+
+void LevelObjectBallTennis::OnForceField(const LevelObject* field)
+{
+	if (field->GetInteractionCauseSlot() == kInteractionNoCause) return;
+
+    _interactionCauseSlot = field->GetInteractionCauseSlot();
+    _interactionDepth = NextInteractionDepth(field->GetInteractionDepth());
 }

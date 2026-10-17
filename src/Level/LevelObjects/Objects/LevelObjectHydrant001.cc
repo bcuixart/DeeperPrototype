@@ -7,6 +7,9 @@ LevelObjectHydrant001::LevelObjectHydrant001(const Vector2& position, LevelObjec
     _waterLeft = waterLeft;
     _waterRight = waterRight;
 
+    _waterLeft->SetOwner(this);
+    _waterRight->SetOwner(this);
+
     _isActive = false;
     _activeTimer = 0.0f;
 }
@@ -56,7 +59,7 @@ void LevelObjectHydrant001::CollidedWithX(LevelObject* other, float prevVelocity
 {
     if (other->GetVelocityMagnitude() >= other->GetInteractionVelocity())
     {
-        Activate();
+        Activate(other);
     }
 }
 
@@ -64,33 +67,56 @@ void LevelObjectHydrant001::CollidedWithY(LevelObject* other, float prevVelocity
 {
     if (other->GetVelocityMagnitude() >= other->GetInteractionVelocity())
     {
-        Activate();
+        Activate(other);
     }
 }
 
 void LevelObjectHydrant001::OnDug(LevelObject* digger)
 {
-    Activate();
+    Activate(digger);
 }
 
-void LevelObjectHydrant001::Activate()
+void LevelObjectHydrant001::Activate(const LevelObject* cause)
 {
     if (_isActive) return;
-
     _isActive = true;
+
+    _interactionCauseSlot = cause ? cause->GetInteractionCauseSlot() : kInteractionNoCause;
+    _interactionDepth = cause ? NextInteractionDepth(cause->GetInteractionDepth()) : 0;
 
     _waterLeft->Activate();
     _waterRight->Activate();
 }
 
+
 void LevelObjectHydrant001::Deactivate()
 {
     if (!_isActive) return;
-
     _isActive = false;
+
+    _interactionCauseSlot = kInteractionNoCause;
+    _interactionDepth = 0;
 
     _waterLeft->Deactivate();
     _waterRight->Deactivate();
+}
+
+bool LevelObjectHydrant001::NetGet(NetworkLevelObjectDynEntState& s) const 
+{
+    s.x = _bounds.x; s.y = _bounds.y;
+    s.flags = _isActive ? 1 : 0;
+    s.t0 = _activeTimer;
+    s.interactionCause = _interactionCauseSlot; s.interactionDepth = _interactionDepth;
+    return true;
+}
+
+void LevelObjectHydrant001::NetSet(const NetworkLevelObjectDynEntState& s) 
+{
+    const bool active = (s.flags & 1) != 0;
+    if (active != _isActive) { if (active) Activate(nullptr); else Deactivate(); }
+    _interactionCauseSlot = s.interactionCause;
+    _interactionDepth = s.interactionDepth;
+    _activeTimer = s.t0;
 }
 
 // ===== WATER =====
@@ -148,19 +174,4 @@ void LevelObjectHydrant001Water::Deactivate()
 Vector2 LevelObjectHydrant001Water::GetForceFieldForce() const
 {
     return { (_isLeft) ? -kForceFieldDirectionX : kForceFieldDirectionX, kForceFieldDirectionY };
-}
-
-bool LevelObjectHydrant001::NetGet(NetworkLevelObjectDynEntState& s) const 
-{
-    s.x = _bounds.x; s.y = _bounds.y;
-    s.flags = _isActive ? 1 : 0;
-    s.t0 = _activeTimer;
-    return true;
-}
-
-void LevelObjectHydrant001::NetSet(const NetworkLevelObjectDynEntState& s) 
-{
-    const bool active = (s.flags & 1) != 0;
-    if (active != _isActive) { if (active) Activate(); else Deactivate(); }
-    _activeTimer = s.t0;
 }

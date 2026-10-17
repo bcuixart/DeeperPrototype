@@ -73,6 +73,8 @@ public:
 	virtual void OnDug(LevelObject* digger) { }
 
 	virtual uint8_t GetInteractionCauseSlot() const { return kInteractionNoCause; }
+	virtual uint8_t GetInteractionDepth() const { return 0; }
+	static uint8_t NextInteractionDepth(uint8_t d) { return d < 250 ? d + 1 : d; }
 	virtual float GetInteractionVelocity() const { return kTerminalVelocityX; };
 
 	virtual void BreakableBreak(const LevelObject* other) { }
@@ -81,6 +83,7 @@ public:
 
 	virtual bool GetForceFieldIsActive() const { return false; }
 	virtual Vector2 GetForceFieldForce() const { return { 0.0f, 0.0f }; }
+	virtual void OnForceField(const LevelObject* field) { }
 
 protected:
 	Rectangle _bounds{};

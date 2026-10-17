@@ -57,6 +57,8 @@ void PhysicsManager::ApplyForceFields(const std::vector<LevelObject*>& objects, 
 			Vector2 force = field->GetForceFieldForce();
 			o->AddVelocityX(force.x * deltaTime);
 			o->AddVelocityY(force.y * deltaTime);
+
+			o->OnForceField(field);
 		}
 	}
 }

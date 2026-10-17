@@ -323,7 +323,7 @@ void GameManager::PollNetwork()
 
     if (_gameState == GameState::LOBBY && _networkManager->IsHost() && IsKeyPressed(KEY_ENTER))
     {
-        _networkManager->HostStartLevel("test_level", RoundManager::kDefaultDurationTicks);
+        _networkManager->HostStartLevel("test_level_online", RoundManager::kDefaultDurationTicks);
     }
 
     LevelStartInfo info;
@@ -368,12 +368,6 @@ void GameManager::PollNetwork()
         }
         default: break;
         }
-    }
-
-    if (_gameState == GameState::LEVEL)
-    {
-        if (_networkManager->IsHost() && IsKeyPressed(KEY_F2)) _roundManager->EndEarly(_levelTick);   // acabar ronda ara
-        if (!_networkManager->IsHost() && IsKeyPressed(KEY_F1)) _networkManager->SendEventToHost(200, { 1, 2, 3 });
     }
 
     if (_gameState == GameState::LEVEL && !_networkManager->IsHost() && _levelTick > 0)
@@ -482,6 +476,9 @@ void GameManager::OnScore(uint8_t slot, int points)
     if (!_roundManager->IsAuthority() || _roundManager->IsOver(_levelTick)) return;   // els clients no puntuen
     uint16_t score;
     if (!_roundManager->AddScore(slot, points, score)) return;
+
+    printf("[punts] jugador %u +%d (total %u)\n", slot, points, score);
+
     if (_networkManager && _netOptions.mode != NetLaunchOptions::Mode::Offline)
         _networkManager->HostBroadcastEvent((uint8_t)RoundEvent::ScoreChanged, EncodeScoreChanged(slot, score));
 }
