@@ -52,6 +52,8 @@ void NetworkManager::Leave() {
     _state = State::Idle;
     _timePong.reset();
     _failReason.clear();
+    _lastHeard.clear();
+    _leftSlots.clear();
 }
 
 void NetworkManager::Update() {
@@ -65,6 +67,24 @@ void NetworkManager::Update() {
         if (elapsed.count() > kConnectTimeoutMs) {
             _transport->Disconnect(_serverPeer);
             Fail("Temps d'espera esgotat");
+        }
+    }
+
+    if (_isHost && _state == State::InGame)
+    {
+        const auto now = Clock::now();
+        std::vector<std::pair<PeerId, uint8_t>> silent;
+        for (const auto& [peer, id] : _machineOfPeer)
+        {
+            auto it = _lastHeard.find(id);
+            if (it == _lastHeard.end()) continue;
+            if (std::chrono::duration_cast<std::chrono::milliseconds>(now - it->second).count() > kSilenceTimeoutMs)
+                silent.push_back({ peer, id });
+        }
+        for (auto& [peer, id] : silent)
+        {
+            _transport->Disconnect(peer);
+            HostDropMachine(id);
         }
     }
 }
@@ -83,6 +103,7 @@ bool NetworkManager::HostStartLevel(const std::string& levelName, uint32_t round
 
     const auto msg = EncodeStartLevel(info);
     for (const auto& [peer, id] : _machineOfPeer) SendTo(peer, Channel::Reliable, msg);
+    for (auto& [peer, id] : _machineOfPeer) _lastHeard[id] = Clock::now();
 
     _state = State::InGame;           // el lobby es tanca: ningú més pot entrar
     _pendingLevelStart = info;        // el host també ho rep pel mateix camí
@@ -190,15 +211,7 @@ void NetworkManager::HandleEvent(const NetEvent& ev) {
     case NetEvent::Type::Disconnected:
         if (_isHost) {
             auto it = _machineOfPeer.find(ev.peer);
-            if (it != _machineOfPeer.end()) {
-                if (_state == State::InLobby) {   // en partida no s'alliberen: ho tractarem més endavant
-                    FreeSlots(it->second);
-                    _machineOfPeer.erase(it);
-                    BroadcastLobby();
-                } else {
-                    _machineOfPeer.erase(it);
-                }
-            }
+            if (it != _machineOfPeer.end()) HostDropMachine(it->second);
         } else if (_state == State::Connecting) {
             Fail("No s'ha pogut connectar");
         } else if (_state == State::InLobby || _state == State::InGame) {
@@ -208,6 +221,13 @@ void NetworkManager::HandleEvent(const NetEvent& ev) {
 
     case NetEvent::Type::Received: {
         ByteReader r(ev.data.data(), ev.data.size());
+
+        if (_isHost)
+        {
+            auto it = _machineOfPeer.find(ev.peer);
+            if (it != _machineOfPeer.end()) _lastHeard[it->second] = Clock::now();
+        }
+
         if (_isHost) HostHandleMessage(ev.peer, r);
         else         ClientHandleMessage(r);
         break;
@@ -438,4 +458,29 @@ void NetworkManager::PushEvent(GameEventMsg&& ev)
 {
     if (_events.size() >= 256) _events.pop_front();
     _events.push_back(std::move(ev));
+}
+
+bool NetworkManager::PopLeftSlot(uint8_t& slot)
+{
+    if (_leftSlots.empty()) return false;
+    slot = _leftSlots.front();
+    _leftSlots.pop_front();
+    return true;
+}
+
+void NetworkManager::HostDropMachine(uint8_t machineId)
+{
+    if (_state == State::InLobby)
+    {
+        FreeSlots(machineId);
+        BroadcastLobby();
+    }
+    else
+    {
+        for (const SlotInfo& s : _lobby.slots)
+            if (s.machineId == machineId) _leftSlots.push_back((uint8_t)(&s - &_lobby.slots[0]));
+    }
+    for (auto it = _machineOfPeer.begin(); it != _machineOfPeer.end(); ++it)
+        if (it->second == machineId) { _machineOfPeer.erase(it); break; }
+    _lastHeard.erase(machineId);
 }

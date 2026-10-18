@@ -197,9 +197,7 @@ void LevelObjectDog::Render(const float deltaTime) const
         spriteSize
     };
 
-    DrawTexturePro(tex, src, dst, { 0.0f, 0.0f }, 0.0f, WHITE);
-    
-
+    DrawTexturePro(tex, src, dst, { 0.0f, 0.0f }, 0.0f, _isGone ? Color{ 110, 110, 110, 170 } : WHITE);
 }
 
 void LevelObjectDog::RenderBounds(const float deltaTime, const Color& color) const

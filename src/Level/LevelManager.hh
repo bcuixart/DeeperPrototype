@@ -62,6 +62,8 @@ public:
 	std::vector<LevelObject*> GetNetBodies() const;
 	const std::vector<LevelObject*>& GetNetSandTiles() const { return _sandTiles; }
 
+	void SetSlotGone(uint8_t slot);
+
 protected:
 
 private:

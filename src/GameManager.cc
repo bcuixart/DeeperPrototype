@@ -367,6 +367,12 @@ void GameManager::PollNetwork()
             if (DecodeRoundEnd(r, endTick, scores)) OnRoundEndReceived(endTick, scores);
             break;
         }
+        case RoundEvent::PlayerLeft:
+        {
+            uint8_t slot;
+            if (DecodePlayerLeft(r, slot)) _levelManager->SetSlotGone(slot);
+            break;
+        }
         default: break;
         }
     }
@@ -392,6 +398,17 @@ void GameManager::PollNetwork()
                 if (dx * dx + dy * dy > 16.0f) bodies[i]->ClearRenderOffset();   // salt gran: teleport
                 else if (dx * dx + dy * dy > 0.0f) bodies[i]->AddRenderOffset({ dx, dy });
             }
+        }
+    }
+
+    if (_networkManager->IsHost())
+    {
+        uint8_t slot;
+        while (_networkManager->PopLeftSlot(slot))
+        {
+            printf("[net] el slot %d ha marxat\n", slot);
+            if (_levelManager) _levelManager->SetSlotGone(slot);
+                _networkManager->HostBroadcastEvent((uint8_t) RoundEvent::PlayerLeft, EncodePlayerLeft(slot));
         }
     }
 

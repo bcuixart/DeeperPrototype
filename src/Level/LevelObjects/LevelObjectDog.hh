@@ -23,7 +23,10 @@ public:
 
     void ReceiveInput(uint8_t input);
     void SetSlot(uint8_t slot) { _slot = slot; }
+    uint8_t GetSlot() const { return _slot; }
     uint8_t GetInteractionCauseSlot() const override { return _slot; }
+
+    void SetGone() { _isGone = true; }
 
     void SetDogType(uint8_t dogType) { _dogType = dogType % 5; }
 
@@ -75,6 +78,7 @@ private:
     float _inputAxisXPrev{0.0f};
 
     DogState _state{DogState::Default};
+    bool _isGone{false};
 
     bool _isFacingLeft = false;
     bool _isJumping = false;

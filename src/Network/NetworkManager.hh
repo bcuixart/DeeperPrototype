@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 #include <array>
+#include <unordered_map>
 #include <deque>
 
 class NetworkManager {
@@ -44,6 +45,8 @@ public:
     void HostBroadcastEvent(uint8_t kind, const std::vector<uint8_t>& payload);
     void SendEventToHost(uint8_t kind, const std::vector<uint8_t>& payload);
     bool PopEvent(GameEventMsg& out);
+
+    bool PopLeftSlot(uint8_t& slot);
 
     State GetState() const { return _state; }
     bool IsHost() const { return _isHost; }
@@ -100,6 +103,11 @@ private:
     uint32_t _localTick = 0;
     Clock::time_point _epoch = Clock::now();
     uint32_t NowMs() const;
+
+    static constexpr int kSilenceTimeoutMs = 4000;
+    std::unordered_map<uint8_t, Clock::time_point> _lastHeard;
+    std::deque<uint8_t> _leftSlots;
+    void HostDropMachine(uint8_t machineId);
 
     // Només host: quina màquina és cada peer.
     std::map<PeerId, uint8_t> _machineOfPeer;

@@ -624,3 +624,10 @@ void LevelManager::NotifyScore(const LevelObject* cause, int basePoints)
     const uint8_t slot = cause->GetInteractionCauseSlot();
     if (slot < MAX_PLAYERS) _onScore(slot, basePoints + cause->GetInteractionDepth());
 }
+
+void LevelManager::SetSlotGone(uint8_t slot)
+{
+    for (auto& o : _levelObjects)
+        if (auto* dog = dynamic_cast<LevelObjectDog*>(o.get()))
+            if (dog->GetSlot() == slot) dog->SetGone();
+}

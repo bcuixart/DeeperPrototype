@@ -8,7 +8,7 @@
 #include "Network/Protocol/ByteStream.hh"
 
 // Tipus d'esdeveniment de ronda (el NetworkManager no els coneix).
-enum class RoundEvent : uint8_t { ScoreChanged = 1, RoundEnd = 2 };
+enum class RoundEvent : uint8_t { ScoreChanged = 1, RoundEnd = 2, PlayerLeft = 3 };
 
 class RoundManager {
 public:
@@ -45,5 +45,7 @@ std::vector<uint8_t> EncodeScoreChanged(uint8_t slot, uint16_t score);
 bool DecodeScoreChanged(ByteReader& r, uint8_t& slot, uint16_t& score);
 std::vector<uint8_t> EncodeRoundEnd(uint32_t endTick, const std::array<uint16_t, kMaxSlots>& scores);
 bool DecodeRoundEnd(ByteReader& r, uint32_t& endTick, std::array<uint16_t, kMaxSlots>& scores);
+std::vector<uint8_t> EncodePlayerLeft(uint8_t slot);
+bool DecodePlayerLeft(ByteReader& r, uint8_t& slot);
 
 #endif

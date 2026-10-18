@@ -57,3 +57,16 @@ bool DecodeRoundEnd(ByteReader& r, uint32_t& endTick, std::array<uint16_t, kMaxS
     for (uint16_t& s : scores) s = r.U16();
     return r.Ok();
 }
+
+std::vector<uint8_t> EncodePlayerLeft(uint8_t slot)
+{
+    ByteWriter w;
+    w.U8(slot);
+    return w.Data();
+}
+
+bool DecodePlayerLeft(ByteReader& r, uint8_t& slot)
+{
+    slot = r.U8();
+    return r.Ok() && slot < kMaxSlots;
+}
