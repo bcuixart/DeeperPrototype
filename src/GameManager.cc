@@ -100,6 +100,7 @@ void GameManager::Render(const float deltaTime)
 		RenderLobby();
 		break;
 	case GameState::LEVEL:
+        for (auto* b : _levelManager->GetNetBodies()) b->DecayRenderOffset(deltaTime);
 		_levelManager->Render(deltaTime, [this]() { DrawRoundOverlay(); });
 		break;
 	}
@@ -373,9 +374,25 @@ void GameManager::PollNetwork()
     if (_gameState == GameState::LEVEL && !_networkManager->IsHost() && _levelTick > 0)
     {
         uint32_t snapTick; std::vector<uint8_t> snapBlob;
-        if (_networkManager->PopSnapshot(snapTick, snapBlob))
+        if (_networkManager->PopSnapshot(snapTick, snapBlob)) 
+        {
+            auto bodies = _levelManager->GetNetBodies();
+            std::vector<Vector2> before;
+            before.reserve(bodies.size());
+            for (auto* b : bodies) before.push_back(b->GetPosition());
+
             _levelNetworkSync->ApplySnapshot(snapTick, snapBlob, _levelTick - 1,
                 [this](uint32_t t) { ReplayTick(t); });
+
+            for (size_t i = 0; i < bodies.size(); ++i)
+            {
+                const Vector2 after = bodies[i]->GetPosition();
+                const float dx = before[i].x - after.x;
+                const float dy = before[i].y - after.y;
+                if (dx * dx + dy * dy > 16.0f) bodies[i]->ClearRenderOffset();   // salt gran: teleport
+                else if (dx * dx + dy * dy > 0.0f) bodies[i]->AddRenderOffset({ dx, dy });
+            }
+        }
     }
 
     uint32_t hostTick;

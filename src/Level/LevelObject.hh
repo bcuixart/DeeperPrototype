@@ -85,6 +85,10 @@ public:
 	virtual Vector2 GetForceFieldForce() const { return { 0.0f, 0.0f }; }
 	virtual void OnForceField(const LevelObject* field) { }
 
+	void AddRenderOffset(const Vector2& d) { _renderOffset.x += d.x; _renderOffset.y += d.y; }
+	void ClearRenderOffset() { _renderOffset = { 0.0f, 0.0f }; }
+	void DecayRenderOffset(const float frameDt);
+
 protected:
 	Rectangle _bounds{};
 	Vector2   _velocity{};
@@ -93,6 +97,9 @@ protected:
 
 	bool _isGrounded{ false };
 	SurfaceType _surfaceTypeStandingOn{ SurfaceType::FlatGround };
+
+	static constexpr float kRenderOffsetDecay = 12.0f;
+	Vector2 _renderOffset{ 0.0f, 0.0f };
 
 private:
 	void ClampVelocityX() { if (_velocity.x > kTerminalVelocityX) _velocity.x = kTerminalVelocityX; if (_velocity.x < -kTerminalVelocityX) _velocity.x = -kTerminalVelocityX; }

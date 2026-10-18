@@ -32,3 +32,11 @@ void LevelObject::SetSolidSideCollisionMask(const uint8_t side, const bool mask)
 		_solidSidecollisionMask &= ~side;
 	}
 }
+
+void LevelObject::DecayRenderOffset(const float frameDt)
+{
+    const float k = expf(-frameDt * kRenderOffsetDecay);
+    _renderOffset.x *= k;
+    _renderOffset.y *= k;
+    if (fabsf(_renderOffset.x) < 0.001f && fabsf(_renderOffset.y) < 0.001f) _renderOffset = { 0.0f, 0.0f };
+}

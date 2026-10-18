@@ -191,8 +191,8 @@ void LevelObjectDog::Render(const float deltaTime) const
 
     Rectangle src = { 0.0f, 0.0f, _isFacingLeft ? -32.0f : 32.0f, 32.0f };
     Rectangle dst = {
-        _bounds.x + _bounds.width / 2.0f - spriteSize / 2.0f,
-        _bounds.y + _bounds.height / 2.0f - spriteSize / 2.0f,
+        _bounds.x + _bounds.width / 2.0f - spriteSize / 2.0f + _renderOffset.x,
+        _bounds.y + _bounds.height / 2.0f - spriteSize / 2.0f + _renderOffset.y,
         spriteSize,
         spriteSize
     };
