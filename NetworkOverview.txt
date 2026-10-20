@@ -1,16 +1,14 @@
 HOTDOG FEST - NETWORKING OVERVIEW
 =================================
 
-Goal: online multiplayer, up to 8 players, one host.
+Goal: online multiplayer, up to 8 players, one host who is also a normal player.
+Casual game, friends at low ping first, public lobbies later. Not over-engineered.
 This file explains how the networking code is organised so it is easy to pick up again.
 
-Current state (protocol version 3):
-  - Lobby works: host, join, slots with dog types, rejection (full / version / game in progress),
-    timeouts, host leaving closes the room.
-  - The host starts a level; every machine loads the same level with the same dog spawn houses.
-  - Every machine sends its inputs every tick; everyone simulates everything.
-  - NOT done yet: host snapshots, so machines slowly DESYNC (expected, see roadmap).
-  - The menus/lobby UI in the game are temporary (plain text lobby, --host / --join arguments).
+Current state (protocol version 9):
+  lobby, level start, input exchange, clock sync, host snapshots with rollback/replay
+  reconciliation, sand sync, provenance-based scoring, timed rounds, disconnects in game.
+  NOT done: online menus (cursors, between-rounds menu).
 
 
 1. FOLDER STRUCTURE
@@ -20,25 +18,23 @@ src/Network/
     Transport/
         ITransport.hh            Generic transport interface + PeerId, Channel, NetEvent
         EnetTransport.hh/.cc     ITransport implemented with ENet
-        LagSimTransport.hh/.cc   Decorator over any ITransport: simulates latency, jitter, packet loss
+        LagSimTransport.hh/.cc   Decorator over any ITransport: latency, jitter, packet loss
     Protocol/
-        ByteStream.hh/.cc        ByteWriter / ByteReader: turns values into bytes and back
-        NetworkProtocol.hh/.cc   Game messages: message ids, Encode*/Decode* functions
+        ByteStream.hh/.cc        ByteWriter / ByteReader: values <-> bytes
+        NetworkProtocol.hh/.cc   Game messages: MsgType, Encode*/Decode* functions
     NetworkManager.hh/.cc        The only thing the game talks to
-    NetworkTypes.hh              Shared plain data: kMaxSlots, SlotInfo, LobbyState, LevelStartInfo,
-                                 InputPacket, protocol version
-    RemoteInputBuffer.hh/.cc     Last received inputs of remote slots, indexed by tick
+    NetworkTypes.hh              Shared plain data and constants (see section 3)
+    RemoteInputBuffer.hh/.cc     Inputs received from other slots, indexed by tick
+    ClockSync.hh/.cc             Keeps the client's tick ahead of the host's
 
-    Tests/ (standalone executables, not part of the game; excluded from the game build in the Makefile)
-        NetTest.cc               Raw transport roundtrip (host/client, no game messages)
+src/Level/
+    LevelNetworkSync.hh/.cc      Snapshot building, history, rollback + replay
+    NetworkLevelObjectDynEntState.hh   Per-object state sent in snapshots
+    RoundManager.hh/.cc          Round timer, scores, round end (host authority)
+
+    Tests/ (standalone executables, not part of the game)
+        NetTest.cc               Raw transport roundtrip
         LobbyTest.cc             NetworkManager lobby test: --host [n] | --join [address] [n]
-
-src/Utils/
-    DeterministicRng.hh          Our own PRNG + shuffle (see section 6)
-
-Game side (uses the network):
-    GameManager.hh/.cc           Owns the NetworkManager, game states, tick counter, input assembly
-    LevelManager.hh/.cc          Level works by SLOTS (0-7), not by local player index
 
 
 2. LAYERS AND DEPENDENCY RULES
@@ -47,199 +43,258 @@ Game side (uses the network):
     Game  ->  NetworkManager  ->  NetworkProtocol / ByteStream
                               ->  ITransport  ->  EnetTransport (or LagSimTransport -> EnetTransport)
 
-Rules (do not break them, they keep the code replaceable):
+Rules (they keep the code replaceable):
   - Transport knows NOTHING about the game or the protocol. It only moves byte arrays.
   - Protocol knows NOTHING about the transport. It only converts messages <-> bytes.
-  - NetworkManager is the only place that uses both.
-  - The game includes NetworkManager.hh, NetworkTypes.hh and RemoteInputBuffer.hh.
-  - enet/enet.h is included ONLY in EnetTransport.cc. ENet pulls in windows.h/winsock2.h,
-    which clash with raylib. EnetTransport.cc must never include raylib.
+  - NetworkManager is the only place that uses both. It does not know game event kinds.
+  - The game only includes NetworkManager.hh and NetworkTypes.hh.
+  - enet/enet.h is included ONLY in EnetTransport.cc (it pulls in windows.h/winsock2.h,
+    which clash with raylib). EnetTransport.cc must never include raylib.
+  - Anything received from the network is untrusted: decoders check ByteReader::Ok() and
+    the host validates contents.
 
 Transport layer
   ITransport: StartHost, Connect, Disconnect, Send, Poll, GetRttMs.
-  - Peers are identified by PeerId (uint16). On the client, the server is one peer.
-  - Two channels: Reliable (ordered, retransmitted) and Unreliable (inputs, snapshots).
-  - Poll() returns NetEvents: Connected, Disconnected, Received.
+  - Peers identified by PeerId (uint16). On the client, the server is one peer.
+  - Two channels: Reliable (ordered, retransmitted) and Unreliable (inputs, snapshots, pings).
   - EnetTransport: channel 0 = reliable, channel 1 = unreliable.
-    Disconnect uses enet_peer_disconnect_later (see section 5).
-  - LagSimTransport: wraps another transport. Only OUTGOING packets are delayed, so if both
-    sides use it, RTT is about 2 x latency. Loss only affects the Unreliable channel (ENet
-    already retransmits reliable packets; dropping them above ENet would lose them forever).
-    Reliable packets and Disconnect keep their relative order. Needs Poll() to be called to
-    release delayed packets.
+  - LagSimTransport only delays OUTGOING packets, so with both sides using it RTT is about
+    2 x latency. Loss only affects the Unreliable channel. Reliable packets and Disconnect keep
+    their relative order. Needs Poll() to release delayed packets.
   - A future SteamTransport must implement the same interface.
 
-Protocol layer
-  Every message starts with 1 byte = MsgType. Then the payload (all values via ByteWriter):
 
-    Hello      (client -> host, reliable)
-                 u16 version, u8 numPlayers, numPlayers x u8 dogType
-    Welcome    (host -> client, reliable)
-                 u8 machineId
-    Reject     (host -> client, reliable)
-                 u8 reason (VersionMismatch, LobbyFull, BadRequest, GameInProgress)
-    LobbyState (host -> clients, reliable)
-                 8 x (u8 machineId, u8 dogType)   machineId 0xFF = empty slot
-    StartLevel (host -> clients, reliable)
-                 LobbyState (8 x 2 bytes), u32 spawnSeed, u8 nameLength, level name
-    Input      (any -> host, host -> others, UNRELIABLE)
-                 u32 tick, u8 numSlots, per slot: u8 slot, u8 count, count x u8 input
-                 input[0] = this tick, input[1] = previous tick ... (kInputRedundancy = 6)
+3. MACHINES, SLOTS, CONSTANTS (NetworkTypes.hh)
+-----------------------------------------------
 
-  Anything received from the network is untrusted: decoders check ByteReader::Ok() and sizes,
-  and the host validates contents (version, number of players, slot ownership of inputs).
-
-NetworkManager
-  State: Idle, Connecting, InLobby, InGame, Failed.
-  API:
-    Host(port, dogTypes), Join(address, port, dogTypes), Leave(), Update() once per frame
-    HostStartLevel(levelName)  - host only, closes the lobby (state InGame)
-    PopLevelStart(info)        - true once when a level must start (host also gets it)
-    SendLocalInputs(tick, mySlots, slotInput), PopReceivedInput(packet)
-    GetState(), GetLobby(), GetMyMachineId(), GetMySlots(), GetFailReason(), GetRttMs()
   - A "machine" is one connected computer. machineId 0 is always the host.
-  - A machine owns 1 to 4 slots (one per local player). There are at most 8 slots in total.
-  - Host keeps a map PeerId -> machineId and assigns slots in order.
-  - Star topology: clients only talk to the host. The host RELAYS inputs between clients,
-    after checking that each slot in the packet really belongs to the sending machine.
-
-RemoteInputBuffer
-  Ring buffer per slot, indexed by tick. Get(slot, tick, neutral):
-    1. exact input for that tick, or the most recent one in the last 8 ticks
-    2. otherwise the last known input
-    3. if nothing new for 30 ticks (~0.5 s), the neutral input (the dog stops)
-  It never waits for data. Missing inputs are never an excuse to stall the game.
+  - A machine owns 1..4 slots (kMaxPlayersPerMachine). At most 8 slots (kMaxSlots == MAX_PLAYERS).
+  - Slot numbers are global and identical on every machine.
+  - kInputRedundancy = 6, kSnapshotInterval = 6 ticks, kMaxSnapshotBytes = 1000,
+    kMaxEventBytes = 255, kNoMachine = 0xFF, kProtocolVersion = 9, kNumDogTypes = 5.
+  - Bump kProtocolVersion whenever a message layout changes (Hello rejects mismatches).
 
 
-3. CONNECTION AND GAME FLOW
----------------------------
+4. MESSAGES (NetworkProtocol)
+-----------------------------
 
-  Client: Join() -> Connecting -> transport Connected event -> sends Hello (with dog types)
-  Host:   receives Hello -> validates -> allocates slots -> Welcome -> broadcasts LobbyState
-  Client: receives Welcome -> InLobby; receives LobbyState -> updates local lobby
-  Rejected: host sends Reject and disconnects the peer; client goes to Failed with the reason.
-  Disconnect in lobby: host frees that machine's slots and broadcasts LobbyState again.
-  Disconnect in game: slots are NOT freed yet (TODO: dog turns black and white).
-  Host leaves: clients go to Failed. The room closes.
+  Every message starts with 1 byte = MsgType.
 
-  Starting a match:
-    1. Host: HostStartLevel("name") -> picks spawnSeed, sends StartLevel (reliable) to everyone,
-       state InGame (nobody can join anymore). Host also receives it through PopLevelStart.
-    2. Every machine: GameManager::StartOnlineLevel(info): builds LevelPlayers from the lobby,
-       maps its local players to its slots (GetMySlots, same order as in Hello), loads the level
-       with the spawnSeed, tick = 0.
+    Hello      client -> host   reliable    u16 version, local dog types (each < kNumDogTypes)
+    Welcome    host -> client   reliable    u8 machineId
+    Reject     host -> client   reliable    u8 reason (VersionMismatch, LobbyFull, BadRequest)
+    LobbyState host -> clients  reliable    per slot: machineId + dogType
+    StartLevel host -> clients  reliable    lobby, u32 spawnSeed, u32 roundTicks, u32 levelHash,
+                                            level name (only [A-Za-z0-9_-], validated on decode)
+    Input      both ways        unreliable  tick + per slot the last 6 inputs (redundancy)
+    TimePing   client -> host   unreliable  client timestamp
+    TimePong   host -> client   unreliable  host tick + echoed timestamp (gives RTT + host tick)
+    Snapshot   host -> clients  unreliable  u32 tick + u16 len + bytes (see section 7)
+    GameEvent  both ways        reliable    u8 kind + u8 len + bytes (see section 9)
 
-  Every fixed step (GameManager::Update, LEVEL state):
-    slotInput = BuildSlotInput()      local slots: from the controls
-                                      remote slots: RemoteInputBuffer::Get(slot, tick)
-                                      empty slots: neutral
-    LevelManager::ReceiveInput(slotInput)
-    NetworkManager::SendLocalInputs(tick, mySlots, slotInput)
-    LevelManager::Update(dt); tick++
-  Every render frame (GameManager::PollNetwork, outside the fixed step loop):
-    NetworkManager::Update(); handle failure (-> back to player menu); host ENTER starts the level;
-    PopLevelStart; drain received inputs into the RemoteInputBuffer.
-
-  The neutral level input is 16 << 3 (axis X in the centre), NOT 0. Zero means "full left".
-
-  Game launch options (temporary): --host | --join <ip> | --lag <ms>. No arguments = offline,
-  slot = local player index. Only the focused window receives keyboard input.
+  GameEvent is generic: NetworkManager only moves {kind, bytes}. Game code defines kinds
+  (enum RoundEvent in RoundManager.hh: ScoreChanged = 1, RoundEnd = 2, PlayerLeft = 3).
+  Host -> everyone: HostBroadcastEvent. Client -> host (an INTENT, host validates):
+  SendEventToHost. Host reads them with PopEvent (includes fromMachine).
 
 
-4. DETERMINISM RULES FOR GAME CODE
-----------------------------------
+5. CONNECTION FLOW
+------------------
 
-All machines simulate everything, so the simulation must give the same result from the same
-inputs. The host's snapshots (planned) are a safety net, not an excuse to be sloppy.
-  - Fixed timestep only. Never use frame time in the simulation.
-  - Objects are created and updated in the same order everywhere (level file order; dogs in
-    ascending slot order). Keep containers ordered (vectors), no pointer-keyed maps.
-  - Randomness in the simulation: only DeterministicRng with a seed that comes from the host.
-    Never std::shuffle / std::mt19937 / rand() (results differ between standard libraries).
-  - Do not read the controls inside the simulation. Everything comes through ReceiveInput.
-  - Floating point (powf etc.) can differ between CPUs/compilers/platforms. It is acceptable
-    because snapshots correct the drift, but avoid adding more than needed.
+  Client: Join() -> Connecting -> transport Connected -> sends Hello
+  Host:   Hello -> validates -> allocates slots -> Welcome -> broadcasts LobbyState
+  Client: Welcome -> InLobby; LobbyState -> updates lobby
+  Host presses ENTER: HostStartLevel(name, roundTicks, levelHash) -> StartLevel to everyone, state InGame.
+  Each client hashes its own level file (ComputeLevelHash in GameManager.cc, FNV-1a, ignoring
+  '\r') and leaves with a message if it differs from the host's. Its dog then turns grey.
+  A peer that connects but does not send a valid Hello within kHelloTimeoutMs (3 s) is kicked.
+  A Hello with a dogType >= kNumDogTypes is rejected (BadRequest).
+  Rejected: Reject, then disconnect; client goes to Failed with the reason.
+  Client leaves in lobby: host frees its slots, broadcasts LobbyState.
+  Host leaves: clients go to Failed ("host closed the room") and return to the menu.
+  Joining a level that already started is rejected on purpose. There is no re-entry.
 
-
-5. DESIGN DECISIONS AND LESSONS LEARNED
----------------------------------------
-
-  - Do not trust ENet to tell us a connection attempt failed quickly. ENet reports a
-    failed connect only after 10-30 s. NetworkManager has its own 5 s connect timeout.
-  - A Disconnected event is not guaranteed on exit (the other side may already be gone).
-    The reliable way to detect a missing player is a timeout. Disconnect is just a courtesy.
-  - Leave() blocks ~200 ms to let disconnect messages go out. Only call it on exit / leaving
-    a lobby, never in the middle of a match.
-  - When ENet receives a disconnect command it discards incoming packets that the application
-    has not read yet. A Reject sent right before enet_peer_disconnect arrived in the same
-    datagram and was lost. Fix: enet_peer_disconnect_later (waits until everything queued
-    has been sent and acknowledged).
-  - Reject must arrive BEFORE the disconnect. Order of Send and Disconnect matters (this was
-    also a LagSimTransport bug: Disconnect skipped the delay queue and overtook the Reject).
-  - Inputs go unreliable with redundancy: a lost packet is covered by the next ones, and an old
-    input is never worth retransmitting.
-  - Local players are chosen BEFORE connecting (Hello carries their dog types). Players cannot
-    be added or removed once in the lobby or in game.
+  NetworkManager states: Idle, Connecting, InLobby, InGame, Failed.
 
 
-6. KNOWN LIMITATIONS / TODO
----------------------------
+6. DETERMINISM AND THE TICK LOOP
+--------------------------------
 
-  - Machines desync over time: no host snapshots yet. Remote dogs react late (inputs arrive
-    after the tick they were meant for). Clock sync and snapshots are the next step.
-  - Tick counters are not synchronised: each machine starts at tick 0 when it receives StartLevel.
-  - A peer that connects but never sends Hello keeps a connection slot. Add a ~3 s timeout.
-  - The host does not validate dogType from Hello (SetDogType currently does % 5).
-  - A machine that disconnects mid-game just stops (its dog gets neutral input after 0.5 s).
-  - The level file is not transferred or checked: all machines must have the same level files.
-    At least a hash/version check should be added before the demo with friends.
-  - kMaxSlots must match MAX_PLAYERS (static_assert in GameManager.cc).
-  - Lobby UI is temporary. Names will go in Hello / SlotInfo, like dogType.
-  - The lobby list sometimes shows dog 0 for remote dogs on clients (cosmetic, the level is right).
+  The level is simulated on EVERY machine with the same fixed timestep (1/60 s). Rules:
+  - Only the fixed timestep drives the simulation (accumulator in main.cc, scaled by
+    GetTimeScale). Never use GetFrameTime / GetTime / GetRandomValue inside the simulation.
+  - Randomness: DeterministicRng / DeterministicShuffle, seeded by the host's spawnSeed.
+  - Objects are created in the same order everywhere (dogs by ascending slot). The order of
+    LevelManager::_levelObjects is the identity of an object in snapshots.
+  - IsKeyPressed and similar are frame-level only: read them once per render frame, never
+    inside the fixed loop. PollNetwork() runs once per render frame, before the fixed loop.
+  - Check for violations with:
+      grep -rnE "GetTime\(|GetFrameTime|GetRandomValue|rand\(|IsKey|IsGamepad|std::chrono" src/
 
+  Per tick order: LevelManager::Update (every object's Update) -> PhysicsManager::Update
+  (reset grounded, gravity, force fields, move/resolve X then Y, overlaps).
 
-7. ROADMAP (next steps)
------------------------
-
-  6d-1  Clock sync: clients measure RTT and run slightly ahead of the host, so their inputs reach
-        the host in time and snapshots of tick T can be compared with the client's own state at T.
-  6d-2  Snapshot infrastructure + dogs: host sends snapshots (unreliable, a few per second);
-        clients keep a short history of their own state and apply the difference at the same tick
-        (small errors blended, big errors snap).
-  6d-3  Other synced objects (see section 8).
-  Then  - Disconnect handling in game (dog turns black and white, host announces tick).
-        - Level hash / transfer.
-        - Host-only game rules (score, round end) as reliable events.
-        - Menu clicks as reliable events validated by the host.
-        - SteamTransport behind ITransport.
+  Tick numbering is shared: client tick N means host tick N.
 
 
-8. WHAT GETS SYNCHRONISED (planned)
------------------------------------
+7. INPUTS, CLOCK SYNC, SNAPSHOTS AND ROLLBACK
+---------------------------------------------
 
-  Most objects never send anything. An object takes part only if it can change in a way the
-  other machines can't predict exactly. Each synced object gets a NetworkID = its index in the
-  level's creation order (identical on every machine because level loading is deterministic).
+Inputs
+  - Level input byte: bit0 jump, bit1 dig, bit2 bark, bits 3-7 X axis (centre 16).
+    Neutral = kNeutralLevelInput (16 << 3).
+  - Every machine sends its slots' inputs each tick (unreliable, last 6 inputs per packet).
+  - RemoteInputBuffer::Get(slot, tick, neutral, &exact): ring of 64, looks back 8 ticks,
+    repeats the last known input, neutral after 30 ticks without news. It NEVER waits.
+  - Local slots use their own input immediately (local feel is always instant).
 
-    Dogs        position, velocity, state, grounded, jump/coyote/buffer timers, sliding direction
-    Tennis ball position, velocity, kick cooldown
-    Hydrant     active flag + active timer (water follows it)
-    Sand tile   broken flag (host says broken -> break it, which also updates neighbour autotiles)
+Clock sync (ClockSync)
+  - Client estimates RTT from TimePing/TimePong and runs ahead of the host by RTT_ticks + 2.
+  - So the host sees client inputs exactly (they arrive before the host reaches that tick),
+    while the client always sees the host's inputs ~RTT late and PREDICTS them.
+    "remote inputs not exact: 120/120" in the debug print is normal on a client.
 
-  Continuous state (dogs, balls) is corrected by comparing the host's state at tick T with our
-  own history at tick T. Discrete state (sand broken, hydrant active) simply follows the host.
+Snapshots (host -> clients, unreliable)
+  - Every kSnapshotInterval ticks, plus an immediate extra one when sand changes.
+  - Content: state of ALL net bodies after tick T + the sand-broken bitset.
+  - Body state (NetworkLevelObjectDynEntState): x, y, vx, vy, mode, flags, aux, cause, depth,
+    t0..t3. Meaning of flags/aux/t0..t3 depends on the object type (dog, ball, hydrant);
+    see NetGet / NetSet of each class. WriteBody/ReadBody keep the field order.
+  - Bodies are the objects whose NetGet() returns true, in creation order. Sand tiles are not
+    bodies: they travel as a bitset over the row-major list of 'S' tiles.
+  - Slopes are NOT synced (their behaviour follows from the dog snapshots).
+
+Rollback + replay (LevelNetworkSync, client only)
+  - The client keeps a 64-tick history of {tick, bodies, sand}.
+  - On a snapshot for tick T it compares the host's state at T with its own history at T.
+    If a body differs (pos > 0.02, vel > 0.1, mode or flags) or sand differs, it ADOPTS the
+    host's state at T and re-simulates T+1..latest with ReplayTick, re-recording history.
+    Replay re-queries remote inputs with whatever fresher information arrived.
+  - L - T is constant (about 8 ticks). Errors of 1-2 tiles at ~100 ms RTT are inherent
+    prediction errors (speed x lag) and are expected.
+  - ALL state that affects future simulation must be in the rollback set (NetGet/NetSet):
+    dogs, ball, hydrant (restored through Activate/Deactivate). That includes carried state
+    like _isGrounded and surface type, jump/coyote timers and the *Prev inputs.
+    If you add a dynamic object or a new field that changes behaviour, add it to NetGet/NetSet
+    and check that "[rollback]" lines stay quiet when idle.
+  - Rendering side effects (sounds, particles) triggered in Update would be repeated during
+    replay. If that becomes a problem add a "replaying" flag.
+
+Visual smoothing
+  - Rollback moves objects instantly. To avoid snapping, every LevelObject has a render-only
+    _renderOffset: after a snapshot is applied, (old position - new position) is added to it
+    and it decays exponentially (kRenderOffsetDecay = 12 /s, about 80 ms). Jumps above 4 tiles
+    are not smoothed. Dog::Render adds the offset. Other objects can do the same.
 
 
-9. HOW TO TEST
---------------
+8. AUTHORITY AND SCORING
+------------------------
 
-  Network tests:  make network_tests
-      lobbytest --host 2        (host with 2 local players)
-      lobbytest --join 127.0.0.1 1
-  Things to try: several clients, full room, join without host, close host, Ctrl+C a client,
-  different LagSimSettings.
+Authority rule
+  - The host decides. Offline behaves like a host.
+  - Client applies a sand break immediately only if the CAUSE of the break is one of its own
+    slots (LevelManager::CanApplyBreak(cause)). Otherwise it waits for the host's sand bitset
+    in the next snapshot. Hydrants and balls need no special rule: rollback self-heals them.
 
-  The game: make, then in two terminals
-      game.exe --host
-      game.exe --join 127.0.0.1 [--lag 80]
-  Add a player in each window, press start, host presses ENTER in the lobby.
+Provenance (who is responsible for an interaction)
+  - Every LevelObject has GetCauseSlot() (kNoCause = 0xFF) and GetChainDepth().
+  - Dog: cause = its own slot, depth 0. Ball kicked by a dog: cause = dog, depth + 1.
+    Hydrant: Activate(cause) -> depth + 1 (also when dug). Water forwards its hydrant's
+    cause. A ball inside a force field takes the field's cause, depth + 1 (re-stamped each tick).
+  - Points = basePoints + cause->GetChainDepth() (sand base = 1), so the number of steps in the
+    chain is the score: dig = 1, kicked ball hits sand = 2, ball launched by a dug hydrant = 3,
+    ball launched by a hydrant activated by a ball you kicked = 4.
+  - Balls forget their cause when they have completely stopped (grounded and almost no speed).
+  - Dogs flung by an interaction should borrow the cause (planned, see section 11).
+
+Rounds (RoundManager)
+  - durationTicks is carried in StartLevel. Time end is deterministic: endTick.
+  - Only host/offline award points (LevelManager::NotifyScore -> GameManager::OnScore).
+    The host broadcasts ScoreChanged with ABSOLUTE scores (idempotent). Clients just display.
+  - The host can end early with EndEarly (e.g. last bone taken). It broadcasts RoundEnd
+    {endTick, scores} once. A client freezes at its own tick >= endTick; if it overshot it
+    RestoreTo(endTick - 1) and sets its level tick to endTick.
+  - Known limitation: at a time-based end the client's final picture is predicted.
+
+
+9. DISCONNECTS IN GAME
+----------------------
+
+  - Client leaves cleanly: ENet reports Disconnected. Client crashes or cable pulled: the host
+    watchdog (kSilenceTimeoutMs = 4 s without ANY message from a machine in InGame) drops it.
+  - NetworkManager::HostDropMachine removes the peer, keeps the lobby slots (dog stays in the
+    level and keeps its score) and queues the slots in _leftSlots (PopLeftSlot).
+  - GameManager broadcasts GameEvent RoundEvent::PlayerLeft (3, payload = slot). Everyone calls
+    LevelManager::SetSlotGone -> the dog is drawn grey. _isGone is visual only.
+  - The gone dog receives neutral inputs automatically (RemoteInputBuffer). No tick has to be
+    announced: any tiny difference between machines is fixed by snapshots.
+  - Host leaves: every client goes to Failed and back to the menu.
+
+
+10. DESIGN DECISIONS AND LESSONS LEARNED
+----------------------------------------
+
+  - ENet reports a failed connect only after 10-30 s: NetworkManager has its own 5 s timeout.
+  - A Disconnected event is not guaranteed. Use timeouts for detecting missing players.
+    Disconnect is a courtesy. Use enet_peer_disconnect_later so queued data goes out first.
+  - Leave() blocks ~200 ms to let disconnect messages go out. Only call it when leaving.
+  - Reject must arrive BEFORE the disconnect (order of Send and Disconnect matters).
+  - Additive delta corrections from snapshots put dogs inside solids and made them fall
+    through the floor. The fix was rollback + replay, not blending. Do not go back.
+  - isGrounded cannot be derived: it is real carried state and must be in the snapshot.
+  - Pop the snapshot OUTSIDE the input-reading loop in PollNetwork.
+  - The lobby message must include dogType (it was missing once).
+  - A resting ball never has vy == 0 (gravity every tick): rest thresholds must be a bit above
+    kGravity * dt.
+  - Commented-out debug printfs are intentional (the author re-enables them when needed).
+
+
+11. KNOWN LIMITATIONS / TODO
+----------------------------
+
+Robustness
+  - SlotInfo only has machineId and dogType. Later: name, colour.
+  - ComputeLevelHash hardcodes the level path (assets/levels/<name>.dgl): keep it in sync with
+    LevelManager::LoadLevel, or expose one shared GetLevelPath(name).
+  - Dog::SetDogType still uses '% 5': replace with kNumDogTypes.
+
+Gameplay networking
+  - Dogs as interaction agents: a dog flung by a hydrant/ball should BORROW the cause
+    (slot, depth + 1) while out of control and go back to its own slot / depth 0 when it
+    recovers control (grounded and horizontal speed back to walking speed). Ball-ball overlap
+    propagating cause is optional. Use the same "is flung" test for losing control,
+    bouncing off walls and forgetting the cause.
+  - Own score appears with ~RTT delay on clients (could show a predicted value).
+  - Sand history is not rolled back per tick (it is reconciled approximately).
+  - A final snapshot at round end would remove the predicted final picture.
+  - Level loading robustness: deferred until the level format is finalised.
+
+Menus (not started)
+  - Cursors per slot: position stream (unreliable, local immediate, remote interpolated);
+    clicks are reliable intents validated by the host (e.g. only the round winner can pick
+    the next mode).
+  - Game-phase state machine driven by host reliable events:
+    lobby -> level -> between-rounds menu (scores, winner picks mode) -> end of game.
+  - Lobby with cursors for dog selection / ready.
+  - Join screen: dog selector, name keyboard with recent names, local/online choice.
+  - Later: public lobbies, SteamTransport behind ITransport.
+
+
+12. HOW TO TEST
+---------------
+
+  Build:  make network_tests      (standalone transport/lobby tests)
+
+  Lobby:  lobbytest --host 2        (host with 2 local players)
+          lobbytest --join 127.0.0.1 1
+
+  In the game: run one host and several clients on the same machine. Use LagSimTransport to
+  simulate lag (80 ms is a harsh value; real friends at low ping are well below that).
+  Useful checks:
+    - Idle dogs converge to the same position on every machine.
+    - "[rollback]" lines appear only when something really diverged.
+    - Sand, ball and hydrant state match everywhere after the action ends.
+    - Scores: "[punts]" on the host shows who gets what (dig +1, kicked ball +2, ...).
+    - Close a client window and kill a client process: its dog turns grey on everybody
+      (4 s for the kill case).
+    - Close the host: clients return to the menu. Joining a started level is rejected.

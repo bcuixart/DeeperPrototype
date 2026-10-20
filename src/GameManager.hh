@@ -39,6 +39,8 @@ struct NetLaunchOptions
     int lagMs = 0;
 };
 
+static uint32_t ComputeLevelHash(const std::string& levelName);
+
 class GameManager {
 public:
 	GameManager();

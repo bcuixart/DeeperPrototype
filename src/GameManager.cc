@@ -222,6 +222,15 @@ void GameManager::StartOfflineLevel(const std::string& levelName)
 
 void GameManager::StartOnlineLevel(const LevelStartInfo& info)
 {
+    if (!_networkManager->IsHost() && ComputeLevelHash(info.levelName) != info.levelHash)
+    {
+        printf("[net] El nivell '%s' no coincideix amb el del host\n", info.levelName.c_str());
+        LeaveOnline();
+        _levelManager.reset();
+        _gameState = GameState::PLAYER_SETTINGS;
+        return;
+    }
+
     const std::vector<uint8_t> mine = _networkManager->GetMySlots();
     if ((int)mine.size() != _playersActive)
         printf("[net] AVIS: tinc %d jugadors locals i %d slots\n", _playersActive, (int)mine.size());
@@ -324,11 +333,13 @@ void GameManager::PollNetwork()
 
     if (_gameState == GameState::LOBBY && _networkManager->IsHost() && IsKeyPressed(KEY_ENTER))
     {
-        _networkManager->HostStartLevel("test_level_online", RoundManager::kDefaultDurationTicks);
+        _networkManager->HostStartLevel("test_level_online", RoundManager::kDefaultDurationTicks, ComputeLevelHash("test_level_online"));
     }
 
     LevelStartInfo info;
     if (_networkManager->PopLevelStart(info)) StartOnlineLevel(info);
+
+    if (!_networkManager) return;
 
     InputPacket packet;
     while (_networkManager->PopReceivedInput(packet))
@@ -548,4 +559,19 @@ void GameManager::DrawRoundOverlay() const
         y += 24;
     }
     if (_roundManager->IsOver(_levelTick)) DrawText("FI DE RONDA", 20, y + 10, 30, YELLOW);
+}
+
+static uint32_t ComputeLevelHash(const std::string& levelName)
+{
+    std::ifstream file("assets/levels/" + levelName + ".dgl", std::ios::binary);
+    if (!file) return 0;
+    uint32_t h = 2166136261u;   // FNV-1a
+    char c;
+    while (file.get(c))
+    {
+        if (c == '\r') continue;
+        h ^= (uint8_t)c;
+        h *= 16777619u;
+    }
+    return h;
 }

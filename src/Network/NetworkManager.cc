@@ -30,6 +30,7 @@ void NetworkManager::Join(const std::string& address, uint16_t port, const std::
 void NetworkManager::Leave() {
     if (_isHost) {
         for (auto& [peer, id] : _machineOfPeer) _transport->Disconnect(peer);
+        for (auto& [peer, t] : _pendingPeers) _transport->Disconnect(peer);
     } else if (_state == State::Connecting || _state == State::InLobby || _state == State::InGame) {
         _transport->Disconnect(_serverPeer);
     }
@@ -87,9 +88,23 @@ void NetworkManager::Update() {
             HostDropMachine(id);
         }
     }
+
+    if (_isHost && !_pendingPeers.empty())
+    {
+        const auto now = Clock::now();
+        for (auto it = _pendingPeers.begin(); it != _pendingPeers.end();)
+        {
+            if (std::chrono::duration_cast<std::chrono::milliseconds>(now - it->second).count() > kHelloTimeoutMs)
+            {
+                _transport->Disconnect(it->first);
+                it = _pendingPeers.erase(it);
+            }
+            else ++it;
+        }
+    }
 }
 
-bool NetworkManager::HostStartLevel(const std::string& levelName, uint32_t roundTicks) {
+bool NetworkManager::HostStartLevel(const std::string& levelName, uint32_t roundTicks, uint32_t levelHash) {
     if (!_isHost || _state != State::InLobby) return false;
 
     static std::mt19937 rng{ std::random_device{}() };
@@ -99,6 +114,7 @@ bool NetworkManager::HostStartLevel(const std::string& levelName, uint32_t round
     info.levelName = levelName;
     info.spawnSeed = rng();
     info.roundTicks = roundTicks;
+    info.levelHash = levelHash;
     _events.clear();
 
     const auto msg = EncodeStartLevel(info);
@@ -201,15 +217,16 @@ std::vector<uint8_t> NetworkManager::GetMySlots() const {
 void NetworkManager::HandleEvent(const NetEvent& ev) {
     switch (ev.type) {
     case NetEvent::Type::Connected:
-        if (!_isHost && _state == State::Connecting) {
+        if (_isHost) _pendingPeers[ev.peer] = Clock::now();   // esperem el Hello
+        else if (_state == State::Connecting) {
             _serverPeer = ev.peer;
             SendTo(_serverPeer, Channel::Reliable, EncodeHello(_localDogTypes));
         }
-        // Host: esperem el Hello abans de fer res amb aquest peer.
         break;
 
     case NetEvent::Type::Disconnected:
         if (_isHost) {
+            _pendingPeers.erase(ev.peer);
             auto it = _machineOfPeer.find(ev.peer);
             if (it != _machineOfPeer.end()) HostDropMachine(it->second);
         } else if (_state == State::Connecting) {
@@ -244,6 +261,8 @@ void NetworkManager::HostHandleMessage(PeerId peer, ByteReader& r) {
         MsgHello h;
         if (!DecodeHello(r, h)) return;
 
+        _pendingPeers.erase(peer);
+
         auto RejectAndKick = [&](RejectReason reason) {
             SendTo(peer, Channel::Reliable, EncodeReject(reason));
             _transport->Disconnect(peer);
@@ -252,7 +271,7 @@ void NetworkManager::HostHandleMessage(PeerId peer, ByteReader& r) {
         if (_state == State::InGame)                    { RejectAndKick(RejectReason::GameInProgress); return; }
         if (h.version != kProtocolVersion)              { RejectAndKick(RejectReason::VersionMismatch); return; }
         if (h.dogTypes.empty())                         { RejectAndKick(RejectReason::BadRequest); return; }
-        // TODO: validar que cada dogType sigui un tipus de gos que existeix.
+        for (uint8_t t : h.dogTypes) if (t >= kNumDogTypes) { RejectAndKick(RejectReason::BadRequest); return; }
 
         uint8_t id = NextFreeMachineId();
         if (id == kNoMachine || !AllocSlots(id, h.dogTypes)) { RejectAndKick(RejectReason::LobbyFull); return; }

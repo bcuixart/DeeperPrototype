@@ -3,6 +3,7 @@
 
 #include "Level/LevelObject.hh"
 #include "InputManager.hh"
+#include "Network/NetworkTypes.hh"
 
 enum class DogState {
     Default, Sliding, InDirt, Flung
@@ -28,7 +29,7 @@ public:
 
     void SetGone() { _isGone = true; }
 
-    void SetDogType(uint8_t dogType) { _dogType = dogType % 5; }
+    void SetDogType(uint8_t dogType) { _dogType = dogType % kNumDogTypes; }
 
     void DropThroughSemisolid(const Rectangle& semisolidBounds);
 

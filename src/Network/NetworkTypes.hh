@@ -6,14 +6,15 @@
 #include <vector>
 #include <string>
 
-constexpr int      kMaxSlots        = 8;
+constexpr int      kMaxSlots         = 8;
 constexpr int      kMaxPlayersPerMachine = 4;
-constexpr uint16_t kProtocolVersion = 3;
-constexpr uint8_t  kNoMachine       = 0xFF;
-constexpr int      kInputRedundancy = 6;
+constexpr uint16_t kProtocolVersion  = 6;
+constexpr uint8_t  kNoMachine        = 0xFF;
+constexpr int      kInputRedundancy  = 6;
 constexpr uint32_t kSnapshotInterval = 6;
 constexpr size_t   kMaxSnapshotBytes = 1000;
-constexpr size_t   kMaxEventBytes = 255;
+constexpr size_t   kMaxEventBytes    = 255;
+constexpr uint8_t  kNumDogTypes      = 5;
 
 // A machine represents a single instance of the game running on a computer. Each machine can have multiple players connected to it.
 // The host will always be machine 0.
@@ -40,6 +41,7 @@ struct LevelStartInfo
     LobbyState  lobby;
     uint32_t    spawnSeed = 0;  // Random seed for assigning houses to dogs.
     uint32_t    roundTicks = 1200;
+    uint32_t    levelHash = 0;
     std::string levelName;
 };
 

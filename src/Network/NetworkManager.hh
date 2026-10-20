@@ -27,7 +27,7 @@ public:
     void Update();   // cridar un cop per frame
 
     // Només host, només al lobby. Tanca el lobby i avisa a tothom.
-    bool HostStartLevel(const std::string& levelName, uint32_t roundTicks);
+    bool HostStartLevel(const std::string& levelName, uint32_t roundTicks, uint32_t levelHash);
     // Retorna true un cop quan s'ha de començar el nivell (també al host).
     bool PopLevelStart(LevelStartInfo& out);
 
@@ -97,6 +97,9 @@ private:
     bool _hasSnapshot = false;
     uint32_t _snapTick = 0;
     std::vector<uint8_t> _snapBlob;
+
+    static constexpr int kHelloTimeoutMs = 3000;
+    std::unordered_map<PeerId, Clock::time_point> _pendingPeers;
 
     struct TimePong { uint32_t hostTick; int rttMs; };
     std::optional<TimePong> _timePong;

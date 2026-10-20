@@ -53,6 +53,7 @@ std::vector<uint8_t> EncodeStartLevel(const LevelStartInfo& info)
     WriteLobby(w, info.lobby);
     w.U32(info.spawnSeed);
     w.U32(info.roundTicks);
+    w.U32(info.levelHash);
     const uint8_t len = (uint8_t)std::min<size_t>(info.levelName.size(), 255);
     w.U8(len);
     for (uint8_t i = 0; i < len; ++i) w.U8((uint8_t)info.levelName[i]);
@@ -145,10 +146,17 @@ bool DecodeStartLevel(ByteReader& r, LevelStartInfo& out)
     ReadLobby(r, out.lobby);
     out.spawnSeed = r.U32();
     out.roundTicks = r.U32();
+    out.levelHash = r.U32();
     const uint8_t len = r.U8();
-    if (!r.Ok() || r.Remaining() < len) return false;
+    if (!r.Ok() || len == 0 || r.Remaining() < len) return false;
     out.levelName.resize(len);
-    for (uint8_t i = 0; i < len; ++i) out.levelName[i] = (char)r.U8();
+    for (uint8_t i = 0; i < len; ++i)
+    {
+        const char c = (char)r.U8();
+        // El nom acaba formant part d'una ruta de fitxer: només caràcters segurs (res de "..", "/" ni "\").
+        if (!std::isalnum((unsigned char)c) && c != '_' && c != '-') return false;
+        out.levelName[i] = c;
+    }
     return r.Ok();
 }
 
