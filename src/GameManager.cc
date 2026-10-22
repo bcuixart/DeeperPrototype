@@ -7,6 +7,10 @@ static_assert(MAX_PLAYERS == kMaxSlots, "MAX_PLAYERS ha de coincidir amb kMaxSlo
 
 GameManager* GameManager::instance = nullptr;
 
+static uint32_t ComputeLevelHash(const std::string& levelName);
+
+static const std::array<const char*, 1> kOnlineLevelNames = { "test_level_online" };
+
 GameManager::GameManager()
 {
     GameManager::instance = this;
@@ -15,6 +19,7 @@ GameManager::GameManager()
 	_assetManager = std::make_unique<AssetManager>();
 	_inputManager = std::make_unique<InputManager>();
     _roundManager = std::make_unique<RoundManager>();
+    _matchManager = std::make_unique<MatchManager>();
     _levelNetworkSync = std::make_unique<LevelNetworkSync>();
 
 	for (int i = 0; i < MAX_LOCAL_PLAYERS; i++)
@@ -50,6 +55,7 @@ void GameManager::Update(const float deltaTime)
         if (_roundManager->IsOver(_levelTick))
         {
             AnnounceRoundEnd();
+            UpdateRoundEndHold();
             break;
         }
 
@@ -84,6 +90,10 @@ void GameManager::Update(const float deltaTime)
         _levelTick++;
         break;
     }
+    case GameState::BETWEEN_ROUNDS:
+    case GameState::FINAL:
+        Update_Results();
+        break;
 	}
 }
 
@@ -103,6 +113,10 @@ void GameManager::Render(const float deltaTime)
         for (auto* b : _levelManager->GetNetBodies()) b->DecayRenderOffset(deltaTime);
 		_levelManager->Render(deltaTime, [this]() { DrawRoundOverlay(); });
 		break;
+    case GameState::BETWEEN_ROUNDS:
+    case GameState::FINAL:
+        RenderResults();
+        break;
 	}
 }
 
@@ -250,12 +264,15 @@ void GameManager::StartOnlineLevel(const LevelStartInfo& info)
         players[slot].dogType = info.lobby.slots[slot].dogType;
     }
 
+    _matchManager->SetRound(info.roundIndex, info.roundCount);
+    _slotGone.fill(false);
     BeginLevel(info.levelName, players, info.spawnSeed, info.roundTicks); 
 }
 
 void GameManager::BeginLevel(const std::string& levelName, const LevelPlayers& players, uint32_t seed, uint32_t roundTicks)
 {
     _levelTick = 0; 
+    _phaseTicks = 0;
     _clockSync.Reset(); 
     _inputLookups = _inputMisses = 0;
     _remoteInputs.Reset();
@@ -333,13 +350,27 @@ void GameManager::PollNetwork()
 
     if (_gameState == GameState::LOBBY && _networkManager->IsHost() && IsKeyPressed(KEY_ENTER))
     {
-        _networkManager->HostStartLevel("test_level_online", RoundManager::kDefaultDurationTicks, ComputeLevelHash("test_level_online"));
+        _matchManager->Reset(MatchManager::kDefaultRoundCount);
+        _networkManager->HostStartLevel("test_level_online", RoundManager::kDefaultDurationTicks,
+                                        ComputeLevelHash("test_level_online"), 0, _matchManager->Get().roundCount);
     }
 
     LevelStartInfo info;
     if (_networkManager->PopLevelStart(info)) StartOnlineLevel(info);
 
     if (!_networkManager) return;
+
+    if (_networkManager->PopReturnToLobby())
+    {
+        _levelManager.reset();
+        _slotGone.fill(false);
+        _gameState = GameState::LOBBY;
+    }
+
+    if (_gameState == GameState::LEVEL && _networkManager->IsHost() && IsKeyPressed(KEY_L))   // DEBUG
+        HostBackToLobby();
+
+    PollResultsInput();
 
     InputPacket packet;
     while (_networkManager->PopReceivedInput(packet))
@@ -355,37 +386,8 @@ void GameManager::PollNetwork()
     GameEventMsg ev;
     while (_networkManager->PopEvent(ev))
     {
-        if (_gameState != GameState::LEVEL) continue;
-
-        if (_networkManager->IsHost())
-        {
-            printf("[net] intencio de la maquina %u, tipus %u, %zu bytes\n", ev.fromMachine, ev.kind, ev.payload.size());
-            continue;
-        }
-
-        ByteReader r(ev.payload.data(), ev.payload.size());
-        switch ((RoundEvent)ev.kind)
-        {
-        case RoundEvent::ScoreChanged:
-        {
-            uint8_t slot; uint16_t score;
-            if (DecodeScoreChanged(r, slot, score)) _roundManager->SetScore(slot, score);
-            break;
-        }
-        case RoundEvent::RoundEnd:
-        {
-            uint32_t endTick; std::array<uint16_t, MAX_PLAYERS> scores;
-            if (DecodeRoundEnd(r, endTick, scores)) OnRoundEndReceived(endTick, scores);
-            break;
-        }
-        case RoundEvent::PlayerLeft:
-        {
-            uint8_t slot;
-            if (DecodePlayerLeft(r, slot)) _levelManager->SetSlotGone(slot);
-            break;
-        }
-        default: break;
-        }
+        if (_networkManager->IsHost()) HostHandleIntent(ev);
+        else                           ClientHandleEvent(ev);
     }
 
     if (_gameState == GameState::LEVEL && !_networkManager->IsHost() && _levelTick > 0)
@@ -418,14 +420,15 @@ void GameManager::PollNetwork()
         while (_networkManager->PopLeftSlot(slot))
         {
             printf("[net] el slot %d ha marxat\n", slot);
+            _slotGone[slot] = true;
             if (_levelManager) _levelManager->SetSlotGone(slot);
-                _networkManager->HostBroadcastEvent((uint8_t) RoundEvent::PlayerLeft, EncodePlayerLeft(slot));
+            _networkManager->HostBroadcastEvent((uint8_t)RoundEvent::PlayerLeft, EncodePlayerLeft(slot));
         }
     }
 
     uint32_t hostTick;
     int rttMs;
-    if (_networkManager->PopTimePong(hostTick, rttMs) && _gameState == GameState::LEVEL)
+    if (_networkManager->PopTimePong(hostTick, rttMs) && _gameState == GameState::LEVEL && !_roundManager->IsOver(_levelTick))
         _clockSync.OnSample(hostTick, _levelTick, rttMs, kFixedDeltaTime);
 }
 
@@ -574,4 +577,195 @@ static uint32_t ComputeLevelHash(const std::string& levelName)
         h *= 16777619u;
     }
     return h;
+}
+
+// El host espera una mica després del final del temps perquè es vegi la imatge final i passa als resultats.
+void GameManager::UpdateRoundEndHold()
+{
+    if (!_networkManager || !_networkManager->IsHost() || _netOptions.mode == NetLaunchOptions::Mode::Offline) return;
+    if (++_phaseTicks < kRoundEndHoldTicks) return;
+    HostShowResults();
+}
+
+void GameManager::HostShowResults()
+{
+    std::array<bool, kMaxSlots> active{};
+    for (int s = 0; s < kMaxSlots; ++s) active[s] = _roundManager->IsActive(s);
+
+    _matchManager->EndRound(_roundManager->GetScores(), active, _slotGone);
+    _networkManager->HostBroadcastEvent((uint8_t)MatchEvent::Summary, EncodeMatchSummary(_matchManager->Get()));
+    EnterResultsPhase();
+}
+
+void GameManager::EnterResultsPhase()
+{
+    const MatchSummary& m = _matchManager->Get();
+    _phaseTicks = 0;
+    _gameState = m.isFinal ? GameState::FINAL : GameState::BETWEEN_ROUNDS;
+    printf("[partida] ronda %d/%d acabada; guanyador de la ronda: %d%s\n",
+           m.roundIndex + 1, m.roundCount, m.roundWinner == kNoWinner ? -1 : (int)m.roundWinner,
+           m.isFinal ? " (FINAL)" : "");
+}
+
+bool GameManager::IsMyWinner() const
+{
+    const uint8_t w = _matchManager->Get().roundWinner;
+    return w != kNoWinner && std::find(_mySlots.begin(), _mySlots.end(), w) != _mySlots.end();
+}
+
+// Lògica de temps dels resultats (només el host decideix).
+void GameManager::Update_Results()
+{
+    ++_phaseTicks;
+    if (!_networkManager || !_networkManager->IsHost()) return;
+
+    if (_gameState == GameState::BETWEEN_ROUNDS)
+    {
+        const uint8_t w = _matchManager->Get().roundWinner;
+        const bool winnerGone = (w == kNoWinner) || _slotGone[w];
+        // Si el guanyador no tria (o ha marxat), tria el host per ell: un AFK no pot bloquejar la sala.
+        if (_phaseTicks >= kMinResultsTicks && (winnerGone || _phaseTicks >= kPickTimeoutTicks))
+            HostStartNextRound(0);
+    }
+    else if (_phaseTicks >= kFinalHoldTicks)
+    {
+        HostBackToLobby();
+    }
+}
+
+// Entrada de teclat (nivell de frame, per això aquí i no a Update).
+void GameManager::PollResultsInput()
+{
+    if (!_networkManager || !IsKeyPressed(KEY_ENTER)) return;
+
+    if (_gameState == GameState::BETWEEN_ROUNDS && IsMyWinner())
+    {
+        if (_networkManager->IsHost()) HostStartNextRound(0);
+        else _networkManager->SendEventToHost((uint8_t)MatchEvent::PickLevel, EncodePickLevel(0));
+    }
+    else if (_gameState == GameState::FINAL && _networkManager->IsHost())
+    {
+        HostBackToLobby();
+    }
+}
+
+void GameManager::HostStartNextRound(uint8_t levelId)
+{
+    if (levelId >= kOnlineLevelNames.size()) return;
+    const std::string name = kOnlineLevelNames[levelId];
+    _networkManager->HostStartLevel(name, RoundManager::kDefaultDurationTicks, ComputeLevelHash(name),
+                                    _matchManager->Get().roundIndex + 1, _matchManager->Get().roundCount);
+}
+
+void GameManager::HostBackToLobby()
+{
+    if (!_networkManager->HostReturnToLobby()) return;
+    _levelManager.reset();
+    _slotGone.fill(false);
+    _gameState = GameState::LOBBY;
+}
+
+// El host rep intencions dels clients i les valida. Mai es fia d'allò que diu un client.
+void GameManager::HostHandleIntent(const GameEventMsg& ev)
+{
+    ByteReader r(ev.payload.data(), ev.payload.size());
+
+    if ((MatchEvent)ev.kind == MatchEvent::PickLevel && _gameState == GameState::BETWEEN_ROUNDS)
+    {
+        uint8_t levelId;
+        if (!DecodePickLevel(r, levelId) || levelId >= kOnlineLevelNames.size()) return;
+
+        // Només el guanyador de la ronda pot triar.
+        const uint8_t w = _matchManager->Get().roundWinner;
+        if (w == kNoWinner || _networkManager->GetLobby().slots[w].machineId != ev.fromMachine) return;
+
+        HostStartNextRound(levelId);
+        return;
+    }
+
+    printf("[net] intencio ignorada de la maquina %u, tipus %u, %zu bytes\n", ev.fromMachine, ev.kind, ev.payload.size());
+}
+
+void GameManager::ClientHandleEvent(const GameEventMsg& ev)
+{
+    ByteReader r(ev.payload.data(), ev.payload.size());
+
+    switch (ev.kind)
+    {
+    case (uint8_t)RoundEvent::ScoreChanged:
+    {
+        uint8_t slot; uint16_t score;
+        if (_gameState == GameState::LEVEL && DecodeScoreChanged(r, slot, score)) _roundManager->SetScore(slot, score);
+        break;
+    }
+    case (uint8_t)RoundEvent::RoundEnd:
+    {
+        uint32_t endTick; std::array<uint16_t, MAX_PLAYERS> scores;
+        if (_gameState == GameState::LEVEL && DecodeRoundEnd(r, endTick, scores)) OnRoundEndReceived(endTick, scores);
+        break;
+    }
+    case (uint8_t)RoundEvent::PlayerLeft:
+    {
+        uint8_t slot;
+        if (DecodePlayerLeft(r, slot))
+        {
+            _slotGone[slot] = true;
+            if (_levelManager) _levelManager->SetSlotGone(slot);
+        }
+        break;
+    }
+    case (uint8_t)MatchEvent::Summary:
+    {
+        MatchSummary s;
+        if (_gameState == GameState::LEVEL && DecodeMatchSummary(r, s))
+        {
+            _matchManager->Apply(s);
+            EnterResultsPhase();
+        }
+        break;
+    }
+    default: break;
+    }
+}
+
+void GameManager::RenderResults()
+{
+    const MatchSummary& m = _matchManager->Get();
+
+    BeginDrawing();
+    ClearBackground({ 25, 25, 35, 255 });
+
+    if (m.isFinal) DrawText("FI DE LA PARTIDA", 40, 30, 36, YELLOW);
+    else DrawText(TextFormat("Ronda %d/%d acabada", m.roundIndex + 1, m.roundCount), 40, 30, 36, WHITE);
+
+    int y = 100;
+    DrawText("Jugador       ronda      total", 40, y, 20, GRAY);
+    y += 30;
+    for (int s = 0; s < MAX_PLAYERS; ++s)
+    {
+        if (!(m.playedMask & (1 << s))) continue;
+        const bool present = (m.presentMask & (1 << s)) != 0;
+        const Color c = !present ? GRAY : (s == m.roundWinner ? YELLOW : WHITE);
+        DrawText(TextFormat("Jugador %d      %3d        %3d%s", s, m.lastRound[s], m.totals[s], present ? "" : "   (ha marxat)"),
+                 40, y, 20, c);
+        y += 26;
+    }
+
+    y += 24;
+    if (m.isFinal)
+    {
+        if (m.matchWinner != kNoWinner) DrawText(TextFormat("Guanyador de la partida: Jugador %d", m.matchWinner), 40, y, 28, YELLOW);
+        else DrawText("Sense guanyador", 40, y, 28, GRAY);
+        y += 40;
+        if (_networkManager && _networkManager->IsHost()) DrawText("ENTER: tornar a la sala", 40, y, 20, GREEN);
+    }
+    else
+    {
+        if (m.roundWinner != kNoWinner) DrawText(TextFormat("Guanyador de la ronda: Jugador %d", m.roundWinner), 40, y, 24, YELLOW);
+        y += 40;
+        if (IsMyWinner()) DrawText("ENTER: triar el proper nivell", 40, y, 24, GREEN);
+        else DrawText("Esperant que el guanyador triï el nivell...", 40, y, 20, GRAY);
+    }
+
+    EndDrawing();
 }

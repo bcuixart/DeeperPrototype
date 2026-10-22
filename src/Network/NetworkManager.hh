@@ -27,9 +27,12 @@ public:
     void Update();   // cridar un cop per frame
 
     // Només host, només al lobby. Tanca el lobby i avisa a tothom.
-    bool HostStartLevel(const std::string& levelName, uint32_t roundTicks, uint32_t levelHash);
+    bool HostStartLevel(const std::string& levelName, uint32_t roundTicks, uint32_t levelHash, uint8_t roundIndex, uint8_t roundCount);
     // Retorna true un cop quan s'ha de començar el nivell (també al host).
     bool PopLevelStart(LevelStartInfo& out);
+
+    bool HostReturnToLobby();
+    bool PopReturnToLobby();
 
     void SendLocalInputs(uint32_t tick, const std::vector<uint8_t>& mySlots, const std::array<uint8_t, kMaxSlots>& slotInput);
     bool PopReceivedInput(InputPacket& out);
@@ -94,6 +97,10 @@ private:
     std::string _failReason;
     std::optional<LevelStartInfo> _pendingLevelStart;
 
+    bool _returnToLobby = false;
+    void ResetGameBuffers();
+    void FreeAbsentSlots();
+
     bool _hasSnapshot = false;
     uint32_t _snapTick = 0;
     std::vector<uint8_t> _snapBlob;
@@ -106,6 +113,9 @@ private:
     uint32_t _localTick = 0;
     Clock::time_point _epoch = Clock::now();
     uint32_t NowMs() const;
+
+    static constexpr int kKeepAliveMs = 1000;
+    Clock::time_point _lastKeepAlive = Clock::now();
 
     static constexpr int kSilenceTimeoutMs = 4000;
     std::unordered_map<uint8_t, Clock::time_point> _lastHeard;

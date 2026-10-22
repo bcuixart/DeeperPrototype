@@ -8,7 +8,7 @@
 
 constexpr int      kMaxSlots         = 8;
 constexpr int      kMaxPlayersPerMachine = 4;
-constexpr uint16_t kProtocolVersion  = 6;
+constexpr uint16_t kProtocolVersion  = 10;
 constexpr uint8_t  kNoMachine        = 0xFF;
 constexpr int      kInputRedundancy  = 6;
 constexpr uint32_t kSnapshotInterval = 6;
@@ -42,6 +42,8 @@ struct LevelStartInfo
     uint32_t    spawnSeed = 0;  // Random seed for assigning houses to dogs.
     uint32_t    roundTicks = 1200;
     uint32_t    levelHash = 0;
+    uint8_t     roundIndex = 0;
+    uint8_t     roundCount = 1; 
     std::string levelName;
 };
 

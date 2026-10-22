@@ -54,6 +54,8 @@ std::vector<uint8_t> EncodeStartLevel(const LevelStartInfo& info)
     w.U32(info.spawnSeed);
     w.U32(info.roundTicks);
     w.U32(info.levelHash);
+    w.U8(info.roundIndex);
+    w.U8(info.roundCount);
     const uint8_t len = (uint8_t)std::min<size_t>(info.levelName.size(), 255);
     w.U8(len);
     for (uint8_t i = 0; i < len; ++i) w.U8((uint8_t)info.levelName[i]);
@@ -111,6 +113,13 @@ std::vector<uint8_t> EncodeGameEvent(uint8_t kind, const std::vector<uint8_t>& p
     return w.Data();
 }
 
+std::vector<uint8_t> EncodeReturnToLobby()
+{
+    ByteWriter w;
+    w.U8((uint8_t)MsgType::ReturnToLobby);
+    return w.Data();
+}
+
 /* DECODING */
 
 bool DecodeHello(ByteReader& r, MsgHello& out) 
@@ -147,6 +156,9 @@ bool DecodeStartLevel(ByteReader& r, LevelStartInfo& out)
     out.spawnSeed = r.U32();
     out.roundTicks = r.U32();
     out.levelHash = r.U32();
+    out.roundIndex = r.U8();
+    out.roundCount = r.U8();
+    if (!r.Ok() || out.roundCount == 0 || out.roundIndex >= out.roundCount) return false;
     const uint8_t len = r.U8();
     if (!r.Ok() || len == 0 || r.Remaining() < len) return false;
     out.levelName.resize(len);

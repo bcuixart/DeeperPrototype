@@ -16,6 +16,7 @@
 #include "Level/LevelManager.hh"
 #include "Level/LevelNetworkSync.hh"
 #include "Level/RoundManager.hh"
+#include "Level/MatchManager.hh"
 #include "Menu/MenuManager.hh"
 #include "Utils/DeterministicRNG.hh"
 
@@ -28,6 +29,8 @@ enum class GameState {
 	PLAYER_SETTINGS,
 	LOBBY,
 	LEVEL,
+	BETWEEN_ROUNDS,
+	FINAL,
 };
 
 struct NetLaunchOptions
@@ -38,8 +41,6 @@ struct NetLaunchOptions
     uint16_t port = 7777;
     int lagMs = 0;
 };
-
-static uint32_t ComputeLevelHash(const std::string& levelName);
 
 class GameManager {
 public:
@@ -93,6 +94,18 @@ private:
 
 	void RenderLobby();
 
+	void UpdateRoundEndHold();
+	void Update_Results();
+	void PollResultsInput();
+	void HostShowResults();
+	void EnterResultsPhase();
+	void HostStartNextRound(uint8_t levelId);
+	void HostBackToLobby();
+	void HostHandleIntent(const GameEventMsg& ev);
+	void ClientHandleEvent(const GameEventMsg& ev);
+	bool IsMyWinner() const;
+	void RenderResults();
+
 	std::array<uint8_t, MAX_PLAYERS> BuildSlotInput();
 
 	GameState _gameState;
@@ -117,11 +130,20 @@ private:
 	std::unique_ptr<MenuManager> _menuManager = nullptr;
 	std::unique_ptr<LevelManager> _levelManager = nullptr;
 	std::unique_ptr<RoundManager> _roundManager = nullptr;
+	std::unique_ptr<MatchManager> _matchManager = nullptr;
 	std::unique_ptr<LevelNetworkSync> _levelNetworkSync = nullptr;
 
 	uint8_t _playersActive;
 
 	bool _playerSelectedStartGame = false;
+
+	uint32_t _phaseTicks = 0;
+	std::array<bool, kMaxSlots> _slotGone{};
+
+	static constexpr uint32_t kRoundEndHoldTicks = 90;
+	static constexpr uint32_t kMinResultsTicks   = 180;
+	static constexpr uint32_t kPickTimeoutTicks  = 20 * 60;
+	static constexpr uint32_t kFinalHoldTicks    = 10 * 60;
 };
 
 #endif

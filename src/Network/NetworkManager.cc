@@ -49,6 +49,7 @@ void NetworkManager::Leave() {
     _receivedInputs.clear(); 
     _events.clear();
     _hasSnapshot = false;
+    _returnToLobby = false;
     _inputHistory = {};
     _state = State::Idle;
     _timePong.reset();
@@ -102,12 +103,25 @@ void NetworkManager::Update() {
             else ++it;
         }
     }
+
+    if (!_isHost && _state == State::InGame)
+    {
+        const auto now = Clock::now();
+        if (std::chrono::duration_cast<std::chrono::milliseconds>(now - _lastKeepAlive).count() >= kKeepAliveMs)
+        {
+            _lastKeepAlive = now;
+            SendTo(_serverPeer, Channel::Unreliable, EncodeTimePing(NowMs()));
+        }
+    }
 }
 
-bool NetworkManager::HostStartLevel(const std::string& levelName, uint32_t roundTicks, uint32_t levelHash) {
-    if (!_isHost || _state != State::InLobby) return false;
+bool NetworkManager::HostStartLevel(const std::string& levelName, uint32_t roundTicks, uint32_t levelHash,
+                                    uint8_t roundIndex, uint8_t roundCount) {
+    if (!_isHost || (_state != State::InLobby && _state != State::InGame)) return false;
 
     static std::mt19937 rng{ std::random_device{}() };
+
+    FreeAbsentSlots();   // qui ha marxat a mitja partida no apareix a la ronda següent
 
     LevelStartInfo info;
     info.lobby = _lobby;
@@ -115,7 +129,10 @@ bool NetworkManager::HostStartLevel(const std::string& levelName, uint32_t round
     info.spawnSeed = rng();
     info.roundTicks = roundTicks;
     info.levelHash = levelHash;
-    _events.clear();
+    info.roundIndex = roundIndex;
+    info.roundCount = roundCount;
+    ResetGameBuffers();
+    _leftSlots.clear();
 
     const auto msg = EncodeStartLevel(info);
     for (const auto& [peer, id] : _machineOfPeer) SendTo(peer, Channel::Reliable, msg);
@@ -123,7 +140,6 @@ bool NetworkManager::HostStartLevel(const std::string& levelName, uint32_t round
 
     _state = State::InGame;           // el lobby es tanca: ningú més pot entrar
     _pendingLevelStart = info;        // el host també ho rep pel mateix camí
-    _timePong.reset();
     return true;
 }
 
@@ -330,16 +346,12 @@ void NetworkManager::ClientHandleMessage(ByteReader& r) {
         break;
     }
     case MsgType::StartLevel: {
-        LevelStartInfo info;
-        if (DecodeStartLevel(r, info) && _state == State::InLobby) {
+    LevelStartInfo info;
+        if (DecodeStartLevel(r, info) && (_state == State::InLobby || _state == State::InGame)) {
             _lobby = info.lobby;
             _state = State::InGame;
             _pendingLevelStart = info;
-            _receivedInputs.clear(); 
-            _timePong.reset();
-            _events.clear();
-            _inputHistory = {};
-            _hasSnapshot = false;
+            ResetGameBuffers();
         }
         break;
     }
@@ -368,6 +380,9 @@ void NetworkManager::ClientHandleMessage(ByteReader& r) {
             PushEvent(GameEventMsg{ kind, 0, std::move(payload) });
         break;
     }
+    case MsgType::ReturnToLobby:
+        if (_state == State::InGame) { _state = State::InLobby; ResetGameBuffers(); _returnToLobby = true; }
+        break;
     default: break;
     }
 }
@@ -502,4 +517,46 @@ void NetworkManager::HostDropMachine(uint8_t machineId)
     for (auto it = _machineOfPeer.begin(); it != _machineOfPeer.end(); ++it)
         if (it->second == machineId) { _machineOfPeer.erase(it); break; }
     _lastHeard.erase(machineId);
+}
+
+void NetworkManager::ResetGameBuffers()
+{
+    _receivedInputs.clear();
+    _events.clear();
+    _inputHistory = {};
+    _hasSnapshot = false;
+    _timePong.reset();
+}
+
+void NetworkManager::FreeAbsentSlots()
+{
+    for (SlotInfo& s : _lobby.slots)
+    {
+        if (!s.Occupied() || s.machineId == 0) continue;   // el host no és a _machineOfPeer
+        bool connected = false;
+        for (const auto& [peer, id] : _machineOfPeer)
+            if (id == s.machineId) { connected = true; break; }
+        if (!connected) s = SlotInfo{};
+    }
+}
+
+bool NetworkManager::HostReturnToLobby()
+{
+    if (!_isHost || _state != State::InGame) return false;
+    FreeAbsentSlots();
+    ResetGameBuffers();
+    _leftSlots.clear();
+    _state = State::InLobby;
+
+    const auto msg = EncodeReturnToLobby();
+    for (const auto& [peer, id] : _machineOfPeer) SendTo(peer, Channel::Reliable, msg);
+    BroadcastLobby();   // després del ReturnToLobby: el canal fiable manté l'ordre
+    return true;
+}
+
+bool NetworkManager::PopReturnToLobby()
+{
+    const bool r = _returnToLobby;
+    _returnToLobby = false;
+    return r;
 }
