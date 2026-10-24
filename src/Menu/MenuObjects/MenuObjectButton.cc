@@ -17,7 +17,7 @@ void MenuObjectButton::Update(const float deltaTime)
 void MenuObjectButton::Render(const float deltaTime)
 {
 	DrawRectangleLinesEx(_bounds, 1.0f, _isHovered ? GREEN : BLUE);
-	DrawText(_text.c_str(), _bounds.x + 10, _bounds.y + 10, 20, WHITE);
+	DrawText(_text.c_str(), _bounds.x + 3, _bounds.y + 3, 7, WHITE);
 }
 
 bool MenuObjectButton::IsCursorHovering(const float x, const float y, const int cursorIndex) const

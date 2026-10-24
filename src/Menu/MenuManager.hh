@@ -11,6 +11,7 @@
 #include <raylib.h>
 
 #include "InputManager.hh"
+#include "MenuConstants.hh"
 #include "MenuCursor.hh"
 #include "MenuObject.hh"
 #include "MenuObjects/MenuObjectButton.hh"
@@ -31,6 +32,8 @@ public:
 
 	void SetMenuCursorActive(uint8_t playerIndex, bool isActive);
 	void RemoveCursorAndShift(uint8_t removedIndex, uint8_t activeCountBefore);
+
+	void SetCursorPose(uint8_t id, CursorPose pose);
 
 private:
 	std::vector<std::unique_ptr<MenuCursor>> _menuCursors;
