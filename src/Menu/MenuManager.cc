@@ -30,6 +30,18 @@ MenuManager::MenuManager()
 		_pendingMenuObjectInteractions.push_back([cursorIndex] { GameManager::instance->OnLobbyStartPressed(cursorIndex); });
 	};
 
+	for (uint8_t i = 0; i < kPickableLevels; ++i)
+	{
+		_menuObjectsCallbacks["level_pick_" + std::to_string(i)] = [this, i](int cursorIndex)
+		{
+			_pendingMenuObjectInteractions.push_back([cursorIndex, i] { GameManager::instance->OnResultsPickLevel(cursorIndex, i); });
+		};
+	}
+	_menuObjectsCallbacks["results_back"] = [this](int cursorIndex)
+	{
+		_pendingMenuObjectInteractions.push_back([cursorIndex] { GameManager::instance->OnResultsBack(cursorIndex); });
+	};
+
 	LoadMenu("join");
 }
 
@@ -123,6 +135,24 @@ void MenuManager::LoadMenu(const std::string& menuName)
 		_menuObjects.push_back(std::make_unique<MenuObjectButton>(
 			Rectangle{ W * 0.58f, H * 0.58f, W * 0.22f, H * 0.085f },
 			_menuObjectsCallbacks.at("lobby_start"), "Comencar partida"));
+	}
+	else if (menuName == "results")
+	{
+		const float W = kMenuWidth, H = kMenuHeight;
+		static const char* kLevelLabels[kPickableLevels] = { "test_level_online", "test_level" };
+		for (int i = 0; i < kPickableLevels; ++i)
+		{
+			_menuObjects.push_back(std::make_unique<MenuObjectButton>(
+				Rectangle{ W * 0.58f, H * 0.25f + i * H * 0.12f, W * 0.30f, H * 0.085f },
+				_menuObjectsCallbacks.at("level_pick_" + std::to_string(i)), kLevelLabels[i]));
+		}
+	}
+	else if (menuName == "final")
+	{
+		const float W = kMenuWidth, H = kMenuHeight;
+		_menuObjects.push_back(std::make_unique<MenuObjectButton>(
+			Rectangle{ W * 0.58f, H * 0.25f, W * 0.30f, H * 0.085f },
+			_menuObjectsCallbacks.at("results_back"), "Tornar a la sala"));
 	}
 }
 

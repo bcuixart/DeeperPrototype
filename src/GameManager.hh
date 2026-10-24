@@ -71,6 +71,9 @@ public:
 	void OnRoundEndReceived(uint32_t endTick, const std::array<uint16_t, MAX_PLAYERS>& scores);
 	void DrawRoundOverlay() const;
 
+	void OnResultsPickLevel(int slot, uint8_t levelId);
+	void OnResultsBack(int slot);
+
 	static GameManager* instance;
 
 protected:
@@ -102,7 +105,7 @@ private:
 	void ReturnToPlayerSettings();
 
 	void UpdateRoundEndHold();
-	void Update_Results();
+	void Update_Results(const float deltaTime);
 	void PollResultsInput();
 	void HostShowResults();
 	void EnterResultsPhase();
@@ -111,7 +114,10 @@ private:
 	void HostHandleIntent(const GameEventMsg& ev);
 	void ClientHandleEvent(const GameEventMsg& ev);
 	bool IsMyWinner() const;
-	void RenderResults();
+	void DrawResultsPanel() const;
+
+	void UpdateOnlineMenu(const LobbyState& lobby, const float deltaTime);
+	void EnterLobbyPhase();
 
 	std::array<uint8_t, MAX_PLAYERS> BuildSlotInput();
 
@@ -147,6 +153,8 @@ private:
 	uint32_t _phaseTicks = 0;
 	uint32_t _menuTick = 0;
 	std::array<bool, kMaxSlots> _slotGone{};
+
+	bool _nextRoundQueued = false;
 
 	static constexpr uint32_t kRoundEndHoldTicks = 90;
 	static constexpr uint32_t kMinResultsTicks   = 180;

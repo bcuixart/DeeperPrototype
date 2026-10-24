@@ -90,15 +90,17 @@ bool DecodeMatchSummary(ByteReader& r, MatchSummary& out)
     return true;
 }
 
-std::vector<uint8_t> EncodePickLevel(uint8_t levelId)
+std::vector<uint8_t> EncodePickLevel(uint8_t slot, uint8_t levelId)
 {
     ByteWriter w;
+    w.U8(slot);
     w.U8(levelId);
     return w.Data();
 }
 
-bool DecodePickLevel(ByteReader& r, uint8_t& levelId)
+bool DecodePickLevel(ByteReader& r, uint8_t& slot, uint8_t& levelId)
 {
+    slot = r.U8();
     levelId = r.U8();
-    return r.Ok();
+    return r.Ok() && slot < kMaxSlots;
 }

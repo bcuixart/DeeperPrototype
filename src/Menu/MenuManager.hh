@@ -19,6 +19,8 @@
 
 class GameManager;
 
+static constexpr int kPickableLevels = 2;
+
 class MenuManager {
 public:
 	MenuManager();

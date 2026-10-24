@@ -49,8 +49,8 @@ private:
 };
 
 std::vector<uint8_t> EncodeMatchSummary(const MatchSummary& s);
+std::vector<uint8_t> EncodePickLevel(uint8_t slot, uint8_t levelId);
 bool DecodeMatchSummary(ByteReader& r, MatchSummary& out);
-std::vector<uint8_t> EncodePickLevel(uint8_t levelId);
-bool DecodePickLevel(ByteReader& r, uint8_t& levelId);
+bool DecodePickLevel(ByteReader& r, uint8_t& slot, uint8_t& levelId);
 
 #endif
