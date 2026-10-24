@@ -63,6 +63,8 @@ public:
 	float GetTimeScale() const;
 	void SetNetLaunchOptions(const NetLaunchOptions& options) { _netOptions = options; }
 
+	void OnLobbyAdjustOption(int slot, LobbyOption option, int delta);
+
 	void OnLobbyPickDogType(int slot, uint8_t dogType);
 	void OnLobbyStartPressed(int slot);
 

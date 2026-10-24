@@ -26,6 +26,8 @@ public:
     void Leave();
     void Update();   // cridar un cop per frame
 
+    bool HostSetSettings(const LobbySettings& settings);
+
     // Només host, només al lobby. Tanca el lobby i avisa a tothom.
     bool HostStartLevel(const std::string& levelName, uint32_t roundTicks, uint32_t levelHash, uint8_t roundIndex, uint8_t roundCount);
     // Retorna true un cop quan s'ha de començar el nivell (també al host).

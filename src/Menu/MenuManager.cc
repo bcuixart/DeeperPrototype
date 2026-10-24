@@ -18,6 +18,19 @@ MenuManager::MenuManager()
         { "set_dog_type_puppy",  [this](int cursorIndex)  { _pendingMenuObjectInteractions.push_back([cursorIndex]       { GameManager::instance->SetPlayerDogType(cursorIndex, 4); }); } },
     };
 
+	auto addAdjust = [this](const std::string& key, LobbyOption option, int delta)
+	{
+		_menuObjectsCallbacks[key] = [this, option, delta](int cursorIndex)
+		{
+			_pendingMenuObjectInteractions.push_back([cursorIndex, option, delta]
+				{ GameManager::instance->OnLobbyAdjustOption(cursorIndex, option, delta); });
+		};
+	};
+	addAdjust("opt_rounds_dec", LobbyOption::RoundCount, -1);
+	addAdjust("opt_rounds_inc", LobbyOption::RoundCount, +1);
+	addAdjust("opt_secs_dec",   LobbyOption::RoundSeconds, -1);
+	addAdjust("opt_secs_inc",   LobbyOption::RoundSeconds, +1);
+
 	for (uint8_t t = 0; t < kNumDogTypes; ++t)
 	{
 		_menuObjectsCallbacks["lobby_dog_" + std::to_string(t)] = [this, t](int cursorIndex)
@@ -130,6 +143,19 @@ void MenuManager::LoadMenu(const std::string& menuName)
 					Rectangle{ W * 0.58f + (t % 2) * W * 0.11f, H * 0.17f + (t / 2) * H * 0.11f, W * 0.10f, H * 0.085f },
 					_menuObjectsCallbacks.at("lobby_dog_" + std::to_string(t)), kDogNames[t]));
 			}
+		}
+
+		const float bw = W * 0.05f, bh = H * 0.075f;
+		const float bx = W * 0.58f + W * 0.20f;
+		const float rowY[2] = { H * 0.20f, H * 0.32f };
+		const char* decKeys[2] = { "opt_rounds_dec", "opt_secs_dec" };
+		const char* incKeys[2] = { "opt_rounds_inc", "opt_secs_inc" };
+		for (int i = 0; i < 2; ++i)
+		{
+			_menuObjects.push_back(std::make_unique<MenuObjectButton>(
+				Rectangle{ bx, rowY[i], bw, bh }, _menuObjectsCallbacks.at(decKeys[i]), "-"));
+			_menuObjects.push_back(std::make_unique<MenuObjectButton>(
+				Rectangle{ bx + bw + W * 0.01f, rowY[i], bw, bh }, _menuObjectsCallbacks.at(incKeys[i]), "+"));
 		}
 
 		_menuObjects.push_back(std::make_unique<MenuObjectButton>(

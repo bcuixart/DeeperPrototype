@@ -116,6 +116,16 @@ void NetworkManager::Update() {
     }
 }
 
+bool NetworkManager::HostSetSettings(const LobbySettings& settings)
+{
+    if (!_isHost || _state != State::InLobby || !settings.IsValid()) return false;
+    if (settings == _lobby.settings) return true;
+
+    _lobby.settings = settings;
+    BroadcastLobby();
+    return true;
+}
+
 bool NetworkManager::HostStartLevel(const std::string& levelName, uint32_t roundTicks, uint32_t levelHash,
                                     uint8_t roundIndex, uint8_t roundCount) {
     if (!_isHost || (_state != State::InLobby && _state != State::InGame)) return false;

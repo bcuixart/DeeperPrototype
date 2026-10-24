@@ -479,9 +479,10 @@ void GameManager::OnLobbyStartPressed(int slot)
 
 void GameManager::HostStartMatch()
 {
-    _matchManager->Reset(MatchManager::kDefaultRoundCount);
-    _networkManager->HostStartLevel("test_level_online", RoundManager::kDefaultDurationTicks,
-                                    ComputeLevelHash("test_level_online"), 0, _matchManager->Get().roundCount);
+    const LobbySettings& st = _networkManager->GetLobby().settings;
+    _matchManager->Reset(st.roundCount);
+    _networkManager->HostStartLevel("test_level_online", (uint32_t)st.roundSeconds * 60, ComputeLevelHash("test_level_online"),
+                                    0, st.roundCount);
 }
 
 void GameManager::ReturnToPlayerSettings()
@@ -525,6 +526,12 @@ void GameManager::DrawLobbyPanel() const
     }
 
     const int rx = (int)(W * 0.58f);
+
+    const LobbySettings& st = lobby.settings;
+    const Color optColor = _networkManager->IsHost() ? WHITE : GRAY;   // només el host les edita
+    DrawText(TextFormat("Rondes: %d", st.roundCount), rx, (int)(H * 0.22f), fs, optColor);
+    DrawText(TextFormat("Durada: %d s", st.roundSeconds), rx, (int)(H * 0.34f), fs, optColor);
+
     if (_networkManager->IsHost()) DrawText("Comencar: boto o ENTER", rx, (int)(H * 0.68f), fs, GREEN);
     else DrawText("Esperant que el host comenci", rx, (int)(H * 0.68f), fs, GRAY);
 }
@@ -735,8 +742,8 @@ void GameManager::HostStartNextRound(uint8_t levelId)
     if (_nextRoundQueued || levelId >= kOnlineLevelNames.size()) return;
     _nextRoundQueued = true;
     const std::string name = kOnlineLevelNames[levelId];
-    _networkManager->HostStartLevel(name, RoundManager::kDefaultDurationTicks, ComputeLevelHash(name),
-                                    _matchManager->Get().roundIndex + 1, _matchManager->Get().roundCount);
+    _networkManager->HostStartLevel(name, (uint32_t)_networkManager->GetLobby().settings.roundSeconds * 60, ComputeLevelHash(name),
+                                _matchManager->Get().roundIndex + 1, _matchManager->Get().roundCount);
 }
 
 void GameManager::HostBackToLobby()
@@ -887,4 +894,18 @@ void GameManager::DrawResultsPanel() const
         if (IsMyWinner()) DrawText("Tria tu!", rx, (int)(H * 0.50f), fs, GREEN);
         else if (m.roundWinner != kNoWinner) DrawText(TextFormat("Esperant que el Jugador %d triï", m.roundWinner), rx, (int)(H * 0.50f), fs, GRAY);
     }
+}
+
+void GameManager::OnLobbyAdjustOption(int slot, LobbyOption option, int delta)
+{
+    // Només el host edita les opcions: els clients les veuen i veuen el cursor del host, però el seu clic no fa res.
+    if (!_networkManager || !_networkManager->IsHost() || _gameState != GameState::LOBBY) return;
+
+    LobbySettings s = _networkManager->GetLobby().settings;
+    if (option == LobbyOption::RoundCount)
+        s.roundCount = (uint8_t)std::clamp((int)s.roundCount + delta, (int)kMinRounds, (int)kMaxRounds);
+    else
+        s.roundSeconds = (uint16_t)std::clamp((int)s.roundSeconds + delta * 10, (int)kMinRoundSeconds, (int)kMaxRoundSeconds);
+
+    _networkManager->HostSetSettings(s);
 }

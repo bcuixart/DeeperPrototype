@@ -8,7 +8,7 @@
 
 constexpr int      kMaxSlots         = 8;
 constexpr int      kMaxPlayersPerMachine = 4;
-constexpr uint16_t kProtocolVersion  = 11;
+constexpr uint16_t kProtocolVersion  = 12;
 constexpr uint8_t  kNoMachine        = 0xFF;
 constexpr int      kInputRedundancy  = 6;
 constexpr uint32_t kSnapshotInterval = 6;
@@ -17,7 +17,13 @@ constexpr size_t   kMaxEventBytes    = 255;
 constexpr uint8_t  kNumDogTypes      = 5;
 constexpr float    kCursorScale      = 16.0f;
 
-constexpr bool kAllowLobbyDogChange  = true;
+// Lobby options
+constexpr uint8_t  kMinRounds        = 1;
+constexpr uint8_t  kMaxRounds        = 20;
+constexpr uint16_t kMinRoundSeconds  = 10;
+constexpr uint16_t kMaxRoundSeconds  = 180;
+
+constexpr bool kAllowLobbyDogChange  = false;
 
 // A machine represents a single instance of the game running on a computer. Each machine can have multiple players connected to it.
 // The host will always be machine 0.
@@ -30,11 +36,25 @@ struct SlotInfo
     bool operator==(const SlotInfo& o) const { return machineId == o.machineId && dogType == o.dogType; }
 };
 
+struct LobbySettings
+{
+    uint8_t  roundCount   = 3;
+    uint16_t roundSeconds = 20;
+
+    bool IsValid() const
+    {
+        return roundCount >= kMinRounds && roundCount <= kMaxRounds
+            && roundSeconds >= kMinRoundSeconds && roundSeconds <= kMaxRoundSeconds;
+    }
+    bool operator==(const LobbySettings& o) const { return roundCount == o.roundCount && roundSeconds == o.roundSeconds; }
+};
+
 struct LobbyState 
 {
     std::array<SlotInfo, kMaxSlots> slots;
+    LobbySettings settings;
 
-    bool operator==(const LobbyState& o) const { return slots == o.slots; }
+    bool operator==(const LobbyState& o) const { return slots == o.slots && settings == o.settings; }
     bool operator!=(const LobbyState& o) const { return !(*this == o); }
 };
 

@@ -3,11 +3,15 @@
 static void WriteLobby(ByteWriter& w, const LobbyState& lobby) 
 {
     for (const SlotInfo& s : lobby.slots) { w.U8(s.machineId); w.U8(s.dogType); }
+    w.U8(lobby.settings.roundCount);
+    w.U16(lobby.settings.roundSeconds);
 }
 
 static void ReadLobby(ByteReader& r, LobbyState& lobby) 
 {
     for (SlotInfo& s : lobby.slots) { s.machineId = r.U8(); s.dogType = r.U8(); }
+    lobby.settings.roundCount = r.U8();
+    lobby.settings.roundSeconds = r.U16();
 }
 
 /* ENCODING */
@@ -164,7 +168,7 @@ bool DecodeReject(ByteReader& r, RejectReason& out)
 bool DecodeLobbyState(ByteReader& r, LobbyState& out)
 {
     ReadLobby(r, out);
-    return r.Ok();
+    return r.Ok() && out.settings.IsValid();
 }
 
 bool DecodeCursors(ByteReader& r, CursorPacket& out)
@@ -204,6 +208,8 @@ bool DecodeStartLevel(ByteReader& r, LevelStartInfo& out)
         if (!std::isalnum((unsigned char)c) && c != '_' && c != '-') return false;
         out.levelName[i] = c;
     }
+
+    if (!r.Ok() || out.roundCount == 0 || out.roundIndex >= out.roundCount || !out.lobby.settings.IsValid()) return false;
     return r.Ok();
 }
 
