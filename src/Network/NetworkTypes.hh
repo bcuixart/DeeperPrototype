@@ -8,13 +8,16 @@
 
 constexpr int      kMaxSlots         = 8;
 constexpr int      kMaxPlayersPerMachine = 4;
-constexpr uint16_t kProtocolVersion  = 10;
+constexpr uint16_t kProtocolVersion  = 11;
 constexpr uint8_t  kNoMachine        = 0xFF;
 constexpr int      kInputRedundancy  = 6;
 constexpr uint32_t kSnapshotInterval = 6;
 constexpr size_t   kMaxSnapshotBytes = 1000;
 constexpr size_t   kMaxEventBytes    = 255;
 constexpr uint8_t  kNumDogTypes      = 5;
+constexpr float    kCursorScale      = 16.0f;
+
+constexpr bool kAllowLobbyDogChange  = true;
 
 // A machine represents a single instance of the game running on a computer. Each machine can have multiple players connected to it.
 // The host will always be machine 0.
@@ -65,6 +68,19 @@ struct InputPacket
 {
     uint32_t tick = 0;
     std::vector<SlotInputs> slots;
+};
+
+struct CursorState
+{
+    uint8_t  slot = 0;
+    uint16_t x = 0;
+    uint16_t y = 0;
+    uint8_t  pose = 0;
+};
+
+struct CursorPacket
+{
+    std::vector<CursorState> cursors;
 };
 
 #endif

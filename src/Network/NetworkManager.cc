@@ -47,6 +47,7 @@ void NetworkManager::Leave() {
     _myMachineId = kNoMachine;
     _pendingLevelStart.reset();
     _receivedInputs.clear(); 
+    _receivedCursors.clear();
     _events.clear();
     _hasSnapshot = false;
     _returnToLobby = false;
@@ -310,8 +311,12 @@ void NetworkManager::HostHandleMessage(PeerId peer, ByteReader& r) {
     {
         auto it = _machineOfPeer.find(peer);
         uint8_t kind; std::vector<uint8_t> payload;
-        if (_state == State::InGame && it != _machineOfPeer.end() && DecodeGameEvent(r, kind, payload))
+        if ((_state == State::InLobby || _state == State::InGame) && it != _machineOfPeer.end() && DecodeGameEvent(r, kind, payload))
             PushEvent(GameEventMsg{ kind, it->second, std::move(payload) });
+    }
+    else if (type == MsgType::Cursors)
+    {
+        HostHandleCursors(peer, r);
     }
     // Altres missatges d'un peer sense Hello es descarten.
 }
@@ -376,13 +381,19 @@ void NetworkManager::ClientHandleMessage(ByteReader& r) {
     }
     case MsgType::GameEvent: {
         uint8_t kind; std::vector<uint8_t> payload;
-        if (_state == State::InGame && DecodeGameEvent(r, kind, payload))
+        if ((_state == State::InLobby || _state == State::InGame) && DecodeGameEvent(r, kind, payload))
             PushEvent(GameEventMsg{ kind, 0, std::move(payload) });
         break;
     }
     case MsgType::ReturnToLobby:
         if (_state == State::InGame) { _state = State::InLobby; ResetGameBuffers(); _returnToLobby = true; }
         break;
+    case MsgType::Cursors: {
+        CursorPacket packet;
+        if ((_state == State::InLobby || _state == State::InGame) && DecodeCursors(r, packet))
+            PushReceivedCursors(std::move(packet));
+    break;
+}
     default: break;
     }
 }
@@ -468,14 +479,14 @@ void NetworkManager::HostHandleInput(PeerId peer, ByteReader& r)
 
 void NetworkManager::HostBroadcastEvent(uint8_t kind, const std::vector<uint8_t>& payload) 
 {
-    if (!_isHost || _state != State::InGame) return;
+    if (!_isHost || (_state != State::InLobby && _state != State::InGame)) return;
     if (payload.size() > kMaxEventBytes) { printf("[net] ERROR: esdeveniment massa gran\n"); return; }
     SendToAll(Channel::Reliable, EncodeGameEvent(kind, payload));
 }
 
 void NetworkManager::SendEventToHost(uint8_t kind, const std::vector<uint8_t>& payload) 
 {
-    if (_isHost || _state != State::InGame) return;
+    if (_isHost || (_state != State::InLobby && _state != State::InGame)) return;
     if (payload.size() > kMaxEventBytes) { printf("[net] ERROR: esdeveniment massa gran\n"); return; }
     SendTo(_serverPeer, Channel::Reliable, EncodeGameEvent(kind, payload));
 }
@@ -522,6 +533,7 @@ void NetworkManager::HostDropMachine(uint8_t machineId)
 void NetworkManager::ResetGameBuffers()
 {
     _receivedInputs.clear();
+    _receivedCursors.clear();
     _events.clear();
     _inputHistory = {};
     _hasSnapshot = false;
@@ -559,4 +571,57 @@ bool NetworkManager::PopReturnToLobby()
     const bool r = _returnToLobby;
     _returnToLobby = false;
     return r;
+}
+
+void NetworkManager::SendLocalCursors(const std::vector<CursorState>& cursors)
+{
+    if (cursors.empty() || (_state != State::InLobby && _state != State::InGame)) return;
+    CursorPacket packet;
+    packet.cursors = cursors;
+    SendToAll(Channel::Unreliable, EncodeCursors(packet));
+}
+
+bool NetworkManager::PopReceivedCursors(CursorPacket& out)
+{
+    if (_receivedCursors.empty()) return false;
+    out = std::move(_receivedCursors.front());
+    _receivedCursors.pop_front();
+    return true;
+}
+
+void NetworkManager::PushReceivedCursors(CursorPacket&& packet)
+{
+    if (_receivedCursors.size() >= 64) _receivedCursors.pop_front();
+    _receivedCursors.push_back(std::move(packet));
+}
+
+void NetworkManager::HostHandleCursors(PeerId peer, ByteReader& r)
+{
+    if (_state != State::InLobby && _state != State::InGame) return;
+    auto it = _machineOfPeer.find(peer);
+    if (it == _machineOfPeer.end()) return;
+
+    CursorPacket packet;
+    if (!DecodeCursors(r, packet)) return;
+
+    // Només acceptem cursors dels slots que són realment d'aquesta màquina.
+    std::vector<CursorState> valid;
+    for (const CursorState& c : packet.cursors)
+        if (_lobby.slots[c.slot].machineId == it->second) valid.push_back(c);
+    packet.cursors = std::move(valid);
+    if (packet.cursors.empty()) return;
+
+    SendToAll(Channel::Unreliable, EncodeCursors(packet), peer);   // reenviem als altres clients
+    PushReceivedCursors(std::move(packet));
+}
+
+bool NetworkManager::HostSetDogType(uint8_t slot, uint8_t dogType)
+{
+    if (!_isHost || _state != State::InLobby) return false;
+    if (slot >= kMaxSlots || !_lobby.slots[slot].Occupied() || dogType >= kNumDogTypes) return false;
+    if (_lobby.slots[slot].dogType == dogType) return true;
+
+    _lobby.slots[slot].dogType = dogType;
+    BroadcastLobby();
+    return true;
 }

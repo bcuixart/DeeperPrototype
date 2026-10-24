@@ -46,6 +46,23 @@ std::vector<uint8_t> EncodeLobbyState(const LobbyState& lobby)
     return w.Data();
 }
 
+std::vector<uint8_t> EncodeCursors(const CursorPacket& packet)
+{
+    ByteWriter w;
+    w.U8((uint8_t)MsgType::Cursors);
+    const uint8_t n = (uint8_t)std::min<size_t>(packet.cursors.size(), kMaxSlots);
+    w.U8(n);
+    for (uint8_t i = 0; i < n; ++i)
+    {
+        const CursorState& c = packet.cursors[i];
+        w.U8(c.slot);
+        w.U16(c.x);
+        w.U16(c.y);
+        w.U8(c.pose);
+    }
+    return w.Data();
+}
+
 std::vector<uint8_t> EncodeStartLevel(const LevelStartInfo& info) 
 {
     ByteWriter w;
@@ -147,6 +164,24 @@ bool DecodeReject(ByteReader& r, RejectReason& out)
 bool DecodeLobbyState(ByteReader& r, LobbyState& out)
 {
     ReadLobby(r, out);
+    return r.Ok();
+}
+
+bool DecodeCursors(ByteReader& r, CursorPacket& out)
+{
+    const uint8_t n = r.U8();
+    if (!r.Ok() || n > kMaxSlots) return false;
+    out.cursors.clear();
+    for (uint8_t i = 0; i < n; ++i)
+    {
+        CursorState c;
+        c.slot = r.U8();
+        c.x = r.U16();
+        c.y = r.U16();
+        c.pose = r.U8();
+        if (!r.Ok() || c.slot >= kMaxSlots) return false;
+        out.cursors.push_back(c);
+    }
     return r.Ok();
 }
 

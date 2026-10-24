@@ -20,6 +20,7 @@ public:
 	~MenuCursor();
 
 	void ResetCursor();
+	void Configure(int id, CursorSource source, int localIndex, bool active);
 
 	void Update(const float deltaTime);
 	void Render(const float deltaTime);
@@ -38,6 +39,7 @@ public:
 
 	float GetX() const { return _bounds.x; }
 	float GetY() const { return _bounds.y; }
+	void SetPosition(float x, float y) { _bounds.x = x; _bounds.y = y; }
 
 	CursorPose GetPose() const { return _pose; }
 	void SetPose(CursorPose pose) { if (pose < CursorPose::Count) _pose = pose; }

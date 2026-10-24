@@ -49,6 +49,7 @@ void GameManager::Update(const float deltaTime)
 		_menuManager->Update(deltaTime);
 		break;
 	case GameState::LOBBY:
+        Update_Lobby(deltaTime);
 		break;
 	case GameState::LEVEL:
     {
@@ -107,7 +108,7 @@ void GameManager::Render(const float deltaTime)
 		_menuManager->Render(deltaTime);
 		break;
 	case GameState::LOBBY:
-		RenderLobby();
+		_menuManager->Render(deltaTime, [this]() { DrawLobbyPanel(); });
 		break;
 	case GameState::LEVEL:
         for (auto* b : _levelManager->GetNetBodies()) b->DecayRenderOffset(deltaTime);
@@ -239,9 +240,7 @@ void GameManager::StartOnlineLevel(const LevelStartInfo& info)
     if (!_networkManager->IsHost() && ComputeLevelHash(info.levelName) != info.levelHash)
     {
         printf("[net] El nivell '%s' no coincideix amb el del host\n", info.levelName.c_str());
-        LeaveOnline();
-        _levelManager.reset();
-        _gameState = GameState::PLAYER_SETTINGS;
+        ReturnToPlayerSettings();
         return;
     }
 
@@ -321,6 +320,8 @@ void GameManager::EnterOnlineLobby()
         _networkManager->Join(_netOptions.address, _netOptions.port, dogTypes);
     }
 
+    _menuManager->ConfigureLocalCursors(0);
+    _menuManager->LoadMenu("lobby");
     _gameState = GameState::LOBBY;
 }
 
@@ -342,18 +343,11 @@ void GameManager::PollNetwork()
     if (_networkManager->GetState() == NetworkManager::State::Failed)
     {
         printf("[net] %s\n", _networkManager->GetFailReason().c_str());
-        LeaveOnline();
-        _levelManager.reset();
-        _gameState = GameState::PLAYER_SETTINGS;
+        ReturnToPlayerSettings();
         return;
     }
 
-    if (_gameState == GameState::LOBBY && _networkManager->IsHost() && IsKeyPressed(KEY_ENTER))
-    {
-        _matchManager->Reset(MatchManager::kDefaultRoundCount);
-        _networkManager->HostStartLevel("test_level_online", RoundManager::kDefaultDurationTicks,
-                                        ComputeLevelHash("test_level_online"), 0, _matchManager->Get().roundCount);
-    }
+    if (_gameState == GameState::LOBBY && _networkManager->IsHost() && IsKeyPressed(KEY_ENTER)) HostStartMatch();
 
     LevelStartInfo info;
     if (_networkManager->PopLevelStart(info)) StartOnlineLevel(info);
@@ -381,6 +375,13 @@ void GameManager::PollNetwork()
             for (uint8_t k = 0; k < s.count && k <= packet.tick; ++k)
                 _remoteInputs.Store(s.slot, packet.tick - k, s.inputs[k]);
         }
+    }
+
+    CursorPacket cursorPacket;
+    while (_networkManager->PopReceivedCursors(cursorPacket))
+    {
+        if (_gameState != GameState::LOBBY) continue;
+        for (const CursorState& c : cursorPacket.cursors) _menuManager->ApplyRemoteCursor(c);
     }
 
     GameEventMsg ev;
@@ -432,35 +433,90 @@ void GameManager::PollNetwork()
         _clockSync.OnSample(hostTick, _levelTick, rttMs, kFixedDeltaTime);
 }
 
-void GameManager::RenderLobby()
+void GameManager::Update_Lobby(const float deltaTime)
 {
-    BeginDrawing();
-    ClearBackground({ 30, 30, 40, 255 });
+    if (!_networkManager || _networkManager->GetState() != NetworkManager::State::InLobby) return;
 
-    if (_networkManager && _networkManager->GetState() == NetworkManager::State::Connecting)
+    _menuManager->ConfigureOnlineCursors(_networkManager->GetLobby(), _networkManager->GetMyMachineId());
+    _menuManager->ReceiveInput(_inputManager->GetMenuInput(_playerInfo));
+    _menuManager->Update(deltaTime);
+
+    // Les posicions dels nostres cursors, a 30 Hz.
+    if ((_menuTick++ & 1) == 0)
     {
-        DrawText("Connectant...", 40, 40, 30, WHITE);
+        std::vector<CursorState> mine;
+        _menuManager->CollectLocalCursors(mine);
+        _networkManager->SendLocalCursors(mine);
     }
-    else if (_networkManager)
-    {
-        DrawText(_networkManager->IsHost() ? "Sala (host)" : "Sala", 40, 40, 30, WHITE);
+}
 
-        const LobbyState& lobby = _networkManager->GetLobby();
-        for (int s = 0; s < MAX_PLAYERS; s++)
+void GameManager::OnLobbyPickDogType(int slot, uint8_t dogType)
+{
+    if (!kAllowLobbyDogChange) return;
+    if (!_networkManager || _gameState != GameState::LOBBY) return;
+    if (slot < 0 || slot >= kMaxSlots || dogType >= kNumDogTypes) return;
+
+    if (_networkManager->IsHost()) _networkManager->HostSetDogType((uint8_t)slot, dogType);
+    else _networkManager->SendEventToHost((uint8_t)LobbyEvent::SetDogType, EncodeSetDogType((uint8_t)slot, dogType));
+}
+
+void GameManager::OnLobbyStartPressed(int slot)
+{
+    // Només el host pot començar. (Els clients no envien res: ni tan sols és una intenció.)
+    if (!_networkManager || !_networkManager->IsHost() || _gameState != GameState::LOBBY) return;
+    HostStartMatch();
+}
+
+void GameManager::HostStartMatch()
+{
+    _matchManager->Reset(MatchManager::kDefaultRoundCount);
+    _networkManager->HostStartLevel("test_level_online", RoundManager::kDefaultDurationTicks,
+                                    ComputeLevelHash("test_level_online"), 0, _matchManager->Get().roundCount);
+}
+
+void GameManager::ReturnToPlayerSettings()
+{
+    LeaveOnline();
+    _levelManager.reset();
+    _menuManager->LoadMenu("join");
+    _menuManager->ConfigureLocalCursors(_playersActive);
+    _gameState = GameState::PLAYER_SETTINGS;
+}
+
+void GameManager::DrawLobbyPanel() const
+{
+    if (!_networkManager) return;
+
+    const float W = kMenuWidth, H = kMenuHeight;
+    const int fs = std::max(8, (int)(H * 0.033f));   // lletra de la llista
+    const int titleSize = fs * 3 / 2;
+    const int left = (int)(W * 0.03f);
+
+    if (_networkManager->GetState() == NetworkManager::State::Connecting)
+    {
+        DrawText("Connectant...", left, (int)(H * 0.05f), titleSize, WHITE);
+        return;
+    }
+
+    DrawText(_networkManager->IsHost() ? "Sala (host)" : "Sala", left, (int)(H * 0.05f), titleSize, WHITE);
+
+    const LobbyState& lobby = _networkManager->GetLobby();
+    for (int s = 0; s < MAX_PLAYERS; s++)
+    {
+        const SlotInfo& slot = lobby.slots[s];
+        const int y = (int)(H * 0.15f + s * fs * 1.6f);
+        if (slot.Occupied())
         {
-            const SlotInfo& slot = lobby.slots[s];
-            if (slot.Occupied())
-            {
-                const bool mine = slot.machineId == _networkManager->GetMyMachineId();
-                DrawText(TextFormat("Slot %d - maquina %d - gos %d%s", s, slot.machineId, slot.dogType, mine ? "  (tu)" : ""),
-                    40, 100 + s * 30, 20, mine ? YELLOW : WHITE);
-            }
-            else DrawText(TextFormat("Slot %d - buit", s), 40, 100 + s * 30, 20, GRAY);
+            const bool mine = slot.machineId == _networkManager->GetMyMachineId();
+            DrawText(TextFormat("Slot %d - maquina %d - gos %d%s", s, slot.machineId, slot.dogType, mine ? "  (tu)" : ""),
+                left, y, fs, mine ? YELLOW : WHITE);
         }
-        if (_networkManager->IsHost()) DrawText("ENTER: comencar partida", 40, 100 + MAX_PLAYERS * 30 + 20, 20, GREEN);
+        else DrawText(TextFormat("Slot %d - buit", s), left, y, fs, GRAY);
     }
 
-    EndDrawing();
+    const int rx = (int)(W * 0.58f);
+    if (_networkManager->IsHost()) DrawText("Comencar: boto o ENTER", rx, (int)(H * 0.68f), fs, GREEN);
+    else DrawText("Esperant que el host comenci", rx, (int)(H * 0.68f), fs, GRAY);
 }
 
 void GameManager::SimulateTick(const std::array<uint8_t, MAX_PLAYERS>& slotInput, float deltaTime)
@@ -680,6 +736,17 @@ void GameManager::HostHandleIntent(const GameEventMsg& ev)
         if (w == kNoWinner || _networkManager->GetLobby().slots[w].machineId != ev.fromMachine) return;
 
         HostStartNextRound(levelId);
+        return;
+    }
+
+    if (kAllowLobbyDogChange && (LobbyEvent)ev.kind == LobbyEvent::SetDogType && _gameState == GameState::LOBBY)
+    {
+        uint8_t slot, dogType;
+        if (!DecodeSetDogType(r, slot, dogType)) return;
+
+        if (_networkManager->GetLobby().slots[slot].machineId != ev.fromMachine) return;
+
+        _networkManager->HostSetDogType(slot, dogType);
         return;
     }
 

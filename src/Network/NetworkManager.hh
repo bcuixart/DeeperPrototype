@@ -37,6 +37,11 @@ public:
     void SendLocalInputs(uint32_t tick, const std::vector<uint8_t>& mySlots, const std::array<uint8_t, kMaxSlots>& slotInput);
     bool PopReceivedInput(InputPacket& out);
     int GetRttMs() const;
+
+    void SendLocalCursors(const std::vector<CursorState>& cursors);
+    bool PopReceivedCursors(CursorPacket& out);
+
+    bool HostSetDogType(uint8_t slot, uint8_t dogType);
     
     void SetLocalTick(uint32_t tick) { _localTick = tick; }
     void SendTimePing();
@@ -77,6 +82,10 @@ private:
     void SendToAll(Channel ch, const std::vector<uint8_t>& msg, PeerId except = kInvalidPeer);
     void HostHandleInput(PeerId peer, ByteReader& r);
     void PushReceivedInput(InputPacket&& packet);
+
+    void HostHandleCursors(PeerId peer, ByteReader& r);
+    void PushReceivedCursors(CursorPacket&& packet);
+    std::deque<CursorPacket> _receivedCursors;
 
     void PushEvent(GameEventMsg&& ev);
     std::deque<GameEventMsg> _events;

@@ -18,6 +18,7 @@
 #include "Level/RoundManager.hh"
 #include "Level/MatchManager.hh"
 #include "Menu/MenuManager.hh"
+#include "Menu/LobbyEvents.hh"
 #include "Utils/DeterministicRNG.hh"
 
 using namespace std;
@@ -62,6 +63,9 @@ public:
 	float GetTimeScale() const;
 	void SetNetLaunchOptions(const NetLaunchOptions& options) { _netOptions = options; }
 
+	void OnLobbyPickDogType(int slot, uint8_t dogType);
+	void OnLobbyStartPressed(int slot);
+
 	void OnScore(uint8_t slot, int points);
 	void AnnounceRoundEnd();
 	void OnRoundEndReceived(uint32_t endTick, const std::array<uint16_t, MAX_PLAYERS>& scores);
@@ -92,7 +96,10 @@ private:
 	void StartOnlineLevel(const LevelStartInfo& info);
 	void BeginLevel(const std::string& levelName, const LevelPlayers& players, uint32_t seed, uint32_t roundTicks);
 
-	void RenderLobby();
+	void Update_Lobby(const float deltaTime);
+	void DrawLobbyPanel() const;
+	void HostStartMatch();
+	void ReturnToPlayerSettings();
 
 	void UpdateRoundEndHold();
 	void Update_Results();
@@ -138,6 +145,7 @@ private:
 	bool _playerSelectedStartGame = false;
 
 	uint32_t _phaseTicks = 0;
+	uint32_t _menuTick = 0;
 	std::array<bool, kMaxSlots> _slotGone{};
 
 	static constexpr uint32_t kRoundEndHoldTicks = 90;

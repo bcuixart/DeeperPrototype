@@ -29,6 +29,11 @@ void MenuCursor::ResetCursor()
 	_hasRemoteTarget = false;
 }
 
+void MenuCursor::Configure(int id, CursorSource source, int localIndex, bool active)
+{
+	_id = id; _source = source; _localIndex = localIndex; _isActive = active; _hasRemoteTarget = false;
+}
+
 void MenuCursor::Update(const float deltaTime)
 {
 	if (!_isActive) return;
@@ -87,7 +92,7 @@ void MenuCursor::Update(const float deltaTime)
 
 		SetPose(_poseChoice);
 
-		if (!_input & BITMASK_MENU_SELECT && !_input & BITMASK_MENU_SECONDARY)
+		if (!(_input & BITMASK_MENU_SELECT) && !(_input & BITMASK_MENU_SECONDARY))
 		{
 			_pose = _poseChoice;
 			_choosingPoseTimer = 0.0f;

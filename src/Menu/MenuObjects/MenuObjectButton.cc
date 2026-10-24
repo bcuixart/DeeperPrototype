@@ -2,6 +2,7 @@
 
 MenuObjectButton::MenuObjectButton(const Rectangle& bounds, Callback onInteractCallback, const std::string& text) : _bounds(bounds), _onInteractCallback(std::move(onInteractCallback)), _text(text)
 {
+	_isHovered = false;
 }
 
 MenuObjectButton::~MenuObjectButton()
