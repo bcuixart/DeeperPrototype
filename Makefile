@@ -41,7 +41,7 @@ TRANSPORT_SRC := $(NET_DIR)/Transport/EnetTransport.cc \
 PROTOCOL_SRC  := $(NET_DIR)/Protocol/ByteStream.cc \
                  $(NET_DIR)/Protocol/NetworkProtocol.cc
 
-network_tests: nettest.exe lobbytest.exe
+network_tests: nettest.exe lobbytest.exe fuzztest.exe
 
 nettest.exe: $(NET_DIR)/Tests/NetTest.cc \
              $(NET_DIR)/Protocol/ByteStream.cc \
@@ -51,6 +51,13 @@ nettest.exe: $(NET_DIR)/Tests/NetTest.cc \
 lobbytest.exe: $(NET_DIR)/Tests/LobbyTest.cc \
                $(NET_DIR)/NetworkManager.cc \
                $(PROTOCOL_SRC) $(TRANSPORT_SRC)
+	$(CXX) $(NET_FLAGS) -o $@ $^ $(NET_LIBS)
+
+fuzztest.exe: $(NET_DIR)/Tests/FuzzTest.cc \
+              $(NET_DIR)/Protocol/ByteStream.cc \
+              $(SRC_DIR)/Level/MatchManager.cc \
+              $(SRC_DIR)/Level/RoundManager.cc \
+              $(PROTOCOL_SRC) $(TRANSPORT_SRC)
 	$(CXX) $(NET_FLAGS) -o $@ $^ $(NET_LIBS)
 
 -include $(DEP)

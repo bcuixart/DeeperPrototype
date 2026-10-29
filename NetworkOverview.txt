@@ -1,300 +1,411 @@
-HOTDOG FEST - NETWORKING OVERVIEW
-=================================
+HOTDOG FEST - VISIÓ GENERAL DE LA XARXA
+Protocol versió 12
 
-Goal: online multiplayer, up to 8 players, one host who is also a normal player.
-Casual game, friends at low ping first, public lobbies later. Not over-engineered.
-This file explains how the networking code is organised so it is easy to pick up again.
-
-Current state (protocol version 9):
-  lobby, level start, input exchange, clock sync, host snapshots with rollback/replay
-  reconciliation, sand sync, provenance-based scoring, timed rounds, disconnects in game.
-  NOT done: online menus (cursors, between-rounds menu).
+Aquest document descriu com funciona el multijugador en línia: capes, missatges, simulació, correcció d'errors,
+fases de la partida, robustesa i limitacions conegudes. Al final hi ha una recepta per afegir coses noves i una
+llista de punts a verificar contra el codi (alguns detalls els he deduït i no els he vist en la versió final).
 
 
-1. FOLDER STRUCTURE
--------------------
+================================================================
+1. OBJECTIUS I DECISIONS DE DISSENY
+================================================================
 
-src/Network/
-    Transport/
-        ITransport.hh            Generic transport interface + PeerId, Channel, NetEvent
-        EnetTransport.hh/.cc     ITransport implemented with ENet
-        LagSimTransport.hh/.cc   Decorator over any ITransport: latency, jitter, packet loss
-    Protocol/
-        ByteStream.hh/.cc        ByteWriter / ByteReader: values <-> bytes
-        NetworkProtocol.hh/.cc   Game messages: MsgType, Encode*/Decode* functions
-    NetworkManager.hh/.cc        The only thing the game talks to
-    NetworkTypes.hh              Shared plain data and constants (see section 3)
-    RemoteInputBuffer.hh/.cc     Inputs received from other slots, indexed by tick
-    ClockSync.hh/.cc             Keeps the client's tick ahead of the host's
-
-src/Level/
-    LevelNetworkSync.hh/.cc      Snapshot building, history, rollback + replay
-    NetworkLevelObjectDynEntState.hh   Per-object state sent in snapshots
-    RoundManager.hh/.cc          Round timer, scores, round end (host authority)
-
-    Tests/ (standalone executables, not part of the game)
-        NetTest.cc               Raw transport roundtrip
-        LobbyTest.cc             NetworkManager lobby test: --host [n] | --join [address] [n]
+- Joc casual per a fins a 8 jugadors. Un host que també juga com a jugador normal. Amics amb baix ping primer;
+  lobbies públics i Steam més endavant.
+- Topologia en estrella: tots els clients parlen només amb el host. El host fa de relé entre clients.
+- Simulació DETERMINISTA a pas fix (60 Hz). Tothom simula el món localment. Només viatgen els inputs i, de tant
+  en tant, instantànies (snapshots) de l'estat del host per corregir deriva.
+- El host és l'AUTORITAT: decideix punts, final de ronda, guanyadors, quin nivell va a continuació. Els clients
+  envien INTENCIONS (per exemple "vull triar el nivell 1") i el host les valida. Mai es fia del que diu un client.
+- Els clients van PER DAVANT del host en el temps (ClockSync), perquè els seus inputs arribin al host a temps.
+- Casual i no competitiu: no hi ha anti-trampes seriosos. Sí que hi ha validació per robustesa (un paquet dolent
+  no ha de fer petar ningú).
 
 
-2. LAYERS AND DEPENDENCY RULES
-------------------------------
+================================================================
+2. CAPES
+================================================================
 
-    Game  ->  NetworkManager  ->  NetworkProtocol / ByteStream
-                              ->  ITransport  ->  EnetTransport (or LagSimTransport -> EnetTransport)
+  GameManager (fases, menús, nivell)        src/GameManager.*
+      |
+  NetworkManager (estat, lobby, peers)      src/Network/NetworkManager.*
+      |
+  Protocol (ByteWriter/ByteReader + msgs)   src/Network/Protocol/*
+      |
+  ITransport                                src/Network/Transport/*
+      |-- EnetTransport   (UDP, ENet; canal 0 fiable, canal 1 no fiable)
+      |-- LagSimTransport (decorador: simula latència, jitter, pèrdua, duplicats, frenades)
+      '-- SteamTransport  (futur)
 
-Rules (they keep the code replaceable):
-  - Transport knows NOTHING about the game or the protocol. It only moves byte arrays.
-  - Protocol knows NOTHING about the transport. It only converts messages <-> bytes.
-  - NetworkManager is the only place that uses both. It does not know game event kinds.
-  - The game only includes NetworkManager.hh and NetworkTypes.hh.
-  - enet/enet.h is included ONLY in EnetTransport.cc (it pulls in windows.h/winsock2.h,
-    which clash with raylib). EnetTransport.cc must never include raylib.
-  - Anything received from the network is untrusted: decoders check ByteReader::Ok() and
-    the host validates contents.
-
-Transport layer
-  ITransport: StartHost, Connect, Disconnect, Send, Poll, GetRttMs.
-  - Peers identified by PeerId (uint16). On the client, the server is one peer.
-  - Two channels: Reliable (ordered, retransmitted) and Unreliable (inputs, snapshots, pings).
-  - EnetTransport: channel 0 = reliable, channel 1 = unreliable.
-  - LagSimTransport only delays OUTGOING packets, so with both sides using it RTT is about
-    2 x latency. Loss only affects the Unreliable channel. Reliable packets and Disconnect keep
-    their relative order. Needs Poll() to release delayed packets.
-  - A future SteamTransport must implement the same interface.
+Altres peces de xarxa:
+  - ClockSync            quant ha d'anar de ràpid el rellotge del client.
+  - RemoteInputBuffer    inputs rebuts dels altres jugadors i predicció.
+  - LevelNetworkSync     historial de frames, snapshots, rollback i reproducció.
+  - RoundManager         puntuació i final de la ronda (autoritat al host).
+  - MatchManager         resum de la partida (rondes, guanyadors), decideix el guanyador.
+  - LobbyEvents.hh       esdeveniments i opcions del lobby.
 
 
-3. MACHINES, SLOTS, CONSTANTS (NetworkTypes.hh)
------------------------------------------------
+================================================================
+3. CONSTANTS PRINCIPALS (NetworkTypes.hh i altres)
+================================================================
 
-  - A "machine" is one connected computer. machineId 0 is always the host.
-  - A machine owns 1..4 slots (kMaxPlayersPerMachine). At most 8 slots (kMaxSlots == MAX_PLAYERS).
-  - Slot numbers are global and identical on every machine.
-  - kInputRedundancy = 6, kSnapshotInterval = 6 ticks, kMaxSnapshotBytes = 1000,
-    kMaxEventBytes = 255, kNoMachine = 0xFF, kProtocolVersion = 9, kNumDogTypes = 5.
-  - Bump kProtocolVersion whenever a message layout changes (Hello rejects mismatches).
+  kProtocolVersion       12      pujar-la SEMPRE que canvia un missatge
+  kMaxSlots              8       = MAX_PLAYERS (hi ha un static_assert)
+  kMaxPlayersPerMachine  4
+  kInputRedundancy       6       cada paquet d'input porta els últims 6 ticks per slot
+  kSnapshotInterval      6       el host envia un snapshot cada 6 ticks (i quan canvia la sorra)
+  kMaxSnapshotBytes      1000
+  kMaxEventBytes         255
+  kNumDogTypes           5
+  kNumCursorPoses        10
+  kCursorScale           16.0    els cursors viatgen com a u16 en 1/16 d'unitat de canvas
+  kAllowLobbyDogChange   false   deshabilita el canvi de gos al lobby (UI i handler del host)
 
+  Opcions de lobby (LobbySettings):
+    roundCount    1..20   (per defecte 3)
+    roundSeconds  10..180 (per defecte 20; la UI el mou de 10 en 10)
 
-4. MESSAGES (NetworkProtocol)
------------------------------
-
-  Every message starts with 1 byte = MsgType.
-
-    Hello      client -> host   reliable    u16 version, local dog types (each < kNumDogTypes)
-    Welcome    host -> client   reliable    u8 machineId
-    Reject     host -> client   reliable    u8 reason (VersionMismatch, LobbyFull, BadRequest)
-    LobbyState host -> clients  reliable    per slot: machineId + dogType
-    StartLevel host -> clients  reliable    lobby, u32 spawnSeed, u32 roundTicks, u32 levelHash,
-                                            level name (only [A-Za-z0-9_-], validated on decode)
-    Input      both ways        unreliable  tick + per slot the last 6 inputs (redundancy)
-    TimePing   client -> host   unreliable  client timestamp
-    TimePong   host -> client   unreliable  host tick + echoed timestamp (gives RTT + host tick)
-    Snapshot   host -> clients  unreliable  u32 tick + u16 len + bytes (see section 7)
-    GameEvent  both ways        reliable    u8 kind + u8 len + bytes (see section 9)
-
-  GameEvent is generic: NetworkManager only moves {kind, bytes}. Game code defines kinds
-  (enum RoundEvent in RoundManager.hh: ScoreChanged = 1, RoundEnd = 2, PlayerLeft = 3).
-  Host -> everyone: HostBroadcastEvent. Client -> host (an INTENT, host validates):
-  SendEventToHost. Host reads them with PopEvent (includes fromMachine).
+  Temps:
+    Tick fix: kFixedDeltaTime (60 Hz). Màxim de temps per frame: kMaxFrameTime = 1/20 s.
+    Keepalive del client: un TimePing cada kKeepAliveMs = 1000 ms, en InGame.
+    Silenci màxim d'una màquina: kSilenceTimeoutMs = 10000 ms (el host la treu si no sent res).
+    Peer sense Hello: kHelloTimeoutMs = 3000 ms.
+    Timeouts d'ENet: per defecte (límit 32, mínim 5000 ms, màxim 30000 ms). Vegeu la secció 14.
 
 
-5. CONNECTION FLOW
-------------------
+================================================================
+4. TRANSPORT I CANALS
+================================================================
 
-  Client: Join() -> Connecting -> transport Connected -> sends Hello
-  Host:   Hello -> validates -> allocates slots -> Welcome -> broadcasts LobbyState
-  Client: Welcome -> InLobby; LobbyState -> updates lobby
-  Host presses ENTER: HostStartLevel(name, roundTicks, levelHash) -> StartLevel to everyone, state InGame.
-  Each client hashes its own level file (ComputeLevelHash in GameManager.cc, FNV-1a, ignoring
-  '\r') and leaves with a message if it differs from the host's. Its dog then turns grey.
-  A peer that connects but does not send a valid Hello within kHelloTimeoutMs (3 s) is kicked.
-  A Hello with a dogType >= kNumDogTypes is rejected (BadRequest).
-  Rejected: Reject, then disconnect; client goes to Failed with the reason.
-  Client leaves in lobby: host frees its slots, broadcasts LobbyState.
-  Host leaves: clients go to Failed ("host closed the room") and return to the menu.
-  Joining a level that already started is rejected on purpose. There is no re-entry.
+  Reliable    = canal ENet 0 (fiable i ordenat).
+  Unreliable  = canal ENet 1 (no fiable).
 
-  NetworkManager states: Idle, Connecting, InLobby, InGame, Failed.
+  Fiables: Hello, Welcome, Reject, LobbyState, StartLevel, GameEvent, ReturnToLobby.
+  No fiables: Input, TimePing, TimePong, Snapshot (i els cursors; vegeu la secció 15).
+
+  PeerId = incomingPeerID d'ENet. El decorador LagSimTransport retarda NOMÉS el que envia la seva pròpia instància;
+  si les dues bandes el fan servir, el ping real és el doble de latencyMs.
 
 
-6. DETERMINISM AND THE TICK LOOP
---------------------------------
+================================================================
+5. FORMAT DELS MISSATGES
+================================================================
 
-  The level is simulated on EVERY machine with the same fixed timestep (1/60 s). Rules:
-  - Only the fixed timestep drives the simulation (accumulator in main.cc, scaled by
-    GetTimeScale). Never use GetFrameTime / GetTime / GetRandomValue inside the simulation.
-  - Randomness: DeterministicRng / DeterministicShuffle, seeded by the host's spawnSeed.
-  - Objects are created in the same order everywhere (dogs by ascending slot). The order of
-    LevelManager::_levelObjects is the identity of an object in snapshots.
-  - IsKeyPressed and similar are frame-level only: read them once per render frame, never
-    inside the fixed loop. PollNetwork() runs once per render frame, before the fixed loop.
-  - Check for violations with:
-      grep -rnE "GetTime\(|GetFrameTime|GetRandomValue|rand\(|IsKey|IsGamepad|std::chrono" src/
+Tot en little-endian. Primer byte = MsgType. Els decoders retornen false si el paquet és curt o invàlid.
 
-  Per tick order: LevelManager::Update (every object's Update) -> PhysicsManager::Update
-  (reset grounded, gravity, force fields, move/resolve X then Y, overlaps).
+  MsgType: Hello=1, Welcome=2, Reject=3, LobbyState=4, Cursors=5, StartLevel=6, Input=7,
+           TimePing=8, TimePong=9, Snapshot=10, GameEvent=11, ReturnToLobby=12
 
-  Tick numbering is shared: client tick N means host tick N.
+  Hello        (client->host)  u16 versió | u8 n | n x u8 dogType        (n <= 4, dogType < kNumDogTypes)
+  Welcome      (host->client)  u8 machineId
+  Reject       (host->client)  u8 motiu: 1 VersionMismatch, 2 LobbyFull, 3 BadRequest, 4 GameInProgress
+                               (un motiu desconegut es llegeix com a BadRequest)
+  LobbyState   (host->tots)    8 x (u8 machineId, u8 dogType) | u8 roundCount | u16 roundSeconds
+  Cursors      (tots)          u8 n | n x (u8 slot, u16 x, u16 y, u8 pose)
+  StartLevel   (host->clients) lobby (com a LobbyState) | u32 seed | u32 roundTicks | u32 levelHash |
+                               u8 roundIndex | u8 roundCount | u8 len | nom (alfanumèric, '_' o '-')
+  Input        (tots)          u32 tick | u8 nSlots | per slot: u8 slot, u8 count, count x u8 input
+                               (inputs[0] = tick, inputs[1] = tick-1, ...)
+  TimePing     (client->host)  u32 sentMs
+  TimePong     (host->client)  u32 echoMs | u32 hostTick
+  Snapshot     (host->clients) u32 tick | u16 mida | blob (mida <= 1000)
+  GameEvent    (tots)          u8 kind | u8 len | payload (len <= 255)
+  ReturnToLobby (host->clients) sense dades
 
+Esdeveniments (GameEvent.kind; comparteixen un únic espai de números, el següent lliure és el 7):
+  1 ScoreChanged   host->clients  u8 slot | u16 puntuació ABSOLUTA (si es repeteix, no passa res)
+  2 RoundEnd       host->clients  u32 endTick | 8 x u16 puntuacions
+  3 PlayerLeft     host->clients  u8 slot
+  4 Summary        host->clients  MatchSummary (rondes, guanyador de ronda i partida, masks, puntuacions)
+  5 PickLevel      client->host   u8 slot | u8 levelId           (INTENCIÓ)
+  6 SetDogType     client->host   u8 slot | u8 dogType           (INTENCIÓ; només si kAllowLobbyDogChange)
 
-7. INPUTS, CLOCK SYNC, SNAPSHOTS AND ROLLBACK
----------------------------------------------
-
-Inputs
-  - Level input byte: bit0 jump, bit1 dig, bit2 bark, bits 3-7 X axis (centre 16).
-    Neutral = kNeutralLevelInput (16 << 3).
-  - Every machine sends its slots' inputs each tick (unreliable, last 6 inputs per packet).
-  - RemoteInputBuffer::Get(slot, tick, neutral, &exact): ring of 64, looks back 8 ticks,
-    repeats the last known input, neutral after 30 ticks without news. It NEVER waits.
-  - Local slots use their own input immediately (local feel is always instant).
-
-Clock sync (ClockSync)
-  - Client estimates RTT from TimePing/TimePong and runs ahead of the host by RTT_ticks + 2.
-  - So the host sees client inputs exactly (they arrive before the host reaches that tick),
-    while the client always sees the host's inputs ~RTT late and PREDICTS them.
-    "remote inputs not exact: 120/120" in the debug print is normal on a client.
-
-Snapshots (host -> clients, unreliable)
-  - Every kSnapshotInterval ticks, plus an immediate extra one when sand changes.
-  - Content: state of ALL net bodies after tick T + the sand-broken bitset.
-  - Body state (NetworkLevelObjectDynEntState): x, y, vx, vy, mode, flags, aux, cause, depth,
-    t0..t3. Meaning of flags/aux/t0..t3 depends on the object type (dog, ball, hydrant);
-    see NetGet / NetSet of each class. WriteBody/ReadBody keep the field order.
-  - Bodies are the objects whose NetGet() returns true, in creation order. Sand tiles are not
-    bodies: they travel as a bitset over the row-major list of 'S' tiles.
-  - Slopes are NOT synced (their behaviour follows from the dog snapshots).
-
-Rollback + replay (LevelNetworkSync, client only)
-  - The client keeps a 64-tick history of {tick, bodies, sand}.
-  - On a snapshot for tick T it compares the host's state at T with its own history at T.
-    If a body differs (pos > 0.02, vel > 0.1, mode or flags) or sand differs, it ADOPTS the
-    host's state at T and re-simulates T+1..latest with ReplayTick, re-recording history.
-    Replay re-queries remote inputs with whatever fresher information arrived.
-  - L - T is constant (about 8 ticks). Errors of 1-2 tiles at ~100 ms RTT are inherent
-    prediction errors (speed x lag) and are expected.
-  - ALL state that affects future simulation must be in the rollback set (NetGet/NetSet):
-    dogs, ball, hydrant (restored through Activate/Deactivate). That includes carried state
-    like _isGrounded and surface type, jump/coyote timers and the *Prev inputs.
-    If you add a dynamic object or a new field that changes behaviour, add it to NetGet/NetSet
-    and check that "[rollback]" lines stay quiet when idle.
-  - Rendering side effects (sounds, particles) triggered in Update would be repeated during
-    replay. If that becomes a problem add a "replaying" flag.
-
-Visual smoothing
-  - Rollback moves objects instantly. To avoid snapping, every LevelObject has a render-only
-    _renderOffset: after a snapshot is applied, (old position - new position) is added to it
-    and it decays exponentially (kRenderOffsetDecay = 12 /s, about 80 ms). Jumps above 4 tiles
-    are not smoothed. Dog::Render adds the offset. Other objects can do the same.
+Validacions que fan els decoders (resum): comptes màxims, slot < kMaxSlots, pose < kNumCursorPoses,
+dogType < kNumDogTypes als slots ocupats, opcions del lobby en rang, roundIndex < roundCount, nom de nivell amb
+caràcters segurs (no es pot escapar de la carpeta), mida del snapshot <= kMaxSnapshotBytes.
 
 
-8. AUTHORITY AND SCORING
-------------------------
+================================================================
+6. ESTATS DEL NETWORKMANAGER
+================================================================
 
-Authority rule
-  - The host decides. Offline behaves like a host.
-  - Client applies a sand break immediately only if the CAUSE of the break is one of its own
-    slots (LevelManager::CanApplyBreak(cause)). Otherwise it waits for the host's sand bitset
-    in the next snapshot. Hydrants and balls need no special rule: rollback self-heals them.
+  Idle -> Connecting -> InLobby -> InGame -> (torna a InLobby amb ReturnToLobby)
+  Qualsevol estat -> Failed (amb un motiu de text) -> GameManager::ReturnToPlayerSettings().
 
-Provenance (who is responsible for an interaction)
-  - Every LevelObject has GetCauseSlot() (kNoCause = 0xFF) and GetChainDepth().
-  - Dog: cause = its own slot, depth 0. Ball kicked by a dog: cause = dog, depth + 1.
-    Hydrant: Activate(cause) -> depth + 1 (also when dug). Water forwards its hydrant's
-    cause. A ball inside a force field takes the field's cause, depth + 1 (re-stamped each tick).
-  - Points = basePoints + cause->GetChainDepth() (sand base = 1), so the number of steps in the
-    chain is the score: dig = 1, kicked ball hits sand = 2, ball launched by a dug hydrant = 3,
-    ball launched by a hydrant activated by a ball you kicked = 4.
-  - Balls forget their cause when they have completely stopped (grounded and almost no speed).
-  - Dogs flung by an interaction should borrow the cause (planned, see section 11).
-
-Rounds (RoundManager)
-  - durationTicks is carried in StartLevel. Time end is deterministic: endTick.
-  - Only host/offline award points (LevelManager::NotifyScore -> GameManager::OnScore).
-    The host broadcasts ScoreChanged with ABSOLUTE scores (idempotent). Clients just display.
-  - The host can end early with EndEarly (e.g. last bone taken). It broadcasts RoundEnd
-    {endTick, scores} once. A client freezes at its own tick >= endTick; if it overshot it
-    RestoreTo(endTick - 1) and sets its level tick to endTick.
-  - Known limitation: at a time-based end the client's final picture is predicted.
+API principal (cridada des del GameManager):
+  Host(port, dogTypes) / Join(adreça, port, dogTypes) / Leave() / Update()
+  HostStartLevel(nom, roundTicks, levelHash, roundIndex, roundCount)   des de lobby o entre rondes
+  HostReturnToLobby() / PopReturnToLobby()
+  HostSetSettings(LobbySettings)   només host, només al lobby, valida i difon
+  HostSetDogType(slot, dogType)    només al lobby (si està permès)
+  HostDropMachine / PopLeftSlot
+  SendLocalInputs / PopReceivedInput
+  SendTimePing / PopTimePong
+  HostSendSnapshot / PopSnapshot
+  HostBroadcastEvent / SendEventToHost / PopEvent
+  SendLocalCursors / PopReceivedCursors
+  PopLevelStart, GetLobby, GetMySlots, GetMyMachineId, GetRttMs
 
 
-9. DISCONNECTS IN GAME
-----------------------
+================================================================
+7. MÀQUINES I SLOTS
+================================================================
 
-  - Client leaves cleanly: ENet reports Disconnected. Client crashes or cable pulled: the host
-    watchdog (kSilenceTimeoutMs = 4 s without ANY message from a machine in InGame) drops it.
-  - NetworkManager::HostDropMachine removes the peer, keeps the lobby slots (dog stays in the
-    level and keeps its score) and queues the slots in _leftSlots (PopLeftSlot).
-  - GameManager broadcasts GameEvent RoundEvent::PlayerLeft (3, payload = slot). Everyone calls
-    LevelManager::SetSlotGone -> the dog is drawn grey. _isGone is visual only.
-  - The gone dog receives neutral inputs automatically (RemoteInputBuffer). No tick has to be
-    announced: any tiny difference between machines is fixed by snapshots.
-  - Host leaves: every client goes to Failed and back to the menu.
-
-
-10. DESIGN DECISIONS AND LESSONS LEARNED
-----------------------------------------
-
-  - ENet reports a failed connect only after 10-30 s: NetworkManager has its own 5 s timeout.
-  - A Disconnected event is not guaranteed. Use timeouts for detecting missing players.
-    Disconnect is a courtesy. Use enet_peer_disconnect_later so queued data goes out first.
-  - Leave() blocks ~200 ms to let disconnect messages go out. Only call it when leaving.
-  - Reject must arrive BEFORE the disconnect (order of Send and Disconnect matters).
-  - Additive delta corrections from snapshots put dogs inside solids and made them fall
-    through the floor. The fix was rollback + replay, not blending. Do not go back.
-  - isGrounded cannot be derived: it is real carried state and must be in the snapshot.
-  - Pop the snapshot OUTSIDE the input-reading loop in PollNetwork.
-  - The lobby message must include dogType (it was missing once).
-  - A resting ball never has vy == 0 (gravity every tick): rest thresholds must be a bit above
-    kGravity * dt.
-  - Commented-out debug printfs are intentional (the author re-enables them when needed).
+- machineId 0 = host. Cada màquina pot tenir fins a 4 jugadors locals; el total és 8 slots.
+- Només es pot entrar al LOBBY. Si la partida ja ha començat, el host respon Reject(GameInProgress).
+- Hello valida: versió igual, almenys un jugador, dogType vàlids. Si no, Reject i es tanca la connexió.
+- Un nou jugador agafa el primer slot lliure.
+- Durant una partida els slots són ESTABLES. Si una màquina marxa, el seu slot es queda "absent" (el gos es posa
+  gris) i FreeAbsentSlots() l'allibera a la propera crida de HostStartLevel o HostReturnToLobby.
+- Quan es difon el lobby, el slot Occupied() és el que té machineId != kNoMachine.
 
 
-11. KNOWN LIMITATIONS / TODO
-----------------------------
+================================================================
+8. FASES DE LA PARTIDA (GameManager::GameState)
+================================================================
 
-Robustness
-  - SlotInfo only has machineId and dogType. Later: name, colour.
-  - ComputeLevelHash hardcodes the level path (assets/levels/<name>.dgl): keep it in sync with
-    LevelManager::LoadLevel, or expose one shared GetLevelPath(name).
-  - Dog::SetDogType still uses '% 5': replace with kNumDogTypes.
+  PLAYER_SETTINGS  pantalla local de "Join" (afegir jugadors, triar gos). Sense xarxa.
+  LOBBY            jugadors poden entrar. El host edita opcions i comença. Cursors visibles per a tothom.
+  LEVEL            partida en curs. Ningú entra. Sense cursors.
+  BETWEEN_ROUNDS   resum de la ronda, cursors. El guanyador de la ronda tria el proper nivell.
+  FINAL            guanyador de la partida. Després torna al LOBBY.
 
-Gameplay networking
-  - Dogs as interaction agents: a dog flung by a hydrant/ball should BORROW the cause
-    (slot, depth + 1) while out of control and go back to its own slot / depth 0 when it
-    recovers control (grounded and horizontal speed back to walking speed). Ball-ball overlap
-    propagating cause is optional. Use the same "is flung" test for losing control,
-    bouncing off walls and forgetting the cause.
-  - Own score appears with ~RTT delay on clients (could show a predicted value).
-  - Sand history is not rolled back per tick (it is reconciled approximately).
-  - A final snapshot at round end would remove the predicted final picture.
-  - Level loading robustness: deferred until the level format is finalised.
+Flux: LOBBY -> LEVEL -> BETWEEN_ROUNDS -> LEVEL -> ... -> FINAL -> LOBBY.
+Una partida són roundCount rondes. Els jugadors trien el gos ABANS d'entrar al lobby.
 
-Menus (not started)
-  - Cursors per slot: position stream (unreliable, local immediate, remote interpolated);
-    clicks are reliable intents validated by the host (e.g. only the round winner can pick
-    the next mode).
-  - Game-phase state machine driven by host reliable events:
-    lobby -> level -> between-rounds menu (scores, winner picks mode) -> end of game.
-  - Lobby with cursors for dog selection / ready.
-  - Join screen: dog selector, name keyboard with recent names, local/online choice.
-  - Later: public lobbies, SteamTransport behind ITransport.
+- Final de ronda: el RoundManager (autoritat al host) arriba a endTick; el host envia RoundEnd i, després de
+  kRoundEndHoldTicks, MatchManager::EndRound() calcula el resum i el difon (Summary). Tothom passa a
+  BETWEEN_ROUNDS o FINAL.
+- Triar el següent nivell: només el guanyador de la ronda (OnResultsPickLevel). Si és client, envia PickLevel; el host
+  comprova que el slot és el guanyador i que la màquina el posseeix. Si el guanyador ha marxat o no tria en
+  kPickTimeoutTicks, el host tria el nivell 0 per ell (un AFK no bloqueja la sala).
+- Empats: PickWinner() desempata pel total, després a l'atzar entre els empatats, decidit pel host.
+- FINAL: després de kFinalHoldTicks (o clic/ENTER del host) -> HostBackToLobby(): ReturnToLobby a tothom.
+- Mode offline: StartOfflineLevel("test_level"), sense xarxa.
+- Nivells en línia: la primera ronda és test_level_online; entre rondes el guanyador tria entre test_level_online i test_level.
 
 
-12. HOW TO TEST
----------------
+================================================================
+9. SIMULACIÓ, INPUTS I PREDICCIÓ
+================================================================
 
-  Build:  make network_tests      (standalone transport/lobby tests)
+Bucle (main.cc): un acumulador de temps (limitat a kMaxFrameTime) executa Update a pas fix. En clients, el temps
+s'escala amb ClockSync::GetTimeScale().
 
-  Lobby:  lobbytest --host 2        (host with 2 local players)
-          lobbytest --join 127.0.0.1 1
+A cada tick de LEVEL (host i clients):
+  1. BuildSlotInput(): els slots LOCALS agafen l'input del jugador; els REMOTS agafen RemoteInputBuffer::Get().
+  2. SendLocalInputs(): s'envia l'input actual i els 5 anteriors dels slots propis (redundància per pèrdua).
+  3. SimulateTick(): ReceiveInput + Update del nivell.
+  4. LevelNetworkSync::Record(tick): es guarda l'estat per a possibles rollbacks.
+  5. El host envia un snapshot cada kSnapshotInterval ticks o quan canvia la sorra.
 
-  In the game: run one host and several clients on the same machine. Use LagSimTransport to
-  simulate lag (80 ms is a harsh value; real friends at low ping are well below that).
-  Useful checks:
-    - Idle dogs converge to the same position on every machine.
-    - "[rollback]" lines appear only when something really diverged.
-    - Sand, ball and hydrant state match everywhere after the action ends.
-    - Scores: "[punts]" on the host shows who gets what (dig +1, kicked ball +2, ...).
-    - Close a client window and kill a client process: its dog turns grey on everybody
-      (4 s for the kill case).
-    - Close the host: clients return to the menu. Joining a started level is rejected.
+El host valida a qui pertany cada slot de l'Input (màquina i slot) i retransmet als altres clients.
+
+RemoteInputBuffer::Get(slot, tick):
+  - Si coneix l'input d'aquell tick: l'usa (exact).
+  - Si no, l'últim input conegut dins de les últimes 8 ticks (kLookback).
+  - Si no, l'últim input conegut si fa menys de kDecayTicks (30 ticks); si fa més, neutral.
+  Mai espera: la simulació no es bloqueja mai per la xarxa.
+
+El host NO fa rollback: si l'input d'un client arriba tard, el host simula amb la predicció. El client que va massa
+endarrerit queda corregit pel proper snapshot (vegeu la secció 11).
+
+Predicció i "avançament": quan un jugador s'atura, els altres segueixen predint "camina" fins que arriba l'input
+real. La distància és (marge del client + trajecte) x velocitat. Cal tenir-ho en compte (secció 16).
+
+
+================================================================
+10. SINCRONITZACIÓ DEL RELLOTGE (ClockSync)
+================================================================
+
+El client envia TimePing (cada 15 ticks de nivell i, a més, cada 1 s com a keepalive). El host respon amb TimePong
+amb el seu tick. El client calcula:
+
+  rttTicks = RTT de la mostra / durada del tick
+  coixí    = clamp(0.5 + 0.2 x rttTicks, 0.5, 5.0)           (kCushionBase, kCushionPerRttTick, kCushionMax)
+  objectiu = hostTick + rttTicks + coixí
+  error    = objectiu - tickLocal  (positiu = anem endarrerits)
+  _error   = mitjana mòbil 50/50 amb la mostra anterior
+
+  Mostres amb RTT > kMaxSaneRttMs (1000 ms) s'ignoren (han creuat una congelació).
+
+Escala del temps (GetTimeScale):
+  |error| <= 0.75                 1.00   (zona morta)
+  |error| <= 20                   1 + error x 0.03, limitat a [0.9, 1.2]
+  |error| entre 20 i 60           0.7 (si anem per davant) / 1.3 (si anem endarrerits)
+  |error| > 60                    0.4 (per davant) / 1.6 (endarrerits)
+  Mai 0: si el rellotge s'aturés, no s'enviarien pings i no hi hauria més mostres.
+
+Això recupera una congelació de 2-3 s en uns 5 s. (Amb només [0.9, 1.2] trigava més de 30 s i, mentre, els snapshots
+s'ignoraven.)
+
+
+================================================================
+11. SNAPSHOTS, ROLLBACK I REPRODUCCIÓ
+================================================================
+
+Snapshot (blob): u8 nCossos | per cos (x, y, vx, vy, mode, flags, aux, cause, depth) | u16 nTilesSorra | bitset de sorra.
+La mida és FIXA per nivell i nombre de gossos: 304 bytes en una prova, 526 amb 8 jugadors a test_level_online
+(límit 1000). GameManager::BeginLevel() la imprimeix i avisa si es passa del límit.
+Límits de disseny: nCossos és un u8 (màx. 255) i els tiles de sorra un u16; la mida total pesa més que res altre.
+
+ApplySnapshot (client), per cada snapshot del host al tick T amb tick local L:
+  1. Si L < T, o L - T >= kHistory: s'ignora (massa vell o del futur).
+  2. Compara cada cos amb el que el client tenia al tick T (posició, velocitat, mode, flags) i la sorra.
+  3. Si hi ha diferències: adopta l'estat del host a T i reprodueix T+1..L amb ReplayTick(), que fa servir els
+     inputs locals originals i els remots ara coneguts.
+  4. Escriu "[rollback] T=.. L=.. error màxim ..." si l'error és gran o la sorra difereix.
+
+Suavitzat visual (només render, no toca la simulació):
+  - Després d'una correcció, la diferència de posició es guarda com a "render offset" a cada cos i decau amb el
+    temps. Una correcció més gran que kTeleportDist (unitats de món) esborra l'offset (es considera un teleport).
+  - Els gossos d'altres jugadors es poden suavitzar més que el propi (GameManager::RenderDecayScale).
+  - La velocitat d'esvaïment és LevelObject::kRenderOffsetDecay.
+
+Autoritat del final de ronda: si un client s'ha passat de endTick, OnRoundEndReceived() el torna a l'estat del tick
+endTick-1 (RestoreTo) i continua des d'allà.
+
+
+================================================================
+12. PUNTUACIÓ I PROCEDÈNCIA (cause / depth)
+================================================================
+
+- Només el host puntua (RoundManager::AddScore, amb authority). Cada canvi s'envia com a ScoreChanged amb el valor
+  ABSOLUT. El client només el mostra.
+- Cada cos de xarxa porta "cause" (slot que ha provocat l'acció) i "depth" (longitud de la cadena d'interaccions),
+  que serveixen per donar més punts a les reaccions en cadena. La pilota oblida la causa quan s'atura.
+- Pendent: gossos llançats que "presten" la causa mentre volen (reutilitzar _slot i _interactionDepth) i un únic
+  criteri IsFlung() en lloc de DogState::Flung.
+
+
+================================================================
+13. LOBBY, MENÚS I CURSORS
+================================================================
+
+Opcions: només el host les canvia (botons - i + al lobby). OnLobbyAdjustOption() -> HostSetSettings() valida i
+difon LobbyState a tothom. Els clients veuen els valors i el cursor del host, però el seu clic no fa res.
+
+Menús: un canvas fix (kMenuWidth x kMenuHeight) amb la càmera ajustada a la finestra. Tot es dibuixa relatiu al canvas.
+Els cursors són en unitats de canvas, enviats com a u16 x 16.
+  - L'ID d'un cursor és l'índex de jugador local a la pantalla de Join, i el slot als menús en línia.
+  - CursorSource: Local (llegeix l'input) o Remote (es mou cap a l'últim objectiu rebut amb suavitzat exponencial).
+  - Només els cursors locals fan clic; el hover es mostra per a tots.
+  - Les poses (Pointer, Rock, Paper, Scissors, ThumbsUp, ThumbsDown, PointLeft/Right/Up/Down) formen part de l'estat.
+  - Els cursors s'envien a 30 Hz. El host valida que el slot és de la màquina que l'envia i el retransmet.
+  - Només s'accepten paquets de cursors en LOBBY, BETWEEN_ROUNDS i FINAL.
+  - Els jugadors que han marxat (slotGone) no tenen cursor.
+
+
+================================================================
+14. ROBUSTESA I DESCONNEXIONS
+================================================================
+
+Detecció de caiguda:
+  - ENet detecta peers que no responen (per defecte uns 5 s mínim). Es pot ampliar amb
+    enet_peer_timeout(peer, 32, 10000, 30000) al cas CONNECT de EnetTransport::Poll.
+  - El host treu una màquina que no diu res durant kSilenceTimeoutMs (10 s). Els clients envien un TimePing cada 1 s
+    en InGame justament perquè el silenci només sigui senyal de caiguda.
+  - Un peer sense Hello es descarta als 3 s.
+
+Què passa:
+  - Un client cau en LEVEL: PopLeftSlot -> slot "gone", el gos es posa gris, es difon PlayerLeft.
+  - Un client cau al lobby o entre rondes: el slot queda lliure.
+  - El host cau: els clients reben Failed("El host ha tancat la sala o s'ha perdut la connexió") i tornen a la
+    pantalla de Join. No hi ha migració de host.
+  - Una congelació del procés (per exemple arrossegar la finestra a Windows) bloqueja el bucle: sense pings i sense
+    servei de xarxa. Fins a 10 s s'aguanta; passat això es desconnecta. Quan es reprèn, el temps del joc no avança tot
+    el que ha passat (límit kMaxFrameTime). ClockSync recupera el desfasament en pocs segons.
+
+Validació:
+  - Tots els decoders comproven longituds i rangs (secció 5). El test de fuzz (tests/fuzz_decoders.cc) els alimenta amb
+    milions de paquets aleatoris amb AddressSanitizer i UBSan i comprova invariants.
+  - El host comprova versió, dogTypes, propietat dels slots (inputs, cursors, intencions) i que l'esdeveniment és el
+    que correspon a la fase.
+  - Hash de nivell: un client rebutja StartLevel si el seu fitxer no té el mateix FNV-1a (ignorant '\r') que el del host.
+  - EncodeSnapshot avisa si el blob supera kMaxSnapshotBytes (si no, els clients el rebutjarien en silenci).
+
+
+================================================================
+15. EINES DE PROVA
+================================================================
+
+Línia d'ordres:
+  --host                      inicia com a host
+  --join <adreça>             entra a una sala
+  --lag <ms>                  activa LagSim amb aquesta latència
+  --netdefault A|B|C|D        activa LagSim amb un perfil:
+        A   latència 25,  jitter 5,   pèrdua 0,    duplicats 0,    frenades 0       (~50 ms de ping)
+        B   latència 60,  jitter 20,  pèrdua 2%,   duplicats 1%                      (~120-140 ms)
+        C   latència 120, jitter 40,  pèrdua 8%,   duplicats 3%,   frenades 2% x 250 ms
+        D   latència 200, jitter 100, pèrdua 15%,  duplicats 5%,   frenades 5% x 400 ms
+  LagSim: les frenades només afecten el canal fiable (com un paquet ENet perdut); duplicats i pèrdua, el no fiable.
+
+Resultats observats: A i B molt fluids; C amb una mica de jitter; D molt dolent mentre es mou, però sempre convergeix.
+La resta (rondes, resultats, cursors, desconnexions) funcionen en tots els perfils. Convergeix també després de
+congelar el host o un client durant uns segons.
+
+Registre (cada 120 ticks): [net] tick | rtt | inputs remots no exactes X/Y | rellotge: error, escala, err, corr.
+  - X/Y al HOST mesura quants inputs de clients han arribat tard (indica si el coixí és prou gran).
+  - err és l'error màxim de posició dels snapshots; corr, el nombre de correccions.
+
+Tecles de depuració: ENTER (al lobby, el host comença; entre rondes, el guanyador tria el nivell; a FINAL, el host
+torna al lobby), L (el host, en LEVEL, torna al lobby).
+
+Proves recomanades abans de canviar la xarxa: A+A, B+B, C+C, A+A+C, 4-8 instàncies, congelar host i client.
+
+
+================================================================
+16. LIMITACIONS CONEGUDES
+================================================================
+
+1. Avançament del gos del host als clients. El client va per davant del host (coixí + RTT/2) i ha de predir el seu
+   input; en parar, el gos "es passa" i després recula. Pitjor amb lag. Palanques: el coixí del ClockSync (ara
+   adaptatiu), el suavitzat visual (render offset), i un retard d'input al host (descartat per ara: fa el gos del host
+   menys receptiu). Predir amb el valor del joystick en comptes de bits no és possible (els inputs són bits).
+2. Sense migració de host: si el host cau, la partida s'acaba.
+3. Els clients veuen la puntuació pròpia amb el retard del host.
+4. Els efectes laterals (sons, partícules) encara no tenen "flag de replaying": la reproducció d'un rollback pot
+   duplicar-los. Cal afegir-lo abans de posar sons/partícules.
+5. Final de ronda: no hi ha un snapshot final dedicat; la convergència depèn del RoundEnd i del RestoreTo.
+6. Contingut dels nivells: tots dos costats han de tenir exactament el mateix fitxer. Els nivells de l'editor hauran
+   d'enviar-se o compartir-se (decisió de l'editor).
+7. Límits del snapshot: 255 cossos, 1000 bytes, tiles de sorra en u16. Un nivell gran pot excedir-los.
+8. Prova pendent: internet real (UDP; el host no pot estar darrere d'un NAT sense obrir el port; la forma fàcil és una
+   VPN de joc com Tailscale, ZeroTier o Radmin).
+9. Pendents: SteamTransport, lobbies públics, nom i color del jugador (viatjaran dins de SlotInfo).
+
+
+================================================================
+17. COM AFEGIR UNA COSA NOVA
+================================================================
+
+Un esdeveniment nou:
+  1. Tria el número següent lliure (ara el 7) a l'enum que correspongui (RoundEvent, MatchEvent, LobbyEvent...).
+  2. Escriu Encode/Decode, i el decoder ha de validar rangs i longituds.
+  3. Si és una intenció (client->host), el host ha de validar el propietari del slot i que la fase és la correcta.
+  4. Afegeix el decoder a tests/fuzz_decoders.cc.
+  5. Puja kProtocolVersion.
+
+Un missatge nou:
+  Afegeix-lo a MsgType (AL FINAL, per no moure números), Encode/Decode, el cas a HostHandleMessage o
+  ClientHandleMessage de NetworkManager, i puja kProtocolVersion.
+
+Una opció de lobby nova:
+  Camp a LobbySettings (amb IsValid i operator==), WriteLobby/ReadLobby, un botó al menú "lobby", la fila a
+  DrawLobbyPanel, i que HostStartMatch/HostStartNextRound l'usi. Puja kProtocolVersion.
+
+Un canvi al contingut d'un nivell:
+  El hash FNV-1a del fitxer .dgl farà que els clients rebutgin la partida si no tenen el mateix. Comprova també la
+  mida del snapshot (sortida de BeginLevel).
+
+
+================================================================
+18. COSES A VERIFICAR CONTRA EL CODI
+================================================================
+
+- Si els cursors van pel canal no fiable (assumit).
+- El valor de kHistory a LevelNetworkSync (la condició de rebuig L - T >= kHistory).
+- Si heu aplicat enet_peer_timeout a EnetTransport (el document diu que és opcional).
+- Si RenderDecayScale i el valor de kTeleportDist són els que heu deixat.
+- El nombre exacte de nivells triables a la pantalla de resultats (kPickableLevels = 2).

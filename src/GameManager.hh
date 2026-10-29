@@ -13,6 +13,7 @@
 #include "Network/NetworkManager.hh"
 #include "Network/ClockSync.hh"
 #include "Network/RemoteInputBuffer.hh"
+#include "Network/Transport/LagSimTransport.hh"
 #include "Level/LevelManager.hh"
 #include "Level/LevelNetworkSync.hh"
 #include "Level/RoundManager.hh"
@@ -40,7 +41,8 @@ struct NetLaunchOptions
     Mode mode = Mode::Offline;
     std::string address = "127.0.0.1";
     uint16_t port = 7777;
-    int lagMs = 0;
+    LagSimSettings lag;
+    bool lagEnabled = false;
 };
 
 class GameManager {
@@ -117,6 +119,8 @@ private:
 	void ClientHandleEvent(const GameEventMsg& ev);
 	bool IsMyWinner() const;
 	void DrawResultsPanel() const;
+
+	float RenderDecayScale(const LevelObject* b) const;
 
 	void UpdateOnlineMenu(const LobbyState& lobby, const float deltaTime);
 	void EnterLobbyPhase();

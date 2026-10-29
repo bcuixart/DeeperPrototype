@@ -128,7 +128,7 @@ private:
     static constexpr int kKeepAliveMs = 1000;
     Clock::time_point _lastKeepAlive = Clock::now();
 
-    static constexpr int kSilenceTimeoutMs = 4000;
+    static constexpr int kSilenceTimeoutMs = 10000;
     std::unordered_map<uint8_t, Clock::time_point> _lastHeard;
     std::deque<uint8_t> _leftSlots;
     void HostDropMachine(uint8_t machineId);

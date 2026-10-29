@@ -25,7 +25,13 @@ int main(int argc, char* argv[])
         std::string arg = argv[i];
         if (arg == "--host") netOptions.mode = NetLaunchOptions::Mode::Host;
         else if (arg == "--join" && i + 1 < argc) { netOptions.mode = NetLaunchOptions::Mode::Join; netOptions.address = argv[++i]; }
-        else if (arg == "--lag" && i + 1 < argc) netOptions.lagMs = atoi(argv[++i]);
+        else if (arg == "--lag" && i + 1 < argc) { netOptions.lag.latencyMs = atoi(argv[++i]); netOptions.lagEnabled = true; }
+        else if (arg == "--netdefault" && i + 1 < argc)
+        {
+            const char* name = argv[++i];
+            if (LagProfileFromName(name[0], netOptions.lag)) netOptions.lagEnabled = true;
+            else TraceLog(LOG_WARNING, "--netdefault: perfil desconegut '%s' (A, B, C o D)", name);
+        }
     }
     gameManager->SetNetLaunchOptions(netOptions);
 

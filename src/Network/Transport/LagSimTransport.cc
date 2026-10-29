@@ -52,12 +52,31 @@ void LagSimTransport::Send(PeerId peer, Channel channel, const uint8_t* data, si
     p.channel = channel;
     p.data.assign(data, data + size);
 
+    if (channel == Channel::Reliable && _settings.stallChance > 0.0f)
+    {
+        std::uniform_real_distribution<float> d(0.0f, 1.0f);
+        if (d(_rng) < _settings.stallChance) delay += _settings.stallMs;
+    }
+
     if (channel == Channel::Reliable) 
     {
         // Never release a reliable packet before the last one, to avoid reordering.
         p.release = std::max(p.release, _lastReliableRelease);
         _lastReliableRelease = p.release;
     }
+
+    if (channel == Channel::Unreliable && _settings.duplicateChance > 0.0f)
+    {
+        std::uniform_real_distribution<float> d(0.0f, 1.0f);
+        if (d(_rng) < _settings.duplicateChance)
+        {
+            Pending dup = _pending.back();
+            std::uniform_int_distribution<int> extra(0, 40);
+            dup.release += std::chrono::milliseconds(extra(_rng));
+            _pending.push_back(std::move(dup));
+        }
+    }
+
     _pending.push_back(std::move(p));
 }
 

@@ -9,8 +9,10 @@
 #include "InputManager.hh"
 #include "AssetManager.hh"
 #include "MenuConstants.hh"
+#include "Network/NetworkTypes.hh"
 
 enum class CursorPose : uint8_t { Pointer = 0, Rock, Paper, Scissors, ThumbsUp, ThumbsDown, TBA1, TBA2, PointN, PointNE, PointE, PointSE, PointS, PointSW, PointW, PointNW, Count };
+static_assert((int)CursorPose::Count == kNumCursorPoses, "kNumCursorPoses desactualitzat");
 
 enum class CursorSource : uint8_t { Local, Remote };
 

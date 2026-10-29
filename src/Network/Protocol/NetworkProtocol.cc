@@ -14,6 +14,14 @@ static void ReadLobby(ByteReader& r, LobbyState& lobby)
     lobby.settings.roundSeconds = r.U16();
 }
 
+static bool IsLobbySane(const LobbyState& l)
+{
+    if (!l.settings.IsValid()) return false;
+    for (const SlotInfo& s : l.slots)
+        if (s.Occupied() && s.dogType >= kNumDogTypes) return false;
+    return true;
+}
+
 /* ENCODING */
 
 std::vector<uint8_t> EncodeHello(const std::vector<uint8_t>& dogTypes) 
@@ -116,6 +124,8 @@ std::vector<uint8_t> EncodeTimePong(uint32_t echoMs, uint32_t hostTick)
 
 std::vector<uint8_t> EncodeSnapshot(uint32_t tick, const std::vector<uint8_t>& blob) 
 {
+    if (blob.size() > kMaxSnapshotBytes)
+        printf("[net] AVIS: snapshot de %zu bytes (maxim %d): els clients el rebutjaran\n", blob.size(), (int)kMaxSnapshotBytes);
     ByteWriter w;
     w.U8(static_cast<uint8_t>(MsgType::Snapshot));
     w.U32(tick);
@@ -161,14 +171,16 @@ bool DecodeWelcome(ByteReader& r, uint8_t& machineId)
 
 bool DecodeReject(ByteReader& r, RejectReason& out) 
 {
-    out = (RejectReason)r.U8();
-    return r.Ok();
+    const uint8_t v = r.U8();
+    if (!r.Ok()) return false;
+    out = (v >= 1 && v <= (uint8_t)RejectReason::GameInProgress) ? (RejectReason)v : RejectReason::BadRequest;
+    return true;
 }
 
 bool DecodeLobbyState(ByteReader& r, LobbyState& out)
 {
     ReadLobby(r, out);
-    return r.Ok() && out.settings.IsValid();
+    return r.Ok() && IsLobbySane(out);
 }
 
 bool DecodeCursors(ByteReader& r, CursorPacket& out)
@@ -183,7 +195,7 @@ bool DecodeCursors(ByteReader& r, CursorPacket& out)
         c.x = r.U16();
         c.y = r.U16();
         c.pose = r.U8();
-        if (!r.Ok() || c.slot >= kMaxSlots) return false;
+        if (!r.Ok() || c.slot >= kMaxSlots || c.pose >= kNumCursorPoses) return false;
         out.cursors.push_back(c);
     }
     return r.Ok();
@@ -209,7 +221,8 @@ bool DecodeStartLevel(ByteReader& r, LevelStartInfo& out)
         out.levelName[i] = c;
     }
 
-    if (!r.Ok() || out.roundCount == 0 || out.roundIndex >= out.roundCount || !out.lobby.settings.IsValid()) return false;
+    if (!r.Ok() || out.roundCount == 0 || out.roundIndex >= out.roundCount || !IsLobbySane(out.lobby)) return false;
+    if (out.roundTicks == 0 || out.roundTicks > kMaxRoundSeconds * 60u) return false;
     return r.Ok();
 }
 

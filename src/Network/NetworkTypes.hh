@@ -15,6 +15,7 @@ constexpr uint32_t kSnapshotInterval = 6;
 constexpr size_t   kMaxSnapshotBytes = 1000;
 constexpr size_t   kMaxEventBytes    = 255;
 constexpr uint8_t  kNumDogTypes      = 5;
+constexpr uint8_t  kNumCursorPoses   = 16;
 constexpr float    kCursorScale      = 16.0f;
 
 // Lobby options

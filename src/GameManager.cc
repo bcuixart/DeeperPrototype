@@ -111,7 +111,7 @@ void GameManager::Render(const float deltaTime)
 		_menuManager->Render(deltaTime, [this]() { DrawLobbyPanel(); });
 		break;
 	case GameState::LEVEL:
-        for (auto* b : _levelManager->GetNetBodies()) b->DecayRenderOffset(deltaTime);
+		for (auto* b : _levelManager->GetNetBodies()) b->DecayRenderOffset(deltaTime * RenderDecayScale(b));
 		_levelManager->Render(deltaTime, [this]() { DrawRoundOverlay(); });
 		break;
     case GameState::BETWEEN_ROUNDS:
@@ -215,7 +215,7 @@ void GameManager::OnStartGamePressed()
 {
     if (_playersActive == 0) return;
 
-    if (_netOptions.mode == NetLaunchOptions::Mode::Offline) StartOfflineLevel("test_level");
+    if (_netOptions.mode == NetLaunchOptions::Mode::Offline) StartOfflineLevel("test_level_online");
     else EnterOnlineLobby();
 }
 
@@ -284,6 +284,13 @@ void GameManager::BeginLevel(const std::string& levelName, const LevelPlayers& p
 
     _levelNetworkSync->Reset(_levelManager->GetNetBodies(), _levelManager->GetNetSandTiles());
 
+    if (_netOptions.mode != NetLaunchOptions::Mode::Offline)
+    {
+        const size_t snapSize = _levelNetworkSync->BuildSnapshot().size();
+        printf("[net] snapshot del nivell '%s': %zu bytes (maxim %d)\n", levelName.c_str(), snapSize, (int)kMaxSnapshotBytes);
+        if (snapSize > kMaxSnapshotBytes) printf("[net] AVIS: aquest nivell no cap en un snapshot!\n");
+    }
+
     const bool onlineClient = _netOptions.mode != NetLaunchOptions::Mode::Offline
                               && _networkManager && !_networkManager->IsHost();
     _levelManager->SetNetAuthority(onlineClient, _mySlots);
@@ -301,10 +308,9 @@ void GameManager::EnterOnlineLobby()
     for (int i = 0; i < _playersActive; i++) dogTypes.push_back(_playerInfo[i].dogType);
 
     std::unique_ptr<ITransport> transport = std::make_unique<EnetTransport>();
-    if (_netOptions.lagMs > 0)
+    if (_netOptions.lagEnabled)
     {
-        transport = std::make_unique<LagSimTransport>(std::move(transport),
-            LagSimSettings{ _netOptions.lagMs, _netOptions.lagMs / 4, 0.0f });
+        transport = std::make_unique<LagSimTransport>(std::move(transport), _netOptions.lag);
     }
     _networkManager = std::make_unique<NetworkManager>(std::move(transport));
 
@@ -367,6 +373,7 @@ void GameManager::PollNetwork()
     while (_networkManager->PopReceivedInput(packet))
     {
         if (_gameState != GameState::LEVEL) continue;
+        if (packet.tick > _levelTick + 600) continue;
         for (const SlotInputs& s : packet.slots)
         {
             for (uint8_t k = 0; k < s.count && k <= packet.tick; ++k)
@@ -401,13 +408,15 @@ void GameManager::PollNetwork()
             _levelNetworkSync->ApplySnapshot(snapTick, snapBlob, _levelTick - 1,
                 [this](uint32_t t) { ReplayTick(t); });
 
+            constexpr float kTeleportDist = 48.0f;
             for (size_t i = 0; i < bodies.size(); ++i)
             {
                 const Vector2 after = bodies[i]->GetPosition();
                 const float dx = before[i].x - after.x;
                 const float dy = before[i].y - after.y;
-                if (dx * dx + dy * dy > 16.0f) bodies[i]->ClearRenderOffset();   // salt gran: teleport
-                else if (dx * dx + dy * dy > 0.0f) bodies[i]->AddRenderOffset({ dx, dy });
+                const float d2 = dx * dx + dy * dy;
+                if (d2 > kTeleportDist * kTeleportDist) bodies[i]->ClearRenderOffset();
+                else if (d2 > 0.0f) bodies[i]->AddRenderOffset({ dx, dy });
             }
         }
     }
@@ -908,4 +917,14 @@ void GameManager::OnLobbyAdjustOption(int slot, LobbyOption option, int delta)
         s.roundSeconds = (uint16_t)std::clamp((int)s.roundSeconds + delta * 10, (int)kMinRoundSeconds, (int)kMaxRoundSeconds);
 
     _networkManager->HostSetSettings(s);
+}
+
+float GameManager::RenderDecayScale(const LevelObject* b) const
+{
+    constexpr float kRemoteDogDecayScale = 0.5f;
+
+    const auto* dog = dynamic_cast<const LevelObjectDog*>(b);
+    if (!dog) return 1.0f;
+    if (std::find(_mySlots.begin(), _mySlots.end(), dog->GetSlot()) != _mySlots.end()) return 1.0f;
+    return kRemoteDogDecayScale;
 }

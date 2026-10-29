@@ -11,7 +11,23 @@ struct LagSimSettings {
     int   latencyMs  = 0;
     int   jitterMs   = 0;
     float lossChance = 0.0f;
+    float duplicateChance = 0.0f;
+    float stallChance     = 0.0f;
+    int   stallMs         = 200;
 };
+
+inline bool LagProfileFromName(char name, LagSimSettings& out)
+{
+    out = LagSimSettings{};
+    switch (std::toupper((unsigned char)name))
+    {
+    case 'A': out.latencyMs = 25;  out.jitterMs = 5;   out.lossChance = 0.0f;  out.duplicateChance = 0.0f;  out.stallChance = 0.0f;  out.stallMs = 0;   return true;
+    case 'B': out.latencyMs = 60;  out.jitterMs = 20;  out.lossChance = 0.02f; out.duplicateChance = 0.01f; out.stallChance = 0.0f;  out.stallMs = 0;   return true;
+    case 'C': out.latencyMs = 120; out.jitterMs = 40;  out.lossChance = 0.08f; out.duplicateChance = 0.03f; out.stallChance = 0.02f; out.stallMs = 250; return true;
+    case 'D': out.latencyMs = 200; out.jitterMs = 100; out.lossChance = 0.15f; out.duplicateChance = 0.05f; out.stallChance = 0.05f; out.stallMs = 400; return true;
+    default:  return false;
+    }
+}
 
 class LagSimTransport : public ITransport {
 public:

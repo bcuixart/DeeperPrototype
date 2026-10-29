@@ -75,6 +75,7 @@ void EnetTransport::Poll(std::vector<NetEvent>& out)
         switch (event.type)
         {
         case ENET_EVENT_TYPE_CONNECT:
+            enet_peer_timeout(event.peer, 32, 10000, 30000);   // límit, mínim, màxim (ms)
             ev.type = NetEvent::Type::Connected;
             out.push_back(std::move(ev));
             break;
