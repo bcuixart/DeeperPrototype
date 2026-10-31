@@ -1,9 +1,9 @@
 #include "LevelObjectTileSand.hh"
-#include "Level/LevelManager.hh"
+#include "Level/Level.hh"
 
-LevelObjectTileSand::LevelObjectTileSand(const Vector2& position, LevelManager* levelManager) : LevelObjectTile(position)
+LevelObjectTileSand::LevelObjectTileSand(const Vector2& position, Level* level) : LevelObjectTile(position)
 {
-    _levelManager = levelManager;
+    _level = level;
 }
 
 LevelObjectTileSand::~LevelObjectTileSand()
@@ -57,11 +57,11 @@ LevelObjectTileType LevelObjectTileSand::GetTileType() const
 void LevelObjectTileSand::BreakableBreak(const LevelObject* other)
 {
     if (_isBroken) return;
-    if (!_levelManager->CanApplyBreak(other)) return; // Only host or local player can break tiles
+    if (!_level->ManagerCanApplyBreak(other)) return; // Only host or local player can break tiles
 
     NetworkSetBroken(true);
 
-    _levelManager->NotifyScore(other, 1);
+    _level->ManagerNotifyScore(other, 1);
 }
 
 void LevelObjectTileSand::NetworkSetBroken(bool broken)
@@ -69,5 +69,5 @@ void LevelObjectTileSand::NetworkSetBroken(bool broken)
     if (_isBroken == broken) return;
 
     _isBroken = broken;
-    _levelManager->UpdateAutotileNeighbors((int)GetPosition().x, (int)GetPosition().y);
+    _level->UpdateAutotileNeighbors((int)GetPosition().x, (int)GetPosition().y);
 }

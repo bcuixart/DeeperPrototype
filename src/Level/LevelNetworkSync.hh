@@ -13,14 +13,14 @@ class LevelNetworkSync {
 public:
     using ReplayFn = std::function<void(uint32_t tick)>;
 
-    void Reset(const std::vector<LevelObject*>& bodies, const std::vector<LevelObject*>& sandTiles);
+    void Reset(const std::vector<LevelObject*>& bodies, const std::vector<LevelObject*>& breakableTiles);
 
     // Crida-ho DESPRÉS de simular el tick (host i client).
     void Record(uint32_t tick);
     bool RestoreTo(uint32_t tick);
 
     // Host: ha canviat alguna tile de sorra en l'últim Record? (per enviar un snapshot extra)
-    bool SandChanged() const { return _sandChanged; }
+    bool BreakableTilesChanged() const { return _breakableTilesChanged; }
 
     std::vector<uint8_t> BuildSnapshot() const;
 
@@ -40,17 +40,17 @@ private:
         bool valid = false;
         uint32_t tick = 0;
         std::vector<NetworkLevelObjectDynEntState> bodies;
-        std::vector<uint8_t> sand;      // bitset de sorra trencada
+        std::vector<uint8_t> breakableTiles;      // bitset de tiles trencats
     };
 
-    std::vector<uint8_t> PackSand() const;
-    void ApplySand(const std::vector<uint8_t>& bits);
+    std::vector<uint8_t> PackBreakableTiles() const;
+    void ApplyBreakableTiles(const std::vector<uint8_t>& bits);
 
     std::vector<LevelObject*> _bodies;
-    std::vector<LevelObject*> _sand;
+    std::vector<LevelObject*> _breakableTiles;
     std::array<Frame, kHistory> _history;
-    std::vector<uint8_t> _lastSand;
-    bool _sandChanged = false;
+    std::vector<uint8_t> _lastBreakableTiles;
+    bool _breakableTilesChanged = false;
     float _maxError = 0;
     int _corrections = 0;
 };

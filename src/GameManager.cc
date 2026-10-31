@@ -76,7 +76,7 @@ void GameManager::Update(const float deltaTime)
         {
             _levelNetworkSync->Record(_levelTick);
             if (_networkManager->IsHost() &&
-                (_levelTick % kSnapshotInterval == 0 || _levelNetworkSync->SandChanged()))
+                (_levelTick % kSnapshotInterval == 0 || _levelNetworkSync->BreakableTilesChanged()))
                 _networkManager->HostSendSnapshot(_levelTick, _levelNetworkSync->BuildSnapshot());
         }
 
@@ -282,7 +282,7 @@ void GameManager::BeginLevel(const std::string& levelName, const LevelPlayers& p
     _levelManager = std::make_unique<LevelManager>();
     _levelManager->LoadLevel(levelName, players, seed);
 
-    _levelNetworkSync->Reset(_levelManager->GetNetBodies(), _levelManager->GetNetSandTiles());
+    _levelNetworkSync->Reset(_levelManager->GetNetBodies(), _levelManager->GetNetBreakableTiles());
 
     if (_netOptions.mode != NetLaunchOptions::Mode::Offline)
     {

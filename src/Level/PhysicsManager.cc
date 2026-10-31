@@ -1,7 +1,7 @@
 #include "PhysicsManager.hh"
-#include "LevelManager.hh"
+#include "LevelObject.hh"
 
-PhysicsManager::PhysicsManager(LevelManager& levelManager) : _levelManager(&levelManager)
+PhysicsManager::PhysicsManager()
 {
 
 }

@@ -4,28 +4,12 @@
 #include <vector>
 #include <array>
 #include <memory>
-#include <fstream>
-#include <iostream>
-#include <random>
 #include <limits>
 #include <functional>
 
+#include "Level.hh"
 #include "Utils/DeterministicRNG.hh"
-#include "PhysicsManager.hh"
-#include "LevelObject.hh"
 #include "LevelObjects/LevelObjectDog.hh"
-#include "LevelObjects/Tiles/Autotile.hh"
-#include "LevelObjects/Tiles/LevelObjectTile.hh"
-#include "LevelObjects/Tiles/LevelObjectTileGround.hh"
-#include "LevelObjects/Tiles/LevelObjectTileSand.hh"
-#include "LevelObjects/Tiles/LevelObjectTileDirt.hh"
-#include "LevelObjects/Tiles/LevelObjectTileSlope.hh"
-#include "LevelObjects/Tiles/LevelObjectTileBridge.hh"
-#include "LevelObjects/Objects/LevelObjectBallTennis.hh"
-#include "LevelObjects/Objects/LevelObjectHydrant001.hh"
-#include "LevelObjects/Deco/LevelObjectBench001.hh"
-#include "LevelObjects/Objects/LevelObjectDogHouse.hh"
-#include "LevelObjects/Objects/LevelObjectUmbrellaTall.hh"
 
 struct LevelPlayerSlot { bool active = false; uint8_t dogType = 0; };
 using LevelPlayers = std::array<LevelPlayerSlot, MAX_PLAYERS>;
@@ -36,8 +20,7 @@ public:
 	~LevelManager();
 
 	void Update(const float deltaTime);
-	void Render(const float deltaTime, const std::function<void()>& overlay = nullptr);
-	void RenderBounds(const float deltaTime) const;
+	void Render(const float deltaTime, const std::function<void()>& overlay = nullptr) const;
 
 	void ReceiveInput(const std::array<uint8_t, MAX_PLAYERS>& input);
 
@@ -46,63 +29,24 @@ public:
 	void SetScoreCallback(std::function<void(uint8_t, int)> cb) { _onScore = std::move(cb); }
 	void NotifyScore(const LevelObject* cause, int points);
 
-	int GetLevelWidth() const;
-	int GetLevelHeight() const;
-
-	LevelObjectTileType GetTileTypeAt(const Vector2& position) const;
-	LevelObjectTileType GetTileTypeAt(int x, int y) const;
-
-	void UpdateAutotileNeighbors(int x, int y);
-
-	void DigAt(LevelObjectDog* digger, const Vector2& dogFeetPositionLeft, const Vector2& dogFeetPositionRight);
-
     void SetNetAuthority(bool isClient, const std::vector<uint8_t>& mySlots);
     bool CanApplyBreak(const LevelObject* cause) const;
 
-	std::vector<LevelObject*> GetNetBodies() const;
-	const std::vector<LevelObject*>& GetNetSandTiles() const { return _sandTiles; }
+	std::vector<LevelObject*> GetNetBodies() const { return _level.GetNetBodies(); }
+	const std::vector<LevelObject*>& GetNetBreakableTiles() const { return _level.GetNetBreakableTiles(); }
 
 	void SetSlotGone(uint8_t slot);
 
 protected:
 
 private:
-	void InstantiateLevelObject(std::unique_ptr<LevelObject> obj);
-	void InstantiateLevelTile(std::unique_ptr<LevelObjectTile> tile, int i, int j);
-
-	void UpdateTileAutotile(int x, int y);
-
-	uint8_t ComputeRawLowMask(int x, int y) const;
-	uint8_t ComputeRawHighMask(int x, int y) const;
-	uint16_t ComputeFullMask(int x, int y) const;
-	uint8_t NormalizeLowMask(uint8_t low) const;
-	uint16_t NormalizeFullMask(uint16_t mask) const;
-	uint8_t CollapseHighByte(uint8_t low, uint8_t high) const;
-	uint16_t ComputeSlopeVariationMask(uint8_t maskLow, int x, int y) const;
-	uint8_t ComputeTileMaskSandDirt(int x, int y) const;
-	uint8_t ComputeTileMaskBridge(int x, int y) const;
-
-	void SetTileSideCollisionMask(int x, int y);
-
-	bool IsTileSame(int x, int y, LevelObjectTileType type) const;
-	bool IsTileSlope(int x, int y) const;
+	Level _level;
 
 	Camera2D _cam = { 0 };
 
-	int _levelWidth = 0;
-	int _levelHeight = 0;
-
 	std::function<void(uint8_t, int)> _onScore;
 
-	std::unique_ptr<PhysicsManager> _physicsManager;
-
-	std::vector<std::unique_ptr<LevelObject>> _levelObjects;
-	std::vector<std::vector<std::unique_ptr<LevelObjectTile>>> _levelTiles;
-
 	std::array<LevelObjectDog*, MAX_PLAYERS> _dogBySlot{};
-	std::vector<LevelObjectDog*> _dogs;
-
-	std::vector<LevelObject*> _sandTiles;
 
     bool _isNetClient = false;
     uint8_t _localSlotMask = 0;

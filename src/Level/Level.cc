@@ -1,0 +1,566 @@
+#include "Level.hh"
+#include "LevelManager.hh"
+
+Level::Level(LevelManager* levelManager)
+    : _levelManager(levelManager)
+{
+    _physicsManager = PhysicsManager();
+}
+
+Level::~Level()
+{
+
+}
+
+void Level::Update(const float deltaTime)
+{
+    for (auto& object : _levelObjects) object->Update(deltaTime);
+
+    _physicsManager.Update(deltaTime);
+}
+
+void Level::Render(const float deltaTime) const
+{
+    for (int i = 0; i < _levelHeight; ++i)
+    {
+        for (int j = 0; j < _levelWidth; ++j)
+        {
+            if (_levelTiles[i][j])
+            {
+                _levelTiles[i][j]->Render(deltaTime);
+            }
+        }
+    }
+
+    for (auto& object : _levelObjects) object->Render(deltaTime);
+}
+
+void Level::RenderBounds(const float deltaTime) const
+{
+    for (int i = 0; i < _levelHeight; ++i)
+    {
+        for (int j = 0; j < _levelWidth; ++j)
+        {
+            if (_levelTiles[i][j])
+            {
+                _levelTiles[i][j]->RenderBounds(deltaTime, RED);
+
+                //DrawTextEx(GetFontDefault(), TextFormat("%d", _levelTiles[i][j]->GetSpriteIndex()), { (float)j, (float)i }, 0.5f, 0.025f, WHITE);
+                //DrawTextEx(GetFontDefault(), TextFormat("%x", NormalizeFullMask(ComputeFullMask(j, i))), { (float)j, (float)i }, 0.5f, 0.025f, WHITE);
+            }
+        }
+    }
+
+    for (auto& object : _levelObjects) object->RenderBounds(deltaTime, ORANGE);
+} 
+
+void Level::LoadLevel(const std::string& levelName)
+{
+    std::ifstream file("assets/levels/" + levelName + ".dgl");
+    if (!file.is_open()) 
+    {
+        std::cerr << "[LevelManager] No s'ha pogut obrir el nivell: " << levelName << "\n";
+        return;
+    }
+
+    file >> _levelWidth >> _levelHeight;
+    file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
+    _levelObjects.clear();
+    _dogs.clear();
+    _dogHouses.clear();
+    _levelTiles.clear();
+    _netBodies.clear();
+    _breakableTiles.clear();
+
+    _levelTiles.resize(_levelHeight);
+    for (auto& row : _levelTiles)
+        row.resize(_levelWidth);
+
+    for (int i = 0; i < _levelHeight; ++i) {
+        std::string row;
+        std::getline(file, row);
+
+        row.resize(_levelWidth, ' ');
+
+        for (int j = 0; j < _levelWidth; ++j) {
+            Vector2 pos = { static_cast<float>(j), static_cast<float>(i) };
+            switch (row[j]) {
+            case 'G': InstantiateLevelTile(std::make_unique<LevelObjectTileGround>(pos), i, j); break;
+            case 's': InstantiateLevelTile(std::make_unique<LevelObjectTileSlope>(pos), i, j); break;
+            case 'S':
+            {
+                auto sand = std::make_unique<LevelObjectTileSand>(pos, this);
+                _breakableTiles.push_back(sand.get());
+                InstantiateLevelTile(std::move(sand), i, j);
+                break;
+            }
+            case 'd': InstantiateLevelTile(std::make_unique<LevelObjectTileDirt>(pos), i, j); break;
+            case 'B': InstantiateLevelTile(std::make_unique<LevelObjectTileBridge>(pos), i, j); break;
+            case 't': InstantiateLevelObject(std::make_unique<LevelObjectBallTennis>(pos)); break;
+            case 'h': 
+            {
+                auto waterLeft = std::make_unique<LevelObjectHydrant001Water>(pos, true);
+                auto waterRight = std::make_unique<LevelObjectHydrant001Water>(pos, false);
+
+                LevelObjectHydrant001Water* waterLeftPtr = waterLeft.get();
+                LevelObjectHydrant001Water* waterRightPtr = waterRight.get();
+
+                InstantiateLevelObject(std::move(waterLeft));
+                InstantiateLevelObject(std::move(waterRight));
+                InstantiateLevelObject(std::make_unique<LevelObjectHydrant001>(pos, waterLeftPtr, waterRightPtr)); 
+                break;
+            }
+            case 'b': InstantiateLevelObject(std::make_unique<LevelObjectBench001>(pos)); break;
+            case 'D': 
+            {
+                auto dogHouse = std::make_unique<LevelObjectDogHouse>(pos);
+                _dogHouses.push_back(dogHouse.get());
+                InstantiateLevelObject(std::move(dogHouse));
+                break;
+            }
+            case 'U': InstantiateLevelObject(std::make_unique<LevelObjectUmbrellaTall>(pos)); break;
+            default:  break;
+            }
+        }
+    }
+
+    for (int y = 0; y < _levelHeight; ++y)
+        for (int x = 0; x < _levelWidth; ++x)
+            if (_levelTiles[y][x]) UpdateTileAutotile(x, y);
+
+    for (int y = 0; y < _levelHeight; ++y)
+        for (int x = 0; x < _levelWidth; ++x)
+            if (_levelTiles[y][x]) SetTileSideCollisionMask(x, y);
+}
+
+LevelObjectDog* Level::SpawnDogInHouse(uint8_t houseIndex, uint8_t playerSlot, uint8_t dogType)
+{
+    if (houseIndex >= _dogHouses.size()) return nullptr;
+
+    Vector2 dogPos = { _dogHouses[houseIndex]->GetPosition().x, _dogHouses[houseIndex]->GetPosition().y };
+
+    auto dog = std::make_unique<LevelObjectDog>(dogPos, this);
+    dog->SetSlot(playerSlot);
+    dog->SetDogType(dogType);
+    auto raw = dog.get();
+    _dogs.push_back(raw);
+    InstantiateLevelObject(std::move(dog));
+
+    return raw;
+}
+
+void Level::DigAt(LevelObjectDog* digger, const Vector2& dogFeetPositionLeft, const Vector2& dogFeetPositionRight)
+{
+    LevelObject* dugObjectLeft = _physicsManager.GetDugObjectAt(dogFeetPositionLeft, digger);
+    LevelObject* dugObjectRight = _physicsManager.GetDugObjectAt(dogFeetPositionRight, digger);
+
+    if (dugObjectLeft != nullptr && dugObjectRight != nullptr)
+    {
+        if (dugObjectLeft == dugObjectRight) dugObjectLeft->OnDug(digger);
+        else
+        {
+            // He de pensar com resoldre aixo.
+            // Si els dos son semisolids, d'entrada cap problema
+            // Pero si un es terra i l'altre no?
+            // Hi ha moltes combinacions possibles, i no se si es correcte que el gos pugui cavar a terra i a un semisolid alhora.
+            dugObjectLeft->OnDug(digger);
+            dugObjectRight->OnDug(digger);
+        }
+    }
+    else if (dugObjectLeft != nullptr) dugObjectLeft->OnDug(digger);
+    else if (dugObjectRight != nullptr) dugObjectRight->OnDug(digger);
+}
+
+LevelObjectTileType Level::GetTileTypeAt(const Vector2& position) const
+{
+	int x = static_cast<int>(position.x);
+	int y = static_cast<int>(position.y);
+
+	return GetTileTypeAt(x, y);
+}
+
+LevelObjectTileType Level::GetTileTypeAt(int x, int y) const
+{
+	if (x >= 0 && x < _levelWidth && y >= 0 && y < _levelHeight && _levelTiles[y][x])
+		return _levelTiles[y][x]->GetTileType();
+
+	return LevelObjectTileType::None;
+}
+
+void Level::InstantiateLevelObject(std::unique_ptr<LevelObject> obj)
+{
+    LevelObject* raw = obj.get();
+    _levelObjects.push_back(std::move(obj));
+    _physicsManager.RegisterObject(raw);   
+
+    NetworkLevelObjectDynEntState probe;
+    if (raw->NetGet(probe)) _netBodies.push_back(raw);
+}
+
+void Level::InstantiateLevelTile(std::unique_ptr<LevelObjectTile> tile, int i, int j)
+{
+    LevelObject* raw = tile.get();
+    _levelTiles[i][j] = std::move(tile);
+    _physicsManager.RegisterObject(raw);
+}
+
+void Level::UpdateTileAutotile(int x, int y)
+{
+    LevelObjectTileType type = _levelTiles[y][x]->GetTileType();
+    switch(type)
+    {
+        case LevelObjectTileType::None:
+            return;
+
+        case LevelObjectTileType::Ground:
+        {
+            uint16_t normalized = NormalizeFullMask(ComputeFullMask(x, y));
+
+            auto it = groundAutotileMap.find(normalized);
+            _levelTiles[y][x]->SetSpriteIndex(it != groundAutotileMap.end() ? it->second : 113);
+            break;
+        }
+        case LevelObjectTileType::Slope:
+        {
+            uint16_t normalized = NormalizeFullMask(ComputeFullMask(x, y));
+
+            auto itS = slopeAutotileMap.find(normalized);
+
+            if (itS != slopeAutotileMap.end()) _levelTiles[y][x]->SetSpriteIndex(itS->second);
+            else 
+            {
+                auto itG = groundAutotileMap.find(normalized);
+                _levelTiles[y][x]->SetSpriteIndex(itG != groundAutotileMap.end() ? itG->second : 113);
+            }
+
+            uint16_t variationKey = ComputeSlopeVariationMask(normalized & 0xFF, x, y);
+
+            auto itV = slopeVariationAutotileMap.find(variationKey);
+            if (itV != slopeVariationAutotileMap.end()) {
+                _levelTiles[y][x]->SetSpriteIndex(itV->second); 
+            }
+
+            break;
+        }
+        case LevelObjectTileType::Sand:
+        case LevelObjectTileType::Dirt:
+        {
+            uint16_t normalized = NormalizeFullMask(ComputeFullMask(x, y));
+
+            auto it = sandDirtAutotileMap.find(normalized);
+            _levelTiles[y][x]->SetSpriteIndex(it != sandDirtAutotileMap.end() ? it->second : 48);
+            break;
+        }
+        case LevelObjectTileType::Bridge:
+        {
+            uint8_t bridgeMask = ComputeTileMaskBridge(x, y);
+
+            auto itBridge = bridgeAutotileMap.find(bridgeMask);
+            _levelTiles[y][x]->SetSpriteIndex(itBridge != bridgeAutotileMap.end() ? itBridge->second : 0);  
+            break;
+        }
+        default:
+            return;
+    }
+}
+
+void Level::UpdateAutotileNeighbors(int x, int y)
+{
+    for (int dy = -1; dy <= 1; ++dy)
+    {
+        for (int dx = -1; dx <= 1; ++dx) 
+        {
+            int nx = x + dx; 
+            int ny = y + dy;
+            if (nx >= 0 && nx < _levelWidth && ny >= 0 && ny < _levelHeight)
+            {
+                if (_levelTiles[ny][nx]) UpdateTileAutotile(nx, ny);
+            }
+        }
+    }
+}
+
+uint8_t Level::ComputeRawLowMask(int x, int y) const
+{
+    LevelObjectTileType type = _levelTiles[y][x]->GetTileType();
+
+    uint8_t low = 0;
+    if (IsTileSame(x - 1, y - 1, type)) low |= 1;       // NW
+    if (IsTileSame(x, y - 1, type)) low |= 2;           // N
+    if (IsTileSame(x + 1, y - 1, type)) low |= 4;       // NE
+    if (IsTileSame(x - 1, y, type)) low |= 8;           // W
+    if (IsTileSame(x + 1, y, type)) low |= 16;          // E
+    if (IsTileSame(x - 1, y + 1, type)) low |= 32;      // SW
+    if (IsTileSame(x, y + 1, type)) low |= 64;          // S
+    if (IsTileSame(x + 1, y + 1, type)) low |= 128;     // SE
+
+    return low;
+}
+
+uint8_t Level::ComputeRawHighMask(int x, int y) const
+{
+    uint8_t high = 0;
+    if (IsTileSlope(x-1,y-1)) high |= 1;       // NW
+    if (IsTileSlope(x,y-1)) high |= 2;         // N
+    if (IsTileSlope(x+1,y-1)) high |= 4;       // NE
+    if (IsTileSlope(x-1,y)) high |= 8;         // W
+    if (IsTileSlope(x+1,y)) high |= 16;        // E
+    if (IsTileSlope(x-1,y+1)) high |= 32;      // SW
+    if (IsTileSlope(x,y+1)) high |= 64;        // S
+    if (IsTileSlope(x+1,y+1)) high |= 128;     // SE
+
+    return high;
+}
+
+uint16_t Level::ComputeFullMask(int x, int y) const
+{
+    uint8_t low  = ComputeRawLowMask(x, y);
+    uint8_t high = ComputeRawHighMask(x, y);
+
+    return (uint16_t)(low | (high << 8));
+}
+
+uint8_t Level::NormalizeLowMask(uint8_t low) const
+{
+    if (!(low & 2) || !(low & 8)) low &= ~1;     // NW needs N & W
+    if (!(low & 2) || !(low & 16)) low &= ~4;    // NE needs N & E
+    if (!(low & 64) || !(low & 8)) low &= ~32;   // SW needs S & W
+    if (!(low & 64) || !(low & 16)) low &= ~128; // SE needs S & E
+    return low;
+}
+
+uint16_t Level::NormalizeFullMask(uint16_t mask) const
+{
+    uint8_t low  = NormalizeLowMask(mask & 0xFF);
+    uint8_t high = (mask >> 8) & 0xFF;
+
+    high &= 0b01011010;
+    for (int b = 0; b < 8; ++b)
+        if (!(low & (1 << b))) high &= ~(1 << b);
+
+    high = CollapseHighByte(low, high);
+
+    return (uint16_t)(low | (high << 8));
+}
+
+uint8_t Level::CollapseHighByte(uint8_t low, uint8_t high) const
+{
+    switch (low)
+    {
+        // "sota o dreta": SE notch → col·lapsa E→S, conserva només S
+        case 80: case 86: case 120: case 122: case 127:
+            if (high & 16) { high |= 64; high &= ~16; }
+            high &= 64;
+            break;
+
+        // "sota o esquerra": SW notch → col·lapsa W→S, conserva només S
+        case 72: case 75: case 216: case 218: case 223:
+            if (high & 8) { high |= 64; high &= ~8; }
+            high &= 64;
+            break;
+
+        // "sobre | sota o dreta": conserva N i S (col·lapsa E→S)
+        case 82: case 123: case 126:   // ← 123 era al grup equivocat!
+            if (high & 16) { high |= 64; high &= ~16; }
+            high &= (2 | 64);
+            break;
+
+        // "sobre | sota o esquerra": conserva N i S (col·lapsa W→S)
+        case 74: case 219: case 222:
+            if (high & 8) { high |= 64; high &= ~8; }
+            high &= (2 | 64);
+            break;
+
+        // "dreta | esquerra": independents, conserva W i E
+        case 88: case 90: case 95:
+            high &= (8 | 16);
+            break;
+
+        // "sobre | dreta | esquerra": conserva N, W i E
+        case 91: case 94:
+            high &= (2 | 8 | 16);
+            break;
+
+        // "slope a sobre": conserva només N
+        case 10: case 18: case 27: case 30:
+        case 106: case 210: case 251: case 254:
+            high &= 2;
+            break;
+
+        // Cap variant de slope per a la resta
+        default:
+            high = 0;
+            break;
+    }
+    return high;
+}
+
+uint16_t Level::ComputeSlopeVariationMask(uint8_t maskLow, int x, int y) const
+{
+    uint8_t var = 0;
+
+    switch (maskLow)
+    {
+        // S+E+SE — la cantonada desconeguda és la SW (la W no forma part del mask)
+        case 208:
+            if (!IsTileSame(x - 1, y + 1, LevelObjectTileType::Ground)) var |= 1; // SW buida
+            break;
+
+        // S+W+SW — la cantonada desconeguda és la SE (la E no forma part del mask)
+        case 104:
+            if (!IsTileSame(x + 1, y + 1, LevelObjectTileType::Ground)) var |= 1; // SE buida
+            break;
+
+        // S+E — mateixa cantonada lliure que el 208 (SW), més si S o E són ells mateixos un slope
+        case 80:
+            if (IsTileSlope(x, y + 1) || IsTileSlope(x + 1, y)) var |= 1; // S o E és slope
+            if (!IsTileSame(x - 1, y + 1, LevelObjectTileType::Ground)) var |= 2; // SW buida
+            break;
+
+        // S+W — mateixa cantonada lliure que el 104 (SE), més si S o W són ells mateixos un slope
+        case 72:
+            if (IsTileSlope(x, y + 1) || IsTileSlope(x - 1, y)) var |= 1; // S o W és slope
+            if (!IsTileSame(x + 1, y + 1, LevelObjectTileType::Ground)) var |= 2; // SE buida
+            break;
+
+        case 18:
+        case 10:
+            if (IsTileSlope(x, y - 1)) var |= 1; // N és slope
+            break;
+
+        default:
+            return 0xFFFF; // no és cap de les 6 formes ESPECIALS
+    }
+
+    return ((uint16_t)maskLow << 8) | var;
+}
+
+uint8_t Level::ComputeTileMaskBridge(int x, int y) const
+{
+    auto same = [&](int cx, int cy) -> bool {
+        if (cx < 0 || cx >= _levelWidth || cy < 0 || cy >= _levelHeight || !_levelTiles[cy][cx])
+            return false;
+        return _levelTiles[cy][cx]->GetTileType() == LevelObjectTileType::Bridge;
+        };
+
+    uint8_t mask = 0;
+    if (same(x - 1, y)) mask |= 1;          // W
+    if (same(x + 1, y)) mask |= 2;          // E
+
+    return mask;
+}
+
+void Level::SetTileSideCollisionMask(int x, int y)
+{
+    LevelObjectTile* tile = _levelTiles[y][x].get();
+    if (!tile) return;
+
+    const LevelObjectTileType type = tile->GetTileType();
+    if (type != LevelObjectTileType::Ground && type != LevelObjectTileType::Slope)
+    {
+        tile->SetSolidSideCollisionMask(SOLID_SIDE_LEFT, true);
+        tile->SetSolidSideCollisionMask(SOLID_SIDE_TOP, true);
+        tile->SetSolidSideCollisionMask(SOLID_SIDE_RIGHT, true);
+        tile->SetSolidSideCollisionMask(SOLID_SIDE_BOTTOM, true);
+        return;
+    }
+
+    bool hasN = false, hasS = false, hasW = false, hasE = false;
+
+    if (x > 0)
+        hasW = _levelTiles[y][x - 1] && (_levelTiles[y][x - 1]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y][x - 1]->GetTileType() == LevelObjectTileType::Slope || _levelTiles[y][x - 1]->GetTileType() == LevelObjectTileType::Dirt);
+    if (x < _levelWidth - 1)
+        hasE = _levelTiles[y][x + 1] && (_levelTiles[y][x + 1]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y][x + 1]->GetTileType() == LevelObjectTileType::Slope || _levelTiles[y][x + 1]->GetTileType() == LevelObjectTileType::Dirt);
+    if (y > 0)
+    {
+        hasN = _levelTiles[y - 1][x] && (_levelTiles[y - 1][x]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y - 1][x]->GetTileType() == LevelObjectTileType::Slope || _levelTiles[y - 1][x]->GetTileType() == LevelObjectTileType::Dirt);
+        if (_levelTiles[y - 1][x] && IsTileSlope(x, y - 1))
+        {
+            // Disable internal top collision unless the slope above it ends
+			// This fixes clipping into ending slopes whilst not interfering with slope sliding behavior
+            SlopeOrientation orientation = _levelTiles[y - 1][x]->GetSlopeOrientation();
+            if (orientation == SlopeOrientation::RisingRight && !hasW) hasN = false;
+            else if (orientation == SlopeOrientation::RisingLeft && !hasE) hasN = false;
+        }
+    }
+    if (y < _levelHeight - 1)
+    {
+        hasS = _levelTiles[y + 1][x] && (_levelTiles[y + 1][x]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y + 1][x]->GetTileType() == LevelObjectTileType::Slope || _levelTiles[y + 1][x]->GetTileType() == LevelObjectTileType::Dirt);
+        if (_levelTiles[y + 1][x] && IsTileSlope(x, y + 1))
+        {
+            // Disable internal bottom collision unless the slope below it ends
+			// This fixes clipping into ending slopes whilst not interfering with slope ceiling collision behavior
+			SlopeOrientation orientation = _levelTiles[y + 1][x]->GetSlopeOrientation();
+            if (orientation == SlopeOrientation::FallingRight && !hasW) hasS = false;
+            else if (orientation == SlopeOrientation::FallingLeft && !hasE) hasS = false;
+        }
+    }
+
+    tile->SetSolidSideCollisionMask(SOLID_SIDE_LEFT, !hasW);
+    tile->SetSolidSideCollisionMask(SOLID_SIDE_TOP, !hasN);
+    tile->SetSolidSideCollisionMask(SOLID_SIDE_RIGHT, !hasE);
+    tile->SetSolidSideCollisionMask(SOLID_SIDE_BOTTOM, !hasS);
+}
+
+bool Level::IsTileSame(int x, int y, LevelObjectTileType type) const
+{
+    if (x < 0 || x >= _levelWidth || y < 0 || y >= _levelHeight) return false;
+    if (!_levelTiles[y][x]) return false;
+
+    switch(type)
+    {
+        case LevelObjectTileType::None:
+            return false;
+
+        case LevelObjectTileType::Ground:
+        case LevelObjectTileType::Slope:
+        {
+            return _levelTiles[y][x]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y][x]->GetTileType() == LevelObjectTileType::Slope;
+            break;
+        }
+        case LevelObjectTileType::Sand:
+        {
+            return _levelTiles[y][x]->GetTileType() == type && !_levelTiles[y][x]->GetBreakableIsBroken();  
+        }
+        case LevelObjectTileType::Dirt:
+        {
+            return _levelTiles[y][x]->GetTileType() == type;  
+        }
+        case LevelObjectTileType::Bridge:
+        {
+            return _levelTiles[y][x]->GetTileType() == type;  
+        }
+        default:
+            return false;
+    }
+
+    return false;
+}
+
+bool Level::IsTileSlope(int x, int y) const
+{
+    if (x < 0 || x >= _levelWidth || y < 0 || y >= _levelHeight) return false;
+    if (!_levelTiles[y][x]) return false;
+    if (_levelTiles[y][x]->GetTileType() != LevelObjectTileType::Slope) return false;
+
+    uint8_t low = NormalizeLowMask(ComputeRawLowMask(x, y));
+
+    if (low == 8 || low == 16) return false;
+    return slopeAutotileMap.find(low) != slopeAutotileMap.end();
+}
+
+bool Level::ManagerCanApplyBreak(const LevelObject* cause) const
+{
+    // Only the host or local player can apply breaks
+    if (_levelManager) return _levelManager->CanApplyBreak(cause);
+
+    return false;
+}
+
+void Level::ManagerNotifyScore(const LevelObject* cause, int points)
+{
+    if (!_levelManager) return;
+
+    _levelManager->NotifyScore(cause, points);
+}

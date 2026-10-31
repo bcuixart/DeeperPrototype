@@ -1,10 +1,10 @@
 #include "LevelObjectDog.hh"
-#include "Level/LevelManager.hh"
+#include "Level/Level.hh"
 
-LevelObjectDog::LevelObjectDog(const Vector2& position, LevelManager* levelManager)
+LevelObjectDog::LevelObjectDog(const Vector2& position, Level* level)
 {
     _bounds = { position.x, position.y, kWidth, kHeight };
-    _levelManager = levelManager;
+    _level = level;
 }
 
 void LevelObjectDog::Update(const float deltaTime) 
@@ -83,8 +83,8 @@ void LevelObjectDog::Update_Default(const float deltaTime)
     {
         if (_isGrounded)
         {
-            _levelManager->DigAt(this, { _bounds.x + kDigHorizontalOffset, _bounds.y + _bounds.height }, 
-                                        { _bounds.x + _bounds.width - kDigHorizontalOffset, _bounds.y + _bounds.height });
+            _level->DigAt(this, { _bounds.x + kDigHorizontalOffset, _bounds.y + _bounds.height }, 
+                                { _bounds.x + _bounds.width - kDigHorizontalOffset, _bounds.y + _bounds.height });
         }
     }
 }

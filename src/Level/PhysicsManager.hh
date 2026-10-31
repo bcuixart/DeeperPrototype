@@ -5,12 +5,11 @@
 #include <algorithm>
 #include <raylib.h>
 
-class LevelManager;
 class LevelObject;
 
 class PhysicsManager {
 public:
-	PhysicsManager(LevelManager& levelManager);
+	PhysicsManager();
 	~PhysicsManager();
 
 	void Update(const float deltaTime);
@@ -61,8 +60,6 @@ private:
     std::vector<LevelObject*> _trampolineObjects;
     std::vector<LevelObject*> _forceFieldObjects;
     std::vector<LevelObject*> _triggerObjects;
-
-    LevelManager* _levelManager{nullptr};
 
     constexpr static float kGravity = 25.0f;
 };

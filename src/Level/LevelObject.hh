@@ -10,7 +10,7 @@
 #include "PhysicsProperties.hh"
 #include "NetworkLevelObjectDynEntState.hh"
 
-class LevelManager;
+class Level;
 
 enum class SurfaceType { None, FlatGround, SlopedLeftGround, SlopedRightGround };
 

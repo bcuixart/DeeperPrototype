@@ -11,7 +11,7 @@ enum class DogState {
 
 class LevelObjectDog : public LevelObject {
 public:
-    LevelObjectDog(const Vector2& position, LevelManager* levelManager);
+    LevelObjectDog(const Vector2& position, Level* level);
 
     void Update(const float deltaTime) override;
     void Render(const float deltaTime) const override;
@@ -90,7 +90,7 @@ private:
     uint8_t _slot{kInteractionNoCause};
     uint8_t _dogType{0};
 
-    LevelManager* _levelManager;
+    Level* _level;
 };
 
 #endif

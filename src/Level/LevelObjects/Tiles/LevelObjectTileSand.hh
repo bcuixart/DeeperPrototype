@@ -5,7 +5,7 @@
 
 class LevelObjectTileSand : public LevelObjectTile {
 public:
-	LevelObjectTileSand(const Vector2& position, LevelManager* levelManager);
+	LevelObjectTileSand(const Vector2& position, Level* level);
 	~LevelObjectTileSand();
 
 	void Update(const float deltaTime) override;
@@ -25,7 +25,7 @@ public:
 protected:
 
 private:
-	LevelManager* _levelManager{nullptr};
+	Level* _level{nullptr};
 
 	bool _isBroken{false};
 };
