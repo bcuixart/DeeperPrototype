@@ -48,6 +48,11 @@ private:
 
 	std::array<LevelObjectDog*, MAX_PLAYERS> _dogBySlot{};
 
+	int _levelWidth = 0;
+	int _levelHeight = 0;
+	int _screenWidth = 0;
+	int _screenHeight = 0;
+
     bool _isNetClient = false;
     uint8_t _localSlotMask = 0;
 

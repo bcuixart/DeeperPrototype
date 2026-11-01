@@ -19,7 +19,12 @@ void Level::Update(const float deltaTime)
     _physicsManager.Update(deltaTime);
 }
 
-void Level::Render(const float deltaTime) const
+void Level::RenderBackground(const float deltaTime) const
+{
+    ClearBackground({ 0, 196, 255, 255 });
+}
+
+void Level::RenderObjects(const float deltaTime) const
 {
     for (int i = 0; i < _levelHeight; ++i)
     {
@@ -52,7 +57,23 @@ void Level::RenderBounds(const float deltaTime) const
     }
 
     for (auto& object : _levelObjects) object->RenderBounds(deltaTime, ORANGE);
-} 
+}
+
+void Level::RenderEditorGrid(const float deltaTime) const
+{
+    for (int i = 0; i <= kMaxLevelHeight; ++i)
+    {
+        DrawLine(0, i, kMaxLevelWidth, i, { 255, 255, 255, 64 });
+    }
+    for (int j = 0; j <= kMaxLevelWidth; ++j)
+    {
+        DrawLine(j, 0, j, kMaxLevelHeight, { 255, 255, 255, 64 });
+    }
+}
+
+void Level::RenderEditorBounds(const float deltaTime) const
+{
+}
 
 void Level::LoadLevel(const std::string& levelName)
 {
@@ -139,6 +160,8 @@ LevelObjectDog* Level::SpawnDogInHouse(uint8_t houseIndex, uint8_t playerSlot, u
     if (houseIndex >= _dogHouses.size()) return nullptr;
 
     Vector2 dogPos = { _dogHouses[houseIndex]->GetPosition().x, _dogHouses[houseIndex]->GetPosition().y };
+
+    printf("[Level] SpawnDogInHouse: houseIndex=%d, playerSlot=%d, dogType=%d, pos=(%.2f, %.2f)\n", houseIndex, playerSlot, dogType, dogPos.x, dogPos.y);
 
     auto dog = std::make_unique<LevelObjectDog>(dogPos, this);
     dog->SetSlot(playerSlot);

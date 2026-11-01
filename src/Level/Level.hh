@@ -22,6 +22,9 @@
 #include "LevelObjects/Objects/LevelObjectDogHouse.hh"
 #include "LevelObjects/Objects/LevelObjectUmbrellaTall.hh"
 
+constexpr int kMaxLevelWidth = 64;
+constexpr int kMaxLevelHeight = 64;
+
 class LevelManager;
 
 class Level {
@@ -33,8 +36,12 @@ public:
 	Level& operator=(const Level&) = delete;
 
 	void Update(const float deltaTime);
-	void Render(const float deltaTime) const;
+
+	void RenderBackground(const float deltaTime) const;
+	void RenderObjects(const float deltaTime) const;
 	void RenderBounds(const float deltaTime) const;
+	void RenderEditorGrid(const float deltaTime) const;
+	void RenderEditorBounds(const float deltaTime) const;
 
 	void LoadLevel(const std::string& levelName);
 	LevelObjectDog* SpawnDogInHouse(uint8_t houseIndex, uint8_t playerSlot, uint8_t dogType);

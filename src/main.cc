@@ -32,6 +32,9 @@ int main(int argc, char* argv[])
             if (LagProfileFromName(name[0], netOptions.lag)) netOptions.lagEnabled = true;
             else TraceLog(LOG_WARNING, "--netdefault: perfil desconegut '%s' (A, B, C o D)", name);
         }
+#ifdef EDITOR_ENABLED
+        else if (arg == "--editor") EditorArgumentProvided();
+#endif
     }
     gameManager->SetNetLaunchOptions(netOptions);
 

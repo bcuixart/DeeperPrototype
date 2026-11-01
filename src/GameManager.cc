@@ -11,6 +11,14 @@ static uint32_t ComputeLevelHash(const std::string& levelName);
 
 static const std::array<const char*, 2> kOnlineLevelNames = { "test_level_online", "test_level" };
 
+#ifdef EDITOR_ENABLED
+bool _willEnterEditor = false;
+void EditorArgumentProvided()
+{
+    _willEnterEditor = true;
+}
+#endif
+
 GameManager::GameManager()
 {
     GameManager::instance = this;
@@ -21,6 +29,10 @@ GameManager::GameManager()
     _roundManager = std::make_unique<RoundManager>();
     _matchManager = std::make_unique<MatchManager>();
     _levelNetworkSync = std::make_unique<LevelNetworkSync>();
+
+#ifdef EDITOR_ENABLED
+	_editorManager = std::make_unique<EditorManager>();
+#endif
 
 	for (int i = 0; i < MAX_LOCAL_PLAYERS; i++)
 	{
@@ -95,6 +107,14 @@ void GameManager::Update(const float deltaTime)
     case GameState::FINAL:
         Update_Results(deltaTime);
         break;
+#ifdef EDITOR_ENABLED
+    case GameState::EDITOR:
+        _editorManager->Update(deltaTime);
+        break;
+    case GameState::EDITOR_PLAYTEST:
+        
+        break;
+#endif
 	}
 }
 
@@ -118,6 +138,14 @@ void GameManager::Render(const float deltaTime)
     case GameState::FINAL:
         _menuManager->Render(deltaTime, [this]() { DrawResultsPanel(); });
         break;
+#ifdef EDITOR_ENABLED
+    case GameState::EDITOR:
+        _editorManager->Render(deltaTime);
+        break;
+    case GameState::EDITOR_PLAYTEST:
+        
+        break;
+#endif
 	}
 }
 
@@ -214,6 +242,17 @@ void GameManager::CheckForDisconnectedGamepadPlayers()
 void GameManager::OnStartGamePressed()
 {
     if (_playersActive == 0) return;
+
+#ifdef EDITOR_ENABLED
+    if (_willEnterEditor)
+    {
+        _willEnterEditor = false;
+        _gameState = GameState::EDITOR;
+        _editorManager->LoadLevel("test_level");
+
+        return;
+    }
+#endif
 
     if (_netOptions.mode == NetLaunchOptions::Mode::Offline) StartOfflineLevel("test_level_online");
     else EnterOnlineLobby();

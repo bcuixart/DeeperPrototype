@@ -26,6 +26,13 @@ using namespace std;
 
 constexpr float kFixedDeltaTime = 1.0f / 60.0f;
 
+#define EDITOR_ENABLED 1
+
+#ifdef EDITOR_ENABLED
+#include "Editor/EditorManager.hh"
+void EditorArgumentProvided();
+#endif
+
 enum class GameState {
 	MAIN_MENU,
 	PLAYER_SETTINGS,
@@ -33,6 +40,10 @@ enum class GameState {
 	LEVEL,
 	BETWEEN_ROUNDS,
 	FINAL,
+#ifdef EDITOR_ENABLED
+	EDITOR,
+	EDITOR_PLAYTEST
+#endif
 };
 
 struct NetLaunchOptions
@@ -151,6 +162,9 @@ private:
 	std::unique_ptr<RoundManager> _roundManager = nullptr;
 	std::unique_ptr<MatchManager> _matchManager = nullptr;
 	std::unique_ptr<LevelNetworkSync> _levelNetworkSync = nullptr;
+#ifdef EDITOR_ENABLED
+	std::unique_ptr<EditorManager> _editorManager = nullptr;
+#endif
 
 	uint8_t _playersActive;
 

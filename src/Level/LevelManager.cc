@@ -14,15 +14,31 @@ LevelManager::~LevelManager()
 void LevelManager::Update(const float deltaTime)
 {
     _level.Update(deltaTime);
+
+    int w = GetScreenWidth();
+    int h = GetScreenHeight();
+
+    if (w != _screenWidth || h != _screenHeight)
+    {
+        _screenWidth = w;
+        _screenHeight = h;
+
+        float zoomX = (float)_screenWidth / _levelWidth;
+        float zoomY = (float)_screenHeight / _levelHeight;
+
+        _cam.zoom = std::min(zoomX, zoomY);
+        _cam.offset = { _screenWidth / 2.0f, _screenHeight / 2.0f };
+    }
 }
 
 void LevelManager::Render(const float deltaTime, const std::function<void()>& overlay) const
 {
     BeginDrawing();
     BeginMode2D(_cam);
-    ClearBackground({ 0, 196, 255, 255 });
+    ClearBackground({ 0, 0, 0, 255 });
 
-    _level.Render(deltaTime);
+    _level.RenderBackground(deltaTime);
+    _level.RenderObjects(deltaTime);
 
     if (DEBUG_DRAW_BOUNDS) _level.RenderBounds(deltaTime);
 
@@ -57,21 +73,29 @@ void LevelManager::LoadLevel(const std::string& levelName, const LevelPlayers& p
     DeterministicRng rng(spawnSeed);
     DeterministicShuffle(houseIndexes, rng);
 
+    int spawnIndex = 0;
     for (int i = 0; i < MAX_PLAYERS; ++i)
     {
         if (!players[i].active) continue;
 
-        uint8_t houseIndex = houseIndexes[i] % housesNum;
+        uint8_t houseIndex = houseIndexes[spawnIndex % housesNum];
         LevelObjectDog* dog = _level.SpawnDogInHouse(houseIndex, static_cast<uint8_t>(i), players[i].dogType);
         _dogBySlot[i] = dog;
+
+        spawnIndex++;
     }
 
-    float zoomX = (float)GetScreenWidth() / _level.GetLevelWidth();
-    float zoomY = (float)GetScreenHeight() / _level.GetLevelHeight();
+    _levelWidth = _level.GetLevelWidth();
+    _levelHeight = _level.GetLevelHeight();
+    _screenWidth = GetScreenWidth();
+    _screenHeight = GetScreenHeight();
+
+    float zoomX = (float)_screenWidth / _levelWidth;
+    float zoomY = (float)_screenHeight / _levelHeight;
 
     _cam.zoom = std::min(zoomX, zoomY);
-    _cam.target = { _level.GetLevelWidth() / 2.0f, _level.GetLevelHeight() / 2.0f };
-    _cam.offset = { GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f };
+    _cam.target = { _levelWidth / 2.0f, _levelHeight / 2.0f };
+    _cam.offset = { _screenWidth / 2.0f, _screenHeight / 2.0f };
     _cam.rotation = 0.0f;
 }
 
