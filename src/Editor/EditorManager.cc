@@ -32,6 +32,8 @@ void EditorManager::Update(const float deltaTime)
     if (IsKeyPressed(KEY_Q)) _selectedObjectEditorOrderIndex = (_selectedObjectEditorOrderIndex + 1) % kLevelObjectEditorOrder.size();
     _selectedObjectId = kLevelObjectEditorOrder[_selectedObjectEditorOrderIndex];
 
+    if (IsKeyPressed(KEY_C)) _cam = _level.FitCameraToBounds(1.0f, 16.0f, 9.0f);
+
     HandleAddingObjects();
     HandleRemovingObjects();
 
@@ -49,8 +51,9 @@ void EditorManager::Render(const float deltaTime) const
     _level.RenderEditorGrid(deltaTime);
     _level.RenderObjects(deltaTime);
     _level.RenderEditorDraggingPreview(deltaTime, _selectedObjectId, _mouseX, _mouseY);
+    _level.RenderEditorGridBounds(deltaTime);
 
-    if (DEBUG_DRAW_EDITOR_BOUNDS) _level.RenderEditorBounds(deltaTime);
+    if (DEBUG_DRAW_EDITOR_BOUNDS) _level.RenderEditorObjectBounds(deltaTime);
 
     DrawFPS(-500, -500);
 
@@ -62,13 +65,7 @@ void EditorManager::LoadLevel(const std::string& levelName)
 {
     _level.ReadLevelFromFile(levelName);
 
-    float zoomX = (float)GetScreenWidth() / _level.GetLevelWidth();
-    float zoomY = (float)GetScreenHeight() / _level.GetLevelHeight();
-
-    _cam.zoom = Clamp(std::min(zoomX, zoomY), kEditorCamMinZoom, kEditorCamMaxZoom);
-    _cam.target = { _level.GetLevelWidth() / 2.0f, _level.GetLevelHeight() / 2.0f };
-    _cam.offset = { GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f };
-    _cam.rotation = 0.0f;
+    _cam = _level.FitCameraToBounds(1.0f, 16.0f, 9.0f);
 }
 
 void EditorManager::HandleAddingObjects()

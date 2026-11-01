@@ -15,20 +15,7 @@ void LevelManager::Update(const float deltaTime)
 {
     _level.Update(deltaTime);
 
-    int w = GetScreenWidth();
-    int h = GetScreenHeight();
-
-    if (w != _screenWidth || h != _screenHeight)
-    {
-        _screenWidth = w;
-        _screenHeight = h;
-
-        float zoomX = (float)_screenWidth / _levelWidth;
-        float zoomY = (float)_screenHeight / _levelHeight;
-
-        _cam.zoom = std::min(zoomX, zoomY);
-        _cam.offset = { _screenWidth / 2.0f, _screenHeight / 2.0f };
-    }
+    _cam = _level.FitCameraToBounds(1.0f, 16.0f, 9.0f);
 }
 
 void LevelManager::Render(const float deltaTime, const std::function<void()>& overlay) const
@@ -85,18 +72,7 @@ void LevelManager::LoadLevel(const std::string& levelName, const LevelPlayers& p
         spawnIndex++;
     }
 
-    _levelWidth = _level.GetLevelWidth();
-    _levelHeight = _level.GetLevelHeight();
-    _screenWidth = GetScreenWidth();
-    _screenHeight = GetScreenHeight();
-
-    float zoomX = (float)_screenWidth / _levelWidth;
-    float zoomY = (float)_screenHeight / _levelHeight;
-
-    _cam.zoom = std::min(zoomX, zoomY);
-    _cam.target = { _levelWidth / 2.0f, _levelHeight / 2.0f };
-    _cam.offset = { _screenWidth / 2.0f, _screenHeight / 2.0f };
-    _cam.rotation = 0.0f;
+    _cam = _level.FitCameraToBounds(1.0f, 16.0f, 9.0f);
 }
 
 void LevelManager::SetNetAuthority(bool isClient, const std::vector<uint8_t>& mySlots)

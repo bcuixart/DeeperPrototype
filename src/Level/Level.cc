@@ -71,7 +71,12 @@ void Level::RenderEditorGrid(const float deltaTime) const
     }
 }
 
-void Level::RenderEditorBounds(const float deltaTime) const
+void Level::RenderEditorGridBounds(const float deltaTime) const
+{
+    DrawRectangleLinesEx(_levelBounds, 0.05f, GREEN);
+}
+
+void Level::RenderEditorObjectBounds(const float deltaTime) const
 {
     for (int i = 0; i < kMaxLevelHeight; ++i)
     {
@@ -99,6 +104,20 @@ void Level::RenderEditorDraggingPreview(const float deltaTime, uint8_t objectId,
     else DrawRectangleLinesEx(bounds, 0.05f, RED);
 }
 
+Camera2D Level::FitCameraToBounds(float margin, float minWidthTiles, float minHeightTiles) const
+{
+    const float w = std::max(_levelBounds.width  + 2.0f * margin, minWidthTiles);
+    const float h = std::max(_levelBounds.height + 2.0f * margin, minHeightTiles);
+
+    Camera2D cam = { 0 };
+    cam.zoom     = std::min((float)GetScreenWidth() / w, (float)GetScreenHeight() / h);
+    cam.target   = { _levelBounds.x + _levelBounds.width / 2.0f, _levelBounds.y + _levelBounds.height / 2.0f };
+    cam.offset   = { GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f };
+    cam.rotation = 0.0f;
+
+    return cam;
+}
+
 void Level::ReadLevelFromFile(const std::string& fileName)
 {
     std::ifstream file("assets/levels/" + fileName + ".dgl");
@@ -108,13 +127,13 @@ void Level::ReadLevelFromFile(const std::string& fileName)
         return;
     }
 
-    file >> _levelWidth >> _levelHeight;
+    int width, height;
+    file >> width >> height;
     file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
-    if (!file || _levelWidth <= 0 || _levelHeight <= 0 || _levelWidth > kMaxLevelWidth || _levelHeight > kMaxLevelHeight)
+    if (!file || width <= 0 || height <= 0 || width > kMaxLevelWidth || height > kMaxLevelHeight)
     {
         std::cerr << "[Level] Mida de nivell invàlida\n";
-        _levelWidth = _levelHeight = 0;
         return;
     }
 
@@ -150,6 +169,8 @@ void Level::BuildLevelFromStream(std::istream& stream)
     for (int y = 0; y < kMaxLevelHeight; ++y)
         for (int x = 0; x < kMaxLevelWidth; ++x)
             if (_levelTiles[y][x]) SetTileSideCollisionMask(x, y);
+
+    ComputeLevelBounds();
 }
 
 bool Level::PlaceObjectById(uint8_t id, int x, int y)
@@ -262,6 +283,8 @@ bool Level::EditorTryToPlaceObject(int x, int y, uint8_t objectId)
     
     if (levelObjectsList.at(objectId).category == LevelObjectCategory::Tile) UpdateAutotileNeighbors(x, y, 2);
 
+    ComputeLevelBounds();
+
     return true;
 }
 
@@ -269,6 +292,7 @@ bool Level::EditorTryToRemoveObject(const Vector2& mousePosition, int x, int y)
 {
     // Check if the position is within the level bounds
     if (mousePosition.x < 0 || mousePosition.x >= kMaxLevelWidth || mousePosition.y < 0 || mousePosition.y >= kMaxLevelHeight) return false;
+    if (x < 0 || x >= kMaxLevelWidth || y < 0 || y >= kMaxLevelHeight) return false;
 
     // First try to delete objects
     for (size_t i = 0; i < _objectPlacements.size(); ++i)
@@ -360,6 +384,8 @@ void Level::DeleteLevelObject(size_t placementIndex)
     }
 
     _objectPlacements.erase(_objectPlacements.begin() + placementIndex);
+
+    ComputeLevelBounds();
 }
 
 void Level::DeleteLevelTile(int x, int y)
@@ -373,6 +399,7 @@ void Level::DeleteLevelTile(int x, int y)
     _tileIds[y][x] = 0;
 
     UpdateAutotileNeighbors(x, y, 2);
+    ComputeLevelBounds();
 }
 
 void Level::RemoveFromViews(LevelObject* obj)
@@ -405,6 +432,34 @@ bool Level::CanBoundsBePlacedAt(const Rectangle& editorBounds) const
             if (_levelTiles[ty][tx]) return false;
 
     return true;
+}
+
+void Level::ComputeLevelBounds()
+{
+    float xMin = (float)kMaxLevelWidth,  xMax = 0.0f;
+    float yMin = (float)kMaxLevelHeight, yMax = 0.0f;
+    bool any = false;
+
+    for (const Placement& p : _objectPlacements)
+    {
+        xMin = std::min(xMin, p.editorBounds.x);
+        yMin = std::min(yMin, p.editorBounds.y);
+        xMax = std::max(xMax, p.editorBounds.x + p.editorBounds.width);
+        yMax = std::max(yMax, p.editorBounds.y + p.editorBounds.height);
+        any = true;
+    }
+
+    for (int y = 0; y < kMaxLevelHeight; ++y)
+        for (int x = 0; x < kMaxLevelWidth; ++x)
+            if (_levelTiles[y][x])
+            {
+                xMin = std::min(xMin, (float)x);       yMin = std::min(yMin, (float)y);
+                xMax = std::max(xMax, (float)(x + 1)); yMax = std::max(yMax, (float)(y + 1));
+                any = true;
+            }
+
+    _levelBounds = any ? Rectangle{ xMin, yMin, xMax - xMin, yMax - yMin }
+                       : Rectangle{ 0, 0, (float)kMaxLevelWidth, (float)kMaxLevelHeight };
 }
 
 void Level::UpdateTileAutotile(int x, int y)
