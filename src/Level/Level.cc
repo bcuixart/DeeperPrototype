@@ -90,12 +90,21 @@ void Level::RenderEditorBounds(const float deltaTime) const
     }
 }
 
-void Level::LoadLevel(const std::string& levelName)
+void Level::RenderEditorDraggingPreview(const float deltaTime, uint8_t objectId, int x, int y) const
 {
-    std::ifstream file("assets/levels/" + levelName + ".dgl");
+    Rectangle bounds;
+    if (!ComputeEditorBoundsForObject(objectId, x, y, bounds)) return;
+
+    if (CanBoundsBePlacedAt(bounds)) DrawRectangleLinesEx(bounds, 0.05f, GREEN);
+    else DrawRectangleLinesEx(bounds, 0.05f, RED);
+}
+
+void Level::ReadLevelFromFile(const std::string& fileName)
+{
+    std::ifstream file("assets/levels/" + fileName + ".dgl");
     if (!file.is_open()) 
     {
-        std::cerr << "[LevelManager] No s'ha pogut obrir el nivell: " << levelName << "\n";
+        std::cerr << "[LevelManager] No s'ha pogut obrir el nivell: " << fileName << "\n";
         return;
     }
 
@@ -109,6 +118,11 @@ void Level::LoadLevel(const std::string& levelName)
         return;
     }
 
+    BuildLevelFromStream(file);
+}
+
+void Level::BuildLevelFromStream(std::istream& stream)
+{
     _levelObjects.clear();
     for (auto& row : _levelTiles) for (auto& t : row) t.reset();
     _dogs.clear();
@@ -122,7 +136,7 @@ void Level::LoadLevel(const std::string& levelName)
     for (int y = 0; y < kMaxLevelHeight; ++y)
     {
         std::string row;
-        std::getline(file, row);
+        std::getline(stream, row);
 
         row.resize(kMaxLevelWidth, ' ');
 
@@ -236,43 +250,29 @@ LevelObjectTileType Level::GetTileTypeAt(int x, int y) const
 	return LevelObjectTileType::None;
 }
 
-bool Level::EditorTryToPlaceObject(const Vector2& position, uint8_t objectId)
+bool Level::EditorTryToPlaceObject(int x, int y, uint8_t objectId)
 {
-    const int x = (int)floorf(position.x);
-    const int y = (int)floorf(position.y);
     if (x < 0 || x >= kMaxLevelWidth || y < 0 || y >= kMaxLevelHeight) return false;
 
-    if (levelObjectsList.find(objectId) == levelObjectsList.end()) return false;
-    LevelObjectProperties properties = levelObjectsList.at(objectId);
-
-    // Check if the object would be within the level bounds
-    const Rectangle bounds = { x + properties.editorBounds.x, y + properties.editorBounds.y, properties.editorBounds.width, properties.editorBounds.height };
-    if (bounds.x < 0 || bounds.y < 0 || bounds.x + bounds.width > kMaxLevelWidth || bounds.y + bounds.height > kMaxLevelHeight) return false;
-
-    for (const Placement& p : _objectPlacements)
-        if (CheckCollisionRecs(bounds, p.editorBounds)) return false;
-
-    for (int ty = (int)floorf(bounds.y); ty < (int)ceilf(bounds.y + bounds.height); ++ty)
-        for (int tx = (int)floorf(bounds.x); tx < (int)ceilf(bounds.x + bounds.width); ++tx)
-            if (_levelTiles[ty][tx]) return false;
+    Rectangle bounds;
+    if (!ComputeEditorBoundsForObject(objectId, x, y, bounds)) return false;
+    if (!CanBoundsBePlacedAt(bounds)) return false;
 
     if (!PlaceObjectById(objectId, x, y)) return false;
     
-    if (levelObjectsList.at(objectId).category == LevelObjectCategory::Tile) UpdateAutotileNeighbors(x, y, 1);
+    if (levelObjectsList.at(objectId).category == LevelObjectCategory::Tile) UpdateAutotileNeighbors(x, y, 2);
 
     return true;
 }
 
-bool Level::EditorTryToRemoveObject(const Vector2& position)
+bool Level::EditorTryToRemoveObject(const Vector2& mousePosition, int x, int y)
 {
     // Check if the position is within the level bounds
-    const int x = (int)floorf(position.x);
-    const int y = (int)floorf(position.y);
-    if (x < 0 || x >= kMaxLevelWidth || y < 0 || y >= kMaxLevelHeight) return false;
+    if (mousePosition.x < 0 || mousePosition.x >= kMaxLevelWidth || mousePosition.y < 0 || mousePosition.y >= kMaxLevelHeight) return false;
 
     // First try to delete objects
     for (size_t i = 0; i < _objectPlacements.size(); ++i)
-        if (CheckCollisionPointRec(position, _objectPlacements[i].editorBounds))
+        if (CheckCollisionPointRec(mousePosition, _objectPlacements[i].editorBounds))
         {
             DeleteLevelObject(i);
             return true;
@@ -372,7 +372,7 @@ void Level::DeleteLevelTile(int x, int y)
     _levelTiles[y][x].reset();
     _tileIds[y][x] = 0;
 
-    UpdateAutotileNeighbors(x, y, 1);
+    UpdateAutotileNeighbors(x, y, 2);
 }
 
 void Level::RemoveFromViews(LevelObject* obj)
@@ -382,6 +382,29 @@ void Level::RemoveFromViews(LevelObject* obj)
     drop(_breakableTiles);
     drop(_dogs);
     drop(_dogHouses);
+}
+
+bool Level::ComputeEditorBoundsForObject(uint8_t id, int x, int y, Rectangle& outBounds) const
+{
+    if (levelObjectsList.find(id) == levelObjectsList.end()) return false;
+    LevelObjectProperties properties = levelObjectsList.at(id);
+
+    outBounds = { x + properties.editorBounds.x, y + properties.editorBounds.y, properties.editorBounds.width, properties.editorBounds.height };
+    return true;
+}
+
+bool Level::CanBoundsBePlacedAt(const Rectangle& editorBounds) const
+{
+    if (editorBounds.x < 0 || editorBounds.y < 0 || editorBounds.x + editorBounds.width > kMaxLevelWidth || editorBounds.y + editorBounds.height > kMaxLevelHeight) return false;
+
+    for (const Placement& p : _objectPlacements)
+        if (CheckCollisionRecs(editorBounds, p.editorBounds)) return false;
+
+    for (int ty = (int)floorf(editorBounds.y); ty < (int)ceilf(editorBounds.y + editorBounds.height); ++ty)
+        for (int tx = (int)floorf(editorBounds.x); tx < (int)ceilf(editorBounds.x + editorBounds.width); ++tx)
+            if (_levelTiles[ty][tx]) return false;
+
+    return true;
 }
 
 void Level::UpdateTileAutotile(int x, int y)

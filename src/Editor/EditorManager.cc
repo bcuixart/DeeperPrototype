@@ -3,7 +3,7 @@
 EditorManager::EditorManager() :
     _level(nullptr)
 {
-
+    _selectedObjectId = kLevelObjectEditorOrder[_selectedObjectEditorOrderIndex];
 }
 
 EditorManager::~EditorManager()
@@ -25,7 +25,18 @@ void EditorManager::Update(const float deltaTime)
     _cam.offset = { GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f };
     _cam.zoom = Clamp(_cam.zoom * powf(1.1f, mouseWheel.y), kEditorCamMinZoom, kEditorCamMaxZoom);
 
-    Vector2 mousePos = GetScreenToWorld2D(GetMousePosition(), _cam);
+    _mousePosition = GetScreenToWorld2D(GetMousePosition(), _cam);
+    _mouseX = (int)floorf(_mousePosition.x);
+    _mouseY = (int)floorf(_mousePosition.y);    
+
+    if (IsKeyPressed(KEY_Q)) _selectedObjectEditorOrderIndex = (_selectedObjectEditorOrderIndex + 1) % kLevelObjectEditorOrder.size();
+    _selectedObjectId = kLevelObjectEditorOrder[_selectedObjectEditorOrderIndex];
+
+    HandleAddingObjects();
+    HandleRemovingObjects();
+
+    _mousePrevX = _mouseX;
+    _mousePrevY = _mouseY;
 }
 
 void EditorManager::Render(const float deltaTime) const
@@ -37,6 +48,7 @@ void EditorManager::Render(const float deltaTime) const
     _level.RenderBackground(deltaTime);
     _level.RenderEditorGrid(deltaTime);
     _level.RenderObjects(deltaTime);
+    _level.RenderEditorDraggingPreview(deltaTime, _selectedObjectId, _mouseX, _mouseY);
 
     if (DEBUG_DRAW_EDITOR_BOUNDS) _level.RenderEditorBounds(deltaTime);
 
@@ -48,7 +60,7 @@ void EditorManager::Render(const float deltaTime) const
 
 void EditorManager::LoadLevel(const std::string& levelName)
 {
-    _level.LoadLevel(levelName);
+    _level.ReadLevelFromFile(levelName);
 
     float zoomX = (float)GetScreenWidth() / _level.GetLevelWidth();
     float zoomY = (float)GetScreenHeight() / _level.GetLevelHeight();
@@ -57,4 +69,28 @@ void EditorManager::LoadLevel(const std::string& levelName)
     _cam.target = { _level.GetLevelWidth() / 2.0f, _level.GetLevelHeight() / 2.0f };
     _cam.offset = { GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f };
     _cam.rotation = 0.0f;
+}
+
+void EditorManager::HandleAddingObjects()
+{
+    if (levelObjectsList.find(_selectedObjectId) == levelObjectsList.end()) return;
+    const LevelObjectProperties& properties = levelObjectsList.at(_selectedObjectId);
+
+    if (properties.canBePlacedByDragging)
+    {
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && (_mousePrevX != _mouseX || _mousePrevY != _mouseY)))
+            _level.EditorTryToPlaceObject(_mouseX, _mouseY, _selectedObjectId);
+    }
+    else
+    {
+        if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) _level.EditorTryToPlaceObject(_mouseX, _mouseY, _selectedObjectId);
+    }
+}
+
+void EditorManager::HandleRemovingObjects()
+{
+    if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) || (IsMouseButtonDown(MOUSE_BUTTON_RIGHT) && (_mousePrevX != _mouseX || _mousePrevY != _mouseY)))
+    {
+        _level.EditorTryToRemoveObject(_mousePosition, _mouseX, _mouseY);
+    }
 }

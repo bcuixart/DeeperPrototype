@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <unordered_map>
+#include <vector>
 
 #include "LevelObject.hh"
 #include "LevelObjects/LevelObjectDog.hh"
@@ -31,6 +32,8 @@ constexpr uint8_t kIdHydrant = 'h';
 constexpr uint8_t kIdBench = 'b';
 constexpr uint8_t kIdDogHouse = 'D';
 constexpr uint8_t kIdUmbrellaTall = 'U';
+
+const std::vector<uint8_t> kLevelObjectEditorOrder = { kIdGround, kIdSlope, kIdSand, kIdDirt, kIdBridge, kIdTennisBall, kIdHydrant, kIdBench, kIdDogHouse, kIdUmbrellaTall };
 
 struct LevelObjectProperties
 {

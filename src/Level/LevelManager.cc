@@ -61,7 +61,7 @@ void LevelManager::LoadLevel(const std::string& levelName, const LevelPlayers& p
 {
     _dogBySlot.fill(nullptr);
 
-    _level.LoadLevel(levelName);
+    _level.ReadLevelFromFile(levelName);
 
     int housesNum = _level.GetDogHouseCount();
     if (housesNum <= 0) return;

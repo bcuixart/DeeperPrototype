@@ -30,15 +30,17 @@ public:
 	void RenderBounds(const float deltaTime) const;
 	void RenderEditorGrid(const float deltaTime) const;
 	void RenderEditorBounds(const float deltaTime) const;
+	void RenderEditorDraggingPreview(const float deltaTime, uint8_t objectId, int x, int y) const;
 
-	void LoadLevel(const std::string& levelName);
+	void ReadLevelFromFile(const std::string& fileName);
+	void BuildLevelFromStream(std::istream& stream);
 	LevelObjectDog* SpawnDogInHouse(uint8_t houseIndex, uint8_t playerSlot, uint8_t dogType);
 
 	int GetLevelWidth() const { return _levelWidth; }
 	int GetLevelHeight() const { return _levelHeight; }
 
-	bool EditorTryToPlaceObject(const Vector2& position, uint8_t objectId);
-	bool EditorTryToRemoveObject(const Vector2& position);
+	bool EditorTryToPlaceObject(int x, int y, uint8_t objectId);
+	bool EditorTryToRemoveObject(const Vector2& position, int x, int y);
 
 	void UpdateAutotileNeighbors(int x, int y, int radius);
 
@@ -74,6 +76,9 @@ private:
 	void DeleteLevelTile(int x, int y);
 
 	void RemoveFromViews(LevelObject* obj);
+
+	bool ComputeEditorBoundsForObject(uint8_t id, int x, int y, Rectangle& outBounds) const;
+	bool CanBoundsBePlacedAt(const Rectangle& editorBounds) const;
 
 	void UpdateTileAutotile(int x, int y);
 
