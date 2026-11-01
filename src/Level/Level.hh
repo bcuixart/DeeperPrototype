@@ -5,22 +5,10 @@
 #include <array>
 #include <memory>
 #include <fstream>
+#include <algorithm>
 
 #include "PhysicsManager.hh"
-#include "LevelObject.hh"
-#include "LevelObjects/LevelObjectDog.hh"
-#include "LevelObjects/Tiles/Autotile.hh"
-#include "LevelObjects/Tiles/LevelObjectTile.hh"
-#include "LevelObjects/Tiles/LevelObjectTileGround.hh"
-#include "LevelObjects/Tiles/LevelObjectTileSand.hh"
-#include "LevelObjects/Tiles/LevelObjectTileDirt.hh"
-#include "LevelObjects/Tiles/LevelObjectTileSlope.hh"
-#include "LevelObjects/Tiles/LevelObjectTileBridge.hh"
-#include "LevelObjects/Objects/LevelObjectBallTennis.hh"
-#include "LevelObjects/Objects/LevelObjectHydrant001.hh"
-#include "LevelObjects/Deco/LevelObjectBench001.hh"
-#include "LevelObjects/Objects/LevelObjectDogHouse.hh"
-#include "LevelObjects/Objects/LevelObjectUmbrellaTall.hh"
+#include "LevelObjectsList.hh"
 
 constexpr int kMaxLevelWidth = 64;
 constexpr int kMaxLevelHeight = 64;
@@ -49,6 +37,9 @@ public:
 	int GetLevelWidth() const { return _levelWidth; }
 	int GetLevelHeight() const { return _levelHeight; }
 
+	bool EditorTryToPlaceObject(const Vector2& position, uint8_t objectId);
+	bool EditorTryToRemoveObject(const Vector2& position);
+
 	void UpdateAutotileNeighbors(int x, int y);
 
 	void DigAt(LevelObjectDog* digger, const Vector2& dogFeetPositionLeft, const Vector2& dogFeetPositionRight);
@@ -64,8 +55,25 @@ public:
 protected:
 
 private:
-	void InstantiateLevelObject(std::unique_ptr<LevelObject> obj);
-	void InstantiateLevelTile(std::unique_ptr<LevelObjectTile> tile, int i, int j);
+	struct Placement
+	{
+		uint8_t id;
+		Vector2 placedPosition;
+		Rectangle editorBounds;
+		std::vector<LevelObject*> parts;
+	};
+
+	bool PlaceObjectById(uint8_t id, int x, int y);
+
+	template <typename T> T* AddSingleObject(uint8_t id, const Vector2& pos, const Rectangle& editorBounds);
+	void AddPlacement(uint8_t id, const Vector2& placedPosition, const Rectangle& editorBounds, std::vector<std::unique_ptr<LevelObject>>&& parts);
+	LevelObjectTile* AddTile(uint8_t id, std::unique_ptr<LevelObjectTile> tile, int x, int y);
+	void AddDog(std::unique_ptr<LevelObjectDog> dog, uint8_t playerSlot, uint8_t dogType);
+
+	void DeleteLevelObject(size_t placementIndex);
+	void DeleteLevelTile(int x, int y);
+
+	void RemoveFromViews(LevelObject* obj);
 
 	void UpdateTileAutotile(int x, int y);
 
@@ -90,7 +98,10 @@ private:
 	int _levelHeight = 0;
 
 	std::vector<std::unique_ptr<LevelObject>> _levelObjects;
-	std::vector<std::vector<std::unique_ptr<LevelObjectTile>>> _levelTiles;
+	std::array<std::array<std::unique_ptr<LevelObjectTile>, kMaxLevelWidth>, kMaxLevelHeight> _levelTiles;
+
+	std::vector<Placement> _objectPlacements;
+	std::array<std::array<uint8_t, kMaxLevelWidth>, kMaxLevelHeight> _tileIds{};
 
 	std::vector<LevelObjectDog*> _dogs;
 	std::vector<LevelObjectDogHouse*> _dogHouses;

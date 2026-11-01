@@ -26,9 +26,9 @@ void Level::RenderBackground(const float deltaTime) const
 
 void Level::RenderObjects(const float deltaTime) const
 {
-    for (int i = 0; i < _levelHeight; ++i)
+    for (int i = 0; i < kMaxLevelHeight; ++i)
     {
-        for (int j = 0; j < _levelWidth; ++j)
+        for (int j = 0; j < kMaxLevelWidth; ++j)
         {
             if (_levelTiles[i][j])
             {
@@ -42,9 +42,9 @@ void Level::RenderObjects(const float deltaTime) const
 
 void Level::RenderBounds(const float deltaTime) const
 {
-    for (int i = 0; i < _levelHeight; ++i)
+    for (int i = 0; i < kMaxLevelHeight; ++i)
     {
-        for (int j = 0; j < _levelWidth; ++j)
+        for (int j = 0; j < kMaxLevelWidth; ++j)
         {
             if (_levelTiles[i][j])
             {
@@ -87,72 +87,87 @@ void Level::LoadLevel(const std::string& levelName)
     file >> _levelWidth >> _levelHeight;
     file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
+    if (!file || _levelWidth <= 0 || _levelHeight <= 0 || _levelWidth > kMaxLevelWidth || _levelHeight > kMaxLevelHeight)
+    {
+        std::cerr << "[Level] Mida de nivell invàlida\n";
+        _levelWidth = _levelHeight = 0;
+        return;
+    }
+
     _levelObjects.clear();
+    for (auto& row : _levelTiles) for (auto& t : row) t.reset();
     _dogs.clear();
     _dogHouses.clear();
-    _levelTiles.clear();
     _netBodies.clear();
     _breakableTiles.clear();
 
-    _levelTiles.resize(_levelHeight);
-    for (auto& row : _levelTiles)
-        row.resize(_levelWidth);
+    _objectPlacements.clear();
+    _tileIds = {};
 
-    for (int i = 0; i < _levelHeight; ++i) {
+    for (int y = 0; y < kMaxLevelHeight; ++y)
+    {
         std::string row;
         std::getline(file, row);
 
-        row.resize(_levelWidth, ' ');
+        row.resize(kMaxLevelWidth, ' ');
 
-        for (int j = 0; j < _levelWidth; ++j) {
-            Vector2 pos = { static_cast<float>(j), static_cast<float>(i) };
-            switch (row[j]) {
-            case 'G': InstantiateLevelTile(std::make_unique<LevelObjectTileGround>(pos), i, j); break;
-            case 's': InstantiateLevelTile(std::make_unique<LevelObjectTileSlope>(pos), i, j); break;
-            case 'S':
-            {
-                auto sand = std::make_unique<LevelObjectTileSand>(pos, this);
-                _breakableTiles.push_back(sand.get());
-                InstantiateLevelTile(std::move(sand), i, j);
-                break;
-            }
-            case 'd': InstantiateLevelTile(std::make_unique<LevelObjectTileDirt>(pos), i, j); break;
-            case 'B': InstantiateLevelTile(std::make_unique<LevelObjectTileBridge>(pos), i, j); break;
-            case 't': InstantiateLevelObject(std::make_unique<LevelObjectBallTennis>(pos)); break;
-            case 'h': 
-            {
-                auto waterLeft = std::make_unique<LevelObjectHydrant001Water>(pos, true);
-                auto waterRight = std::make_unique<LevelObjectHydrant001Water>(pos, false);
-
-                LevelObjectHydrant001Water* waterLeftPtr = waterLeft.get();
-                LevelObjectHydrant001Water* waterRightPtr = waterRight.get();
-
-                InstantiateLevelObject(std::move(waterLeft));
-                InstantiateLevelObject(std::move(waterRight));
-                InstantiateLevelObject(std::make_unique<LevelObjectHydrant001>(pos, waterLeftPtr, waterRightPtr)); 
-                break;
-            }
-            case 'b': InstantiateLevelObject(std::make_unique<LevelObjectBench001>(pos)); break;
-            case 'D': 
-            {
-                auto dogHouse = std::make_unique<LevelObjectDogHouse>(pos);
-                _dogHouses.push_back(dogHouse.get());
-                InstantiateLevelObject(std::move(dogHouse));
-                break;
-            }
-            case 'U': InstantiateLevelObject(std::make_unique<LevelObjectUmbrellaTall>(pos)); break;
-            default:  break;
-            }
-        }
+        for (int x = 0; x < _levelWidth; ++x) PlaceObjectById((uint8_t)row[x], x, y); 
     }
 
-    for (int y = 0; y < _levelHeight; ++y)
-        for (int x = 0; x < _levelWidth; ++x)
+    for (int y = 0; y < kMaxLevelHeight; ++y)
+        for (int x = 0; x < kMaxLevelWidth; ++x)
             if (_levelTiles[y][x]) UpdateTileAutotile(x, y);
 
-    for (int y = 0; y < _levelHeight; ++y)
-        for (int x = 0; x < _levelWidth; ++x)
+    for (int y = 0; y < kMaxLevelHeight; ++y)
+        for (int x = 0; x < kMaxLevelWidth; ++x)
             if (_levelTiles[y][x]) SetTileSideCollisionMask(x, y);
+}
+
+bool Level::PlaceObjectById(uint8_t id, int x, int y)
+{
+    auto it = levelObjectsList.find(id);
+    if (it == levelObjectsList.end()) return false;
+    
+    Rectangle editorBounds;
+    editorBounds = { x + it->second.editorBounds.x, y + it->second.editorBounds.y, it->second.editorBounds.width, it->second.editorBounds.height };
+
+    const Vector2 pos = { (float)x, (float)y };
+
+    switch (id)
+    {
+        // --- Tiles ---
+        case kIdGround: AddTile(id, std::make_unique<LevelObjectTileGround>(pos), x, y); break;
+        case kIdSlope:  AddTile(id, std::make_unique<LevelObjectTileSlope>(pos), x, y);  break;
+        case kIdDirt:   AddTile(id, std::make_unique<LevelObjectTileDirt>(pos), x, y);   break;
+        case kIdBridge: AddTile(id, std::make_unique<LevelObjectTileBridge>(pos), x, y); break;
+        case kIdSand:
+            _breakableTiles.push_back(AddTile(id, std::make_unique<LevelObjectTileSand>(pos, this), x, y));
+            break;
+
+        // --- Objects ---
+        case kIdTennisBall:   AddSingleObject<LevelObjectBallTennis>(id, pos, editorBounds);   break;
+        case kIdBench:        AddSingleObject<LevelObjectBench001>(id, pos, editorBounds);     break;
+        case kIdUmbrellaTall: AddSingleObject<LevelObjectUmbrellaTall>(id, pos, editorBounds); break;
+        case kIdDogHouse:
+            _dogHouses.push_back(AddSingleObject<LevelObjectDogHouse>(id, pos, editorBounds));
+            break;
+        case kIdHydrant:
+        {
+            auto waterLeft  = std::make_unique<LevelObjectHydrant001Water>(pos, true);
+            auto waterRight = std::make_unique<LevelObjectHydrant001Water>(pos, false);
+            auto* wl = waterLeft.get();
+            auto* wr = waterRight.get();
+
+            std::vector<std::unique_ptr<LevelObject>> parts;
+            parts.push_back(std::move(waterLeft));
+            parts.push_back(std::move(waterRight));
+            parts.push_back(std::make_unique<LevelObjectHydrant001>(pos, wl, wr));
+            AddPlacement(id, pos, editorBounds, std::move(parts));
+            break;
+        }
+        default: return false;
+    }
+    return true;
 }
 
 LevelObjectDog* Level::SpawnDogInHouse(uint8_t houseIndex, uint8_t playerSlot, uint8_t dogType)
@@ -164,11 +179,8 @@ LevelObjectDog* Level::SpawnDogInHouse(uint8_t houseIndex, uint8_t playerSlot, u
     printf("[Level] SpawnDogInHouse: houseIndex=%d, playerSlot=%d, dogType=%d, pos=(%.2f, %.2f)\n", houseIndex, playerSlot, dogType, dogPos.x, dogPos.y);
 
     auto dog = std::make_unique<LevelObjectDog>(dogPos, this);
-    dog->SetSlot(playerSlot);
-    dog->SetDogType(dogType);
     auto raw = dog.get();
-    _dogs.push_back(raw);
-    InstantiateLevelObject(std::move(dog));
+    AddDog(std::move(dog), playerSlot, dogType);
 
     return raw;
 }
@@ -205,27 +217,158 @@ LevelObjectTileType Level::GetTileTypeAt(const Vector2& position) const
 
 LevelObjectTileType Level::GetTileTypeAt(int x, int y) const
 {
-	if (x >= 0 && x < _levelWidth && y >= 0 && y < _levelHeight && _levelTiles[y][x])
+	if (x >= 0 && x < kMaxLevelWidth && y >= 0 && y < kMaxLevelHeight && _levelTiles[y][x])
 		return _levelTiles[y][x]->GetTileType();
 
 	return LevelObjectTileType::None;
 }
 
-void Level::InstantiateLevelObject(std::unique_ptr<LevelObject> obj)
+bool Level::EditorTryToPlaceObject(const Vector2& position, uint8_t objectId)
 {
-    LevelObject* raw = obj.get();
-    _levelObjects.push_back(std::move(obj));
-    _physicsManager.RegisterObject(raw);   
+    const int x = (int)floorf(position.x);
+    const int y = (int)floorf(position.y);
+    if (x < 0 || x >= kMaxLevelWidth || y < 0 || y >= kMaxLevelHeight) return false;
 
-    NetworkLevelObjectDynEntState probe;
-    if (raw->NetGet(probe)) _netBodies.push_back(raw);
+    if (levelObjectsList.find(objectId) == levelObjectsList.end()) return false;
+    LevelObjectProperties properties = levelObjectsList.at(objectId);
+
+    // Check if the object would be within the level bounds
+    const Rectangle bounds = { position.x + properties.editorBounds.x, position.y + properties.editorBounds.y, properties.editorBounds.width, properties.editorBounds.height };
+    if (bounds.x < 0 || bounds.y < 0 || bounds.x + bounds.width > kMaxLevelWidth || bounds.y + bounds.height > kMaxLevelHeight) return false;
+
+    for (const Placement& p : _objectPlacements)
+        if (CheckCollisionRecs(bounds, p.editorBounds)) return false;
+
+    for (int ty = (int)floorf(bounds.y); ty < (int)ceilf(bounds.y + bounds.height); ++ty)
+        for (int tx = (int)floorf(bounds.x); tx < (int)ceilf(bounds.x + bounds.width); ++tx)
+            if (_levelTiles[ty][tx]) return false;
+
+    PlaceObjectById(objectId, x, y);
+    
+    if (levelObjectsList.at(objectId).category == LevelObjectCategory::Tile) UpdateAutotileNeighbors(x, y);
+
+    return true;
 }
 
-void Level::InstantiateLevelTile(std::unique_ptr<LevelObjectTile> tile, int i, int j)
+bool Level::EditorTryToRemoveObject(const Vector2& position)
 {
-    LevelObject* raw = tile.get();
-    _levelTiles[i][j] = std::move(tile);
+    // Check if the position is within the level bounds
+    const int x = (int)floorf(position.x);
+    const int y = (int)floorf(position.y);
+    if (x < 0 || x >= kMaxLevelWidth || y < 0 || y >= kMaxLevelHeight) return false;
+
+    // First try to delete objects
+    for (size_t i = 0; i < _objectPlacements.size(); ++i)
+        if (CheckCollisionPointRec(position, _objectPlacements[i].editorBounds))
+        {
+            DeleteLevelObject(i);
+            return true;
+        }
+
+    if (_levelTiles[y][x]) 
+    {
+        DeleteLevelTile(x, y);
+        return true;
+    }
+    return false;
+}
+
+template <typename T>
+T* Level::AddSingleObject(uint8_t id, const Vector2& pos, const Rectangle& editorBounds)
+{
+    auto obj = std::make_unique<T>(pos);
+    T* raw = obj.get();
+
+    std::vector<std::unique_ptr<LevelObject>> parts;
+    parts.push_back(std::move(obj));
+    AddPlacement(id, pos, editorBounds, std::move(parts));
+
+    return raw;
+}
+
+void Level::AddPlacement(uint8_t id, const Vector2& placedPosition, const Rectangle& editorBounds, std::vector<std::unique_ptr<LevelObject>>&& parts)
+{
+    Placement p{ id, placedPosition, editorBounds, {} };
+
+    for (auto& part : parts) 
+    {
+        LevelObject* raw = part.get();
+        _levelObjects.push_back(std::move(part));
+        _physicsManager.RegisterObject(raw);
+
+        NetworkLevelObjectDynEntState probe;
+        if (raw->NetGet(probe)) _netBodies.push_back(raw);
+
+        p.parts.push_back(raw);
+    }
+
+    _objectPlacements.push_back(std::move(p));
+}
+
+LevelObjectTile* Level::AddTile(uint8_t id, std::unique_ptr<LevelObjectTile> tile, int x, int y)
+{
+    LevelObjectTile* raw = tile.get();
+    _levelTiles[y][x] = std::move(tile);
+
+    _tileIds[y][x] = id;
     _physicsManager.RegisterObject(raw);
+
+    return raw;
+}
+
+void Level::AddDog(std::unique_ptr<LevelObjectDog> dog, uint8_t playerSlot, uint8_t dogType)
+{
+    LevelObjectDog* raw = dog.get();
+    _levelObjects.push_back(std::move(dog));
+    _physicsManager.RegisterObject(raw);
+
+    _netBodies.push_back(raw);
+
+    raw->SetSlot(playerSlot);
+    raw->SetDogType(dogType);
+
+    _dogs.push_back(raw);
+}
+
+void Level::DeleteLevelObject(size_t placementIndex)
+{
+    const std::vector<LevelObject*> objects = _objectPlacements[placementIndex].parts;
+
+    for (auto it = objects.rbegin(); it != objects.rend(); ++it)
+    {
+        LevelObject* obj = *it;
+
+        _physicsManager.UnregisterObject(obj);
+        RemoveFromViews(obj);
+
+        _levelObjects.erase(std::remove_if(_levelObjects.begin(), _levelObjects.end(),
+            [obj](const std::unique_ptr<LevelObject>& o) { return o.get() == obj; }),
+            _levelObjects.end());
+    }
+
+    _objectPlacements.erase(_objectPlacements.begin() + placementIndex);
+}
+
+void Level::DeleteLevelTile(int x, int y)
+{
+    LevelObjectTile* tile = _levelTiles[y][x].get();
+    if (!tile) return;
+
+    _physicsManager.UnregisterObject(tile);
+    RemoveFromViews(tile);
+    _levelTiles[y][x].reset();
+    _tileIds[y][x] = 0;
+
+    UpdateAutotileNeighbors(x, y);
+}
+
+void Level::RemoveFromViews(LevelObject* obj)
+{
+    auto drop = [obj](auto& v) { v.erase(std::remove(v.begin(), v.end(), obj), v.end()); };
+    drop(_netBodies);
+    drop(_breakableTiles);
+    drop(_dogs);
+    drop(_dogHouses);
 }
 
 void Level::UpdateTileAutotile(int x, int y)
@@ -296,7 +439,7 @@ void Level::UpdateAutotileNeighbors(int x, int y)
         {
             int nx = x + dx; 
             int ny = y + dy;
-            if (nx >= 0 && nx < _levelWidth && ny >= 0 && ny < _levelHeight)
+            if (nx >= 0 && nx < kMaxLevelWidth && ny >= 0 && ny < kMaxLevelHeight)
             {
                 if (_levelTiles[ny][nx]) UpdateTileAutotile(nx, ny);
             }
@@ -462,7 +605,7 @@ uint16_t Level::ComputeSlopeVariationMask(uint8_t maskLow, int x, int y) const
 uint8_t Level::ComputeTileMaskBridge(int x, int y) const
 {
     auto same = [&](int cx, int cy) -> bool {
-        if (cx < 0 || cx >= _levelWidth || cy < 0 || cy >= _levelHeight || !_levelTiles[cy][cx])
+        if (cx < 0 || cx >= kMaxLevelWidth || cy < 0 || cy >= kMaxLevelHeight || !_levelTiles[cy][cx])
             return false;
         return _levelTiles[cy][cx]->GetTileType() == LevelObjectTileType::Bridge;
         };
@@ -493,7 +636,7 @@ void Level::SetTileSideCollisionMask(int x, int y)
 
     if (x > 0)
         hasW = _levelTiles[y][x - 1] && (_levelTiles[y][x - 1]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y][x - 1]->GetTileType() == LevelObjectTileType::Slope || _levelTiles[y][x - 1]->GetTileType() == LevelObjectTileType::Dirt);
-    if (x < _levelWidth - 1)
+    if (x < kMaxLevelWidth - 1)
         hasE = _levelTiles[y][x + 1] && (_levelTiles[y][x + 1]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y][x + 1]->GetTileType() == LevelObjectTileType::Slope || _levelTiles[y][x + 1]->GetTileType() == LevelObjectTileType::Dirt);
     if (y > 0)
     {
@@ -507,7 +650,7 @@ void Level::SetTileSideCollisionMask(int x, int y)
             else if (orientation == SlopeOrientation::RisingLeft && !hasE) hasN = false;
         }
     }
-    if (y < _levelHeight - 1)
+    if (y < kMaxLevelHeight - 1)
     {
         hasS = _levelTiles[y + 1][x] && (_levelTiles[y + 1][x]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y + 1][x]->GetTileType() == LevelObjectTileType::Slope || _levelTiles[y + 1][x]->GetTileType() == LevelObjectTileType::Dirt);
         if (_levelTiles[y + 1][x] && IsTileSlope(x, y + 1))
@@ -528,7 +671,7 @@ void Level::SetTileSideCollisionMask(int x, int y)
 
 bool Level::IsTileSame(int x, int y, LevelObjectTileType type) const
 {
-    if (x < 0 || x >= _levelWidth || y < 0 || y >= _levelHeight) return false;
+    if (x < 0 || x >= kMaxLevelWidth || y < 0 || y >= kMaxLevelHeight) return false;
     if (!_levelTiles[y][x]) return false;
 
     switch(type)
@@ -563,7 +706,7 @@ bool Level::IsTileSame(int x, int y, LevelObjectTileType type) const
 
 bool Level::IsTileSlope(int x, int y) const
 {
-    if (x < 0 || x >= _levelWidth || y < 0 || y >= _levelHeight) return false;
+    if (x < 0 || x >= kMaxLevelWidth || y < 0 || y >= kMaxLevelHeight) return false;
     if (!_levelTiles[y][x]) return false;
     if (_levelTiles[y][x]->GetTileType() != LevelObjectTileType::Slope) return false;
 
