@@ -16,13 +16,14 @@ void EditorManager::Update(const float deltaTime)
     // We do not update the level in the editor, as it is not running the game logic. The level is only rendered for editing purposes.
     // _level.Update(deltaTime);
 
-    if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) _cam.target.x -= kEditorCamMoveSpeed * deltaTime;
-    if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) _cam.target.x += kEditorCamMoveSpeed * deltaTime;
-    if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) _cam.target.y -= kEditorCamMoveSpeed * deltaTime;
-    if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) _cam.target.y += kEditorCamMoveSpeed * deltaTime;
+    if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) _cam.target.x -= kEditorCamMoveSpeed / _cam.zoom * deltaTime;
+    if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) _cam.target.x += kEditorCamMoveSpeed / _cam.zoom * deltaTime;
+    if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) _cam.target.y -= kEditorCamMoveSpeed / _cam.zoom * deltaTime;
+    if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) _cam.target.y += kEditorCamMoveSpeed / _cam.zoom * deltaTime;
 
     Vector2 mouseWheel = GetMouseWheelMoveV();
-    _cam.zoom += mouseWheel.y * kEditorCamZoomSpeed * deltaTime;
+    _cam.offset = { GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f };
+    _cam.zoom = Clamp(_cam.zoom * powf(1.1f, mouseWheel.y), kEditorCamMinZoom, kEditorCamMaxZoom);
 
     Vector2 mousePos = GetScreenToWorld2D(GetMousePosition(), _cam);
 }
@@ -52,7 +53,7 @@ void EditorManager::LoadLevel(const std::string& levelName)
     float zoomX = (float)GetScreenWidth() / _level.GetLevelWidth();
     float zoomY = (float)GetScreenHeight() / _level.GetLevelHeight();
 
-    _cam.zoom = std::min(zoomX, zoomY);
+    _cam.zoom = Clamp(std::min(zoomX, zoomY), kEditorCamMinZoom, kEditorCamMaxZoom);
     _cam.target = { _level.GetLevelWidth() / 2.0f, _level.GetLevelHeight() / 2.0f };
     _cam.offset = { GetScreenWidth() / 2.0f, GetScreenHeight() / 2.0f };
     _cam.rotation = 0.0f;

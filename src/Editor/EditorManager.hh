@@ -20,10 +20,12 @@ private:
 
 	Camera2D _cam = { 0 };
 
-	constexpr static float kEditorCamMoveSpeed = 30.0f;
+	constexpr static float kEditorCamMoveSpeed = 1000.0f;
 	constexpr static float kEditorCamZoomSpeed = 25.0f;
+	constexpr static float kEditorCamMinZoom = 20.0f;
+	constexpr static float kEditorCamMaxZoom = 80.0f;
 
-	constexpr static bool DEBUG_DRAW_EDITOR_BOUNDS = false;
+	constexpr static bool DEBUG_DRAW_EDITOR_BOUNDS = true;
 };
 
 #endif

@@ -41,17 +41,17 @@ struct LevelObjectProperties
 
 const std::unordered_map<uint8_t, LevelObjectProperties> levelObjectsList = 
 {
-	// ID				Category							EditorBounds	CanBePlacedByDragging
-	{kIdGround,			{LevelObjectCategory::Tile,			{0, 0, 16, 16}, true}},	 // Ground
-	{kIdSlope,			{LevelObjectCategory::Tile,			{0, 0, 16, 16}, true}},	 // Slope
-	{kIdSand,			{LevelObjectCategory::Tile,			{0, 0, 16, 16}, true}},	 // Sand
-	{kIdDirt,			{LevelObjectCategory::Tile,			{0, 0, 16, 16}, true}},	 // Dirt
-	{kIdBridge,			{LevelObjectCategory::Tile,			{0, 0, 16, 16}, true}},	 // Bridge
-	{kIdTennisBall,		{LevelObjectCategory::Mobile,		{0, 0, 16, 16}, false}}, // Tennis Ball
-	{kIdHydrant,		{LevelObjectCategory::Interactable, {0, 0, 16, 16}, false}}, // Hydrant
-	{kIdBench,			{LevelObjectCategory::Decoration,	{0, 0, 32, 16}, false}}, // Bench
-	{kIdDogHouse,		{LevelObjectCategory::Interactable, {0, 0, 16, 16}, false}}, // Dog House
-	{kIdUmbrellaTall,	{LevelObjectCategory::Decoration,	{0, 0, 16, 32}, false}}	 // Umbrella Tall
+	// ID				Category								EditorBounds					CanBePlacedByDragging
+	{kIdGround,			{LevelObjectCategory::Tile,				{0, 0, 1, 1},					true}},					// Ground
+	{kIdSlope,			{LevelObjectCategory::Tile,				{0, 0, 1, 1},					true}},					// Slope
+	{kIdSand,			{LevelObjectCategory::Tile,				{0, 0, 1, 1},					true}},					// Sand
+	{kIdDirt,			{LevelObjectCategory::Tile,				{0, 0, 1, 1},					true}},					// Dirt
+	{kIdBridge,			{LevelObjectCategory::Tile,				{0, 0, 1, 1},					true}},					// Bridge
+	{kIdTennisBall,		{LevelObjectCategory::Mobile,			{0.25f, 0.25f, 0.5f, 0.5f},		false}},				// Tennis Ball
+	{kIdHydrant,		{LevelObjectCategory::Interactable,		{0, -0.5f, 1, 1.5f},			false}},				// Hydrant
+	{kIdBench,			{LevelObjectCategory::Decoration,		{-0.25f,-0.1875f, 1.5f,1.1875f},false}},				// Bench
+	{kIdDogHouse,		{LevelObjectCategory::Interactable,		{0, -0.5f, 1, 1.5f},			false}},				// Dog House
+	{kIdUmbrellaTall,	{LevelObjectCategory::Decoration,		{-0.5f, -2.0f, 2.0f, 3},		false}}					// Umbrella Tall
 
 };
 

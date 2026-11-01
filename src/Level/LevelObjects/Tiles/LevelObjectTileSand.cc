@@ -69,5 +69,5 @@ void LevelObjectTileSand::NetworkSetBroken(bool broken)
     if (_isBroken == broken) return;
 
     _isBroken = broken;
-    _level->UpdateAutotileNeighbors((int)GetPosition().x, (int)GetPosition().y);
+    _level->UpdateAutotileNeighbors((int)GetPosition().x, (int)GetPosition().y, 1);
 }

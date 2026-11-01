@@ -16,7 +16,7 @@ void LevelObjectDogHouse::Render(const float deltaTime) const
 
     constexpr float kPixelsPerTile = 16.0f;
 
-    Rectangle src = { 0.0f, 0.0f, 22.0f, 26.0f };
+    Rectangle src = { 0.0f, 0.0f, 20.0f, 25.0f };
     const float spriteWidth  = src.width  / kPixelsPerTile;
     const float spriteHeight = src.height / kPixelsPerTile;
 

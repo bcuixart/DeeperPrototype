@@ -73,6 +73,21 @@ void Level::RenderEditorGrid(const float deltaTime) const
 
 void Level::RenderEditorBounds(const float deltaTime) const
 {
+    for (int i = 0; i < kMaxLevelHeight; ++i)
+    {
+        for (int j = 0; j < kMaxLevelWidth; ++j)
+        {
+            if (_levelTiles[i][j])
+            {
+                _levelTiles[i][j]->RenderBounds(deltaTime, RED);
+            }
+        }
+    }
+
+    for (const Placement& placement : _objectPlacements)
+    {
+        DrawRectangleLinesEx(placement.editorBounds, 0.05f, BLUE);
+    }
 }
 
 void Level::LoadLevel(const std::string& levelName)
@@ -111,7 +126,7 @@ void Level::LoadLevel(const std::string& levelName)
 
         row.resize(kMaxLevelWidth, ' ');
 
-        for (int x = 0; x < _levelWidth; ++x) PlaceObjectById((uint8_t)row[x], x, y); 
+        for (int x = 0; x < kMaxLevelWidth; ++x) PlaceObjectById((uint8_t)row[x], x, y); 
     }
 
     for (int y = 0; y < kMaxLevelHeight; ++y)
@@ -176,8 +191,6 @@ LevelObjectDog* Level::SpawnDogInHouse(uint8_t houseIndex, uint8_t playerSlot, u
 
     Vector2 dogPos = { _dogHouses[houseIndex]->GetPosition().x, _dogHouses[houseIndex]->GetPosition().y };
 
-    printf("[Level] SpawnDogInHouse: houseIndex=%d, playerSlot=%d, dogType=%d, pos=(%.2f, %.2f)\n", houseIndex, playerSlot, dogType, dogPos.x, dogPos.y);
-
     auto dog = std::make_unique<LevelObjectDog>(dogPos, this);
     auto raw = dog.get();
     AddDog(std::move(dog), playerSlot, dogType);
@@ -233,7 +246,7 @@ bool Level::EditorTryToPlaceObject(const Vector2& position, uint8_t objectId)
     LevelObjectProperties properties = levelObjectsList.at(objectId);
 
     // Check if the object would be within the level bounds
-    const Rectangle bounds = { position.x + properties.editorBounds.x, position.y + properties.editorBounds.y, properties.editorBounds.width, properties.editorBounds.height };
+    const Rectangle bounds = { x + properties.editorBounds.x, y + properties.editorBounds.y, properties.editorBounds.width, properties.editorBounds.height };
     if (bounds.x < 0 || bounds.y < 0 || bounds.x + bounds.width > kMaxLevelWidth || bounds.y + bounds.height > kMaxLevelHeight) return false;
 
     for (const Placement& p : _objectPlacements)
@@ -243,9 +256,9 @@ bool Level::EditorTryToPlaceObject(const Vector2& position, uint8_t objectId)
         for (int tx = (int)floorf(bounds.x); tx < (int)ceilf(bounds.x + bounds.width); ++tx)
             if (_levelTiles[ty][tx]) return false;
 
-    PlaceObjectById(objectId, x, y);
+    if (!PlaceObjectById(objectId, x, y)) return false;
     
-    if (levelObjectsList.at(objectId).category == LevelObjectCategory::Tile) UpdateAutotileNeighbors(x, y);
+    if (levelObjectsList.at(objectId).category == LevelObjectCategory::Tile) UpdateAutotileNeighbors(x, y, 1);
 
     return true;
 }
@@ -359,7 +372,7 @@ void Level::DeleteLevelTile(int x, int y)
     _levelTiles[y][x].reset();
     _tileIds[y][x] = 0;
 
-    UpdateAutotileNeighbors(x, y);
+    UpdateAutotileNeighbors(x, y, 1);
 }
 
 void Level::RemoveFromViews(LevelObject* obj)
@@ -431,11 +444,11 @@ void Level::UpdateTileAutotile(int x, int y)
     }
 }
 
-void Level::UpdateAutotileNeighbors(int x, int y)
+void Level::UpdateAutotileNeighbors(int x, int y, int radius)
 {
-    for (int dy = -1; dy <= 1; ++dy)
+    for (int dy = -radius; dy <= radius; ++dy)
     {
-        for (int dx = -1; dx <= 1; ++dx) 
+        for (int dx = -radius; dx <= radius; ++dx) 
         {
             int nx = x + dx; 
             int ny = y + dy;

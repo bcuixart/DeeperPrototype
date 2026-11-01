@@ -244,7 +244,7 @@ void GameManager::OnStartGamePressed()
     if (_playersActive == 0) return;
 
 #ifdef EDITOR_ENABLED
-    if (_willEnterEditor)
+    if (_willEnterEditor && _playersActive == 1)
     {
         _willEnterEditor = false;
         _gameState = GameState::EDITOR;

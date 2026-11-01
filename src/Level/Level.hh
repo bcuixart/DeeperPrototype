@@ -11,7 +11,7 @@
 #include "LevelObjectsList.hh"
 
 constexpr int kMaxLevelWidth = 64;
-constexpr int kMaxLevelHeight = 64;
+constexpr int kMaxLevelHeight = 32;
 
 class LevelManager;
 
@@ -40,7 +40,7 @@ public:
 	bool EditorTryToPlaceObject(const Vector2& position, uint8_t objectId);
 	bool EditorTryToRemoveObject(const Vector2& position);
 
-	void UpdateAutotileNeighbors(int x, int y);
+	void UpdateAutotileNeighbors(int x, int y, int radius);
 
 	void DigAt(LevelObjectDog* digger, const Vector2& dogFeetPositionLeft, const Vector2& dogFeetPositionRight);
 
