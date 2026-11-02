@@ -7,6 +7,19 @@ The game is still in development. It is probably the fourth iteration of the gam
 
 It will also feature online multiplayer, or the best approximation thereof.
 
+## Expected workflow:
+- [X] Add level background.
+- [ ] Add dog stun mechanic.
+- [ ] Add dog grabbing and stealing mechanic.
+- [ ] Add dog barking mechanic.
+- [ ] Add dirt digging mechanic.
+- [ ] Physics improvements.
+- [ ] Add water physics and visuals.
+- [ ] Networking improvements.
+- [ ] Proper level saving and loading.
+- [ ] Sound effects.
+- [ ] Particles.
+
 ## Non-obvious to-do list (Things I could very well forget):
 - [ ] Fix dynamic objects clipping through slopes with solid roof (47, 48)
 - [ ] Add swallowed check on slope sweeping in X axis. (Is it necessary?)

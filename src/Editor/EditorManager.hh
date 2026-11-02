@@ -38,6 +38,8 @@ private:
 	uint8_t _selectedObjectId = 0;
 	int _selectedObjectEditorOrderIndex = 0;
 
+	LevelBackgroundType _selectedBackgroundType = LevelBackgroundType::Park;
+
 	constexpr static float kEditorCamMoveSpeed = 1000.0f;
 	constexpr static float kEditorCamZoomSpeed = 25.0f;
 	constexpr static float kEditorCamMinZoom = 20.0f;

@@ -34,6 +34,11 @@ void AssetManager::LoadTextures()
 	_textures[(size_t)TextureId::Bench001] = LoadTexture("assets/sprites/deco/Deco_Bench_001.png");
 	_textures[(size_t)TextureId::DogHouse] = LoadTexture("assets/sprites/objects/Object_DogHouse.png");
 	_textures[(size_t)TextureId::UmbrellaTall] = LoadTexture("assets/sprites/objects/Object_Umbrella_Tall.png");
+	_textures[(size_t)TextureId::BackgroundPark] = LoadTexture("assets/sprites/backgrounds/Background_Park.png");
+	_textures[(size_t)TextureId::BackgroundHood] = LoadTexture("assets/sprites/backgrounds/Background_Hood.png");
+	_textures[(size_t)TextureId::BackgroundCity] = LoadTexture("assets/sprites/backgrounds/Background_City.png");
+	_textures[(size_t)TextureId::BackgroundSnow] = LoadTexture("assets/sprites/backgrounds/Background_Snow.png");
+	_textures[(size_t)TextureId::BackgroundBeach] = LoadTexture("assets/sprites/backgrounds/Background_Beach.png");
 
 	for (auto& tex : _textures) SetTextureFilter(tex, TEXTURE_FILTER_POINT); // Important for pixel art
 }

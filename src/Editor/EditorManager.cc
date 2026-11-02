@@ -33,6 +33,11 @@ void EditorManager::Update(const float deltaTime)
     _selectedObjectId = kLevelObjectEditorOrder[_selectedObjectEditorOrderIndex];
 
     if (IsKeyPressed(KEY_C)) _cam = _level.FitCameraToBounds(1.0f, 16.0f, 9.0f);
+    if (IsKeyPressed(KEY_B)) 
+    {
+        _selectedBackgroundType = static_cast<LevelBackgroundType>((static_cast<int>(_selectedBackgroundType) + 1) % (int)LevelBackgroundType::Count);
+        _level.SetBackground(_selectedBackgroundType);
+    }
 
     HandleAddingObjects();
     HandleRemovingObjects();

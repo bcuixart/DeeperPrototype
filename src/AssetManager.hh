@@ -23,6 +23,11 @@ enum class TextureId
     Bench001,
     DogHouse,
     UmbrellaTall,
+    BackgroundPark,
+    BackgroundHood,
+    BackgroundCity,
+    BackgroundSnow,
+    BackgroundBeach,
 	Count // Last element to keep track of the number of textures
 };
 

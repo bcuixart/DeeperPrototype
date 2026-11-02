@@ -58,4 +58,13 @@ const std::unordered_map<uint8_t, LevelObjectProperties> levelObjectsList =
 
 };
 
+#include "LevelBackgrounds/LevelBackground.hh"
+#include "LevelBackgrounds/LevelBackgroundPark.hh"
+#include "LevelBackgrounds/LevelBackgroundHood.hh"
+#include "LevelBackgrounds/LevelBackgroundCity.hh"
+#include "LevelBackgrounds/LevelBackgroundSnow.hh"
+#include "LevelBackgrounds/LevelBackgroundBeach.hh"
+
+enum class LevelBackgroundType : uint8_t { Park, Hood, City, Snow, Beach, Count };
+
 #endif

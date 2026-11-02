@@ -39,6 +39,8 @@ public:
 	bool BuildLevelFromStream(std::istream& stream);
 	void WriteLevelToStream(std::ostream& stream) const;
 
+	void SetBackground(LevelBackgroundType backgroundType);
+
 	LevelObjectDog* SpawnDogInHouse(uint8_t houseIndex, uint8_t playerSlot, uint8_t dogType);
 
 	bool EditorTryToPlaceObject(int x, int y, uint8_t objectId);
@@ -118,6 +120,9 @@ private:
 
 	std::vector<LevelObject*> _netBodies;
 	std::vector<LevelObject*> _breakableTiles;
+
+	std::unique_ptr<LevelBackground> _background;
+	LevelBackgroundType _backgroundTypeIndex = LevelBackgroundType::Park;
 
 	PhysicsManager _physicsManager;
 	LevelManager* _levelManager{nullptr};

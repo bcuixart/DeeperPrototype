@@ -17,11 +17,15 @@ void Level::Update(const float deltaTime)
     for (auto& object : _levelObjects) object->Update(deltaTime);
 
     _physicsManager.Update(deltaTime);
+
+    _background->Update(deltaTime);
 }
 
 void Level::RenderBackground(const float deltaTime) const
 {
     ClearBackground({ 0, 196, 255, 255 });
+
+    _background->Render(deltaTime);
 }
 
 void Level::RenderObjects(const float deltaTime) const
@@ -131,15 +135,19 @@ bool Level::BuildLevelFromFile(const std::string& fileName)
 
 bool Level::BuildLevelFromStream(std::istream& stream)
 {
-    int width, height;
-    stream >> width >> height;
+    int bg;
+    stream >> bg;
+    _backgroundTypeIndex = static_cast<LevelBackgroundType>(bg);
+
     stream.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
-    if (!stream || width <= 0 || height <= 0 || width > kMaxLevelWidth || height > kMaxLevelHeight)
+    std::cout << "[Level] Carregant nivell amb fons: " << bg << "\n";
+    if (!stream || bg < 0 || _backgroundTypeIndex >= LevelBackgroundType::Count)
     {
-        std::cerr << "[Level] Mida de nivell invàlida\n";
+        std::cerr << "[Level] Tipus de fons invàlid\n";
         return false;
     }
+    SetBackground(_backgroundTypeIndex);
 
     _levelObjects.clear();
     for (auto& row : _levelTiles) for (auto& t : row) t.reset();
@@ -148,7 +156,6 @@ bool Level::BuildLevelFromStream(std::istream& stream)
     _netBodies.clear();
     _breakableTiles.clear();
     _physicsManager = PhysicsManager();
-
     _objectPlacements.clear();
     _tileIds = {};
 
@@ -177,7 +184,7 @@ bool Level::BuildLevelFromStream(std::istream& stream)
 
 void Level::WriteLevelToStream(std::ostream& out) const
 {
-    out << kMaxLevelWidth << " " << kMaxLevelHeight << "\n";
+    out << (int)_backgroundTypeIndex << "\n";
 
     std::array<std::string, kMaxLevelHeight> rows;
     for (auto& r : rows) r.assign(kMaxLevelWidth, '.');
@@ -190,6 +197,21 @@ void Level::WriteLevelToStream(std::ostream& out) const
         rows[(int)p.placedPosition.y][(int)p.placedPosition.x] = (char)p.id;
 
     for (const auto& r : rows) out << r << '\n';
+}
+
+void Level::SetBackground(LevelBackgroundType backgroundType)
+{
+    switch(backgroundType)
+    {
+        case LevelBackgroundType::Park:  _background = std::make_unique<LevelBackgroundPark>(kMaxLevelWidth, kMaxLevelHeight); break;
+        case LevelBackgroundType::Hood:  _background = std::make_unique<LevelBackgroundHood>(kMaxLevelWidth, kMaxLevelHeight); break;
+        case LevelBackgroundType::City:  _background = std::make_unique<LevelBackgroundCity>(kMaxLevelWidth, kMaxLevelHeight); break;
+        case LevelBackgroundType::Snow:  _background = std::make_unique<LevelBackgroundSnow>(kMaxLevelWidth, kMaxLevelHeight); break;
+        case LevelBackgroundType::Beach: _background = std::make_unique<LevelBackgroundBeach>(kMaxLevelWidth, kMaxLevelHeight); break;
+        default:                         _background = std::make_unique<LevelBackgroundPark>(kMaxLevelWidth, kMaxLevelHeight); break;
+    }
+
+    _backgroundTypeIndex = backgroundType;
 }
 
 bool Level::PlaceObjectById(uint8_t id, int x, int y)
