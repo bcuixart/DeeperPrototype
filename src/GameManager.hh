@@ -2,6 +2,7 @@
 #define GAMEMANAGER_HH
 
 #include <iostream>
+#include <sstream>
 #include <vector> 
 #include <array>
 #include <algorithm> 
@@ -86,6 +87,8 @@ public:
 	void OnRoundEndReceived(uint32_t endTick, const std::array<uint16_t, MAX_PLAYERS>& scores);
 	void DrawRoundOverlay() const;
 
+	void DrawPlaytestOverlay() const;
+
 	void OnResultsPickLevel(int slot, uint8_t levelId);
 	void OnResultsBack(int slot);
 
@@ -113,6 +116,9 @@ private:
 	void StartOfflineLevel(const std::string& levelName);
 	void StartOnlineLevel(const LevelStartInfo& info);
 	void BeginLevel(const std::string& levelName, const LevelPlayers& players, uint32_t seed, uint32_t roundTicks);
+
+	void StartPlaytestLevel();
+	void EndPlaytestLevel();
 
 	void Update_Lobby(const float deltaTime);
 	void DrawLobbyPanel() const;

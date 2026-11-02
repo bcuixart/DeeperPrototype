@@ -44,12 +44,18 @@ void LevelManager::ReceiveInput(const std::array<uint8_t, MAX_PLAYERS>& input)
     }
 }
 
-void LevelManager::LoadLevel(const std::string& levelName, const LevelPlayers& players, uint32_t spawnSeed)
+void LevelManager::LoadLevelFromFile(const std::string& fileName, const LevelPlayers& players, uint32_t seed)
 {
-    _dogBySlot.fill(nullptr);
+    if (_level.BuildLevelFromFile(fileName)) SpawnDogs(players, seed);
+}
 
-    _level.ReadLevelFromFile(levelName);
+void LevelManager::LoadLevelFromStream(std::istream& stream, const LevelPlayers& players, uint32_t seed)
+{
+    if (_level.BuildLevelFromStream(stream)) SpawnDogs(players, seed);
+}
 
+void LevelManager::SpawnDogs(const LevelPlayers& players, uint32_t spawnSeed)
+{
     int housesNum = _level.GetDogHouseCount();
     if (housesNum <= 0) return;
 

@@ -1,6 +1,9 @@
 #ifndef EDITORMANAGER_HH
 #define EDITORMANAGER_HH
 
+#include <iostream>
+#include <sstream>
+
 #include "Level/Level.hh"
 
 class EditorManager {
@@ -11,7 +14,10 @@ public:
 	void Update(const float deltaTime);
 	void Render(const float deltaTime) const;
 
-	void LoadLevel(const std::string& levelName);
+	void LoadLevelFromFile(const std::string& fileName);
+	void GetLevelDataToPlaytest(std::ostream& stream) const { _level.WriteLevelToStream(stream); };
+
+	bool CanEnterPlaytest() const { return _level.CanEnterPlaytest(); }
 
 protected:
 

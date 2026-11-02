@@ -13,6 +13,7 @@ enum class RoundEvent : uint8_t { ScoreChanged = 1, RoundEnd = 2, PlayerLeft = 3
 class RoundManager {
 public:
     static constexpr uint32_t kDefaultDurationTicks = 1200;   // 20 s per provar; després 3600 (1 minut)
+    static constexpr uint32_t kNoTimeLimit = 0xFFFFFFFFu;
 
     void Begin(uint32_t durationTicks, bool authority, const std::array<bool, kMaxSlots>& active);
 

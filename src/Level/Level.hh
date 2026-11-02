@@ -35,12 +35,16 @@ public:
 
 	Camera2D FitCameraToBounds(float margin, float minWidthTiles, float minHeightTiles) const;
 
-	void ReadLevelFromFile(const std::string& fileName);
-	void BuildLevelFromStream(std::istream& stream);
+	bool BuildLevelFromFile(const std::string& fileName);
+	bool BuildLevelFromStream(std::istream& stream);
+	void WriteLevelToStream(std::ostream& stream) const;
+
 	LevelObjectDog* SpawnDogInHouse(uint8_t houseIndex, uint8_t playerSlot, uint8_t dogType);
 
 	bool EditorTryToPlaceObject(int x, int y, uint8_t objectId);
 	bool EditorTryToRemoveObject(const Vector2& position, int x, int y);
+
+	bool CanEnterPlaytest() const;
 
 	void UpdateAutotileNeighbors(int x, int y, int radius);
 

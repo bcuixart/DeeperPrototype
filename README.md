@@ -5,7 +5,7 @@ Dogs can run, jump, dig and bark through levels full of objects that allow for c
 
 The game is still in development. It is probably the fourth iteration of the game, but I have high hopes for this one.
 
-Eventually it will also feature online multiplayer.
+It will also feature online multiplayer, or the best approximation thereof.
 
 ## Non-obvious to-do list (Things I could very well forget):
 - [ ] Fix dynamic objects clipping through slopes with solid roof (47, 48)
@@ -13,7 +13,8 @@ Eventually it will also feature online multiplayer.
 - [ ] Determine how digging priorities are handled.
 - [ ] Add digging in centerX as a fail-safe option in case nothing is found in left or right.
 - [X] Specialize interaction velocity.
+- [ ] Separate interaction velocity in X and Y components.
 - [ ] Improve force field feel.
 - [ ] Make the dog an interaction agent.
-- [ ] Fix weird crash in some levels.
 - [ ] Physics act differently in some devices. Unsure if it's compiler or system stuff.
+- [ ] Properly poll editor input.

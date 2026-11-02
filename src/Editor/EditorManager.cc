@@ -61,9 +61,9 @@ void EditorManager::Render(const float deltaTime) const
     EndDrawing();
 }
 
-void EditorManager::LoadLevel(const std::string& levelName)
+void EditorManager::LoadLevelFromFile(const std::string& fileName)
 {
-    _level.ReadLevelFromFile(levelName);
+    _level.BuildLevelFromFile(fileName);
 
     _cam = _level.FitCameraToBounds(1.0f, 16.0f, 9.0f);
 }

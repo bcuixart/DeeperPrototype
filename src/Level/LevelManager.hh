@@ -24,7 +24,8 @@ public:
 
 	void ReceiveInput(const std::array<uint8_t, MAX_PLAYERS>& input);
 
-	void LoadLevel(const std::string& levelName, const LevelPlayers& players, uint32_t spawnSeed);
+	void LoadLevelFromFile(const std::string& fileName, const LevelPlayers& players, uint32_t spawnSeed);
+	void LoadLevelFromStream(std::istream& stream, const LevelPlayers& players, uint32_t spawnSeed);
 
 	void SetScoreCallback(std::function<void(uint8_t, int)> cb) { _onScore = std::move(cb); }
 	void NotifyScore(const LevelObject* cause, int points);
@@ -40,6 +41,8 @@ public:
 protected:
 
 private:
+	void SpawnDogs(const LevelPlayers& players, uint32_t spawnSeed);
+
 	Level _level;
 
 	Camera2D _cam = { 0 };

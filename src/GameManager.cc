@@ -110,9 +110,17 @@ void GameManager::Update(const float deltaTime)
 #ifdef EDITOR_ENABLED
     case GameState::EDITOR:
         _editorManager->Update(deltaTime);
+
+        if (IsKeyPressed(KEY_ENTER) && _editorManager->CanEnterPlaytest()) StartPlaytestLevel();
+
         break;
     case GameState::EDITOR_PLAYTEST:
         
+        SimulateTick(BuildSlotInput(), deltaTime);
+        _levelTick++;
+
+        if (IsKeyPressed(KEY_ENTER)) EndPlaytestLevel();
+
         break;
 #endif
 	}
@@ -143,7 +151,7 @@ void GameManager::Render(const float deltaTime)
         _editorManager->Render(deltaTime);
         break;
     case GameState::EDITOR_PLAYTEST:
-        
+        _levelManager->Render(deltaTime, [this]() { DrawPlaytestOverlay(); });
         break;
 #endif
 	}
@@ -248,7 +256,7 @@ void GameManager::OnStartGamePressed()
     {
         _willEnterEditor = false;
         _gameState = GameState::EDITOR;
-        _editorManager->LoadLevel("test_level");
+        _editorManager->LoadLevelFromFile("test_level");
 
         return;
     }
@@ -319,19 +327,15 @@ void GameManager::BeginLevel(const std::string& levelName, const LevelPlayers& p
 
     _gameState = GameState::LEVEL;
     _levelManager = std::make_unique<LevelManager>();
-    _levelManager->LoadLevel(levelName, players, seed);
+    _levelManager->LoadLevelFromFile(levelName, players, seed);
 
     _levelNetworkSync->Reset(_levelManager->GetNetBodies(), _levelManager->GetNetBreakableTiles());
 
-    if (_netOptions.mode != NetLaunchOptions::Mode::Offline)
-    {
-        const size_t snapSize = _levelNetworkSync->BuildSnapshot().size();
-        printf("[net] snapshot del nivell '%s': %zu bytes (maxim %d)\n", levelName.c_str(), snapSize, (int)kMaxSnapshotBytes);
-        if (snapSize > kMaxSnapshotBytes) printf("[net] AVIS: aquest nivell no cap en un snapshot!\n");
-    }
+    const size_t snapSize = _levelNetworkSync->BuildSnapshot().size();
+    printf("[net] snapshot del nivell '%s': %zu bytes (maxim %d)\n", levelName.c_str(), snapSize, (int)kMaxSnapshotBytes);
+    if (snapSize > kMaxSnapshotBytes) printf("[net] AVIS: aquest nivell no cap en un snapshot!\n");
 
-    const bool onlineClient = _netOptions.mode != NetLaunchOptions::Mode::Offline
-                              && _networkManager && !_networkManager->IsHost();
+    const bool onlineClient = _netOptions.mode != NetLaunchOptions::Mode::Offline && _networkManager && !_networkManager->IsHost();
     _levelManager->SetNetAuthority(onlineClient, _mySlots);
     for (auto& a : _usedInputs) a.fill(kNeutralLevelInput);
 
@@ -339,6 +343,37 @@ void GameManager::BeginLevel(const std::string& levelName, const LevelPlayers& p
     for (int s = 0; s < MAX_PLAYERS; ++s) activeSlots[s] = players[s].active;
     _roundManager->Begin(roundTicks, !onlineClient, activeSlots);
     _levelManager->SetScoreCallback([this](uint8_t slot, int points) { OnScore(slot, points); });
+}
+
+void GameManager::StartPlaytestLevel()
+{
+    std::stringstream levelText;
+    _editorManager->GetLevelDataToPlaytest(levelText);
+
+    LevelPlayers players;
+    players[0].active  = true;
+    players[0].dogType = _playerInfo[0].dogType;
+    _slotOfLocalPlayers[0] = 0;
+    _mySlots.clear();
+
+    static std::mt19937 rng{ std::random_device{}() };
+
+    _levelTick = 0;
+    _levelManager = std::make_unique<LevelManager>();
+    _levelManager->LoadLevelFromStream(levelText, players, rng());
+
+    std::array<bool, kMaxSlots> active{};
+    active[0] = true;
+    _roundManager->Begin(RoundManager::kNoTimeLimit, true, active);
+    _levelManager->SetScoreCallback([this](uint8_t slot, int points) { OnScore(slot, points); });
+
+    _gameState = GameState::EDITOR_PLAYTEST;
+}
+
+void GameManager::EndPlaytestLevel()
+{
+    _levelManager.reset();
+    _gameState = GameState::EDITOR;
 }
 
 void GameManager::EnterOnlineLobby()
@@ -683,6 +718,14 @@ void GameManager::DrawRoundOverlay() const
         y += 24;
     }
     if (_roundManager->IsOver(_levelTick)) DrawText("FI DE RONDA", 20, y + 10, 30, YELLOW);
+}
+
+void GameManager::DrawPlaytestOverlay() const
+{
+    const int tenths = (int)(_levelTick / 6);
+    DrawText(TextFormat("%d:%02d.%d", tenths / 600, (tenths / 10) % 60, tenths % 10), 20, 10, 30, WHITE);
+    DrawText(TextFormat("Punts: %d", _roundManager->GetScore(0)), 20, 50, 20, WHITE);
+    DrawText("ENTER: tornar a l'editor", 20, 80, 16, GRAY);
 }
 
 static uint32_t ComputeLevelHash(const std::string& levelName)

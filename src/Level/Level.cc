@@ -118,36 +118,36 @@ Camera2D Level::FitCameraToBounds(float margin, float minWidthTiles, float minHe
     return cam;
 }
 
-void Level::ReadLevelFromFile(const std::string& fileName)
+bool Level::BuildLevelFromFile(const std::string& fileName)
 {
     std::ifstream file("assets/levels/" + fileName + ".dgl");
-    if (!file.is_open()) 
+    if (!file.is_open())
     {
-        std::cerr << "[LevelManager] No s'ha pogut obrir el nivell: " << fileName << "\n";
-        return;
+        std::cerr << "[Level] No s'ha pogut obrir el nivell: " << fileName << "\n";
+        return false;
     }
-
-    int width, height;
-    file >> width >> height;
-    file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-
-    if (!file || width <= 0 || height <= 0 || width > kMaxLevelWidth || height > kMaxLevelHeight)
-    {
-        std::cerr << "[Level] Mida de nivell invàlida\n";
-        return;
-    }
-
-    BuildLevelFromStream(file);
+    return BuildLevelFromStream(file);
 }
 
-void Level::BuildLevelFromStream(std::istream& stream)
+bool Level::BuildLevelFromStream(std::istream& stream)
 {
+    int width, height;
+    stream >> width >> height;
+    stream.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
+    if (!stream || width <= 0 || height <= 0 || width > kMaxLevelWidth || height > kMaxLevelHeight)
+    {
+        std::cerr << "[Level] Mida de nivell invàlida\n";
+        return false;
+    }
+
     _levelObjects.clear();
     for (auto& row : _levelTiles) for (auto& t : row) t.reset();
     _dogs.clear();
     _dogHouses.clear();
     _netBodies.clear();
     _breakableTiles.clear();
+    _physicsManager = PhysicsManager();
 
     _objectPlacements.clear();
     _tileIds = {};
@@ -171,6 +171,25 @@ void Level::BuildLevelFromStream(std::istream& stream)
             if (_levelTiles[y][x]) SetTileSideCollisionMask(x, y);
 
     ComputeLevelBounds();
+
+    return true;
+}
+
+void Level::WriteLevelToStream(std::ostream& out) const
+{
+    out << kMaxLevelWidth << " " << kMaxLevelHeight << "\n";
+
+    std::array<std::string, kMaxLevelHeight> rows;
+    for (auto& r : rows) r.assign(kMaxLevelWidth, '.');
+
+    for (int y = 0; y < kMaxLevelHeight; ++y)
+        for (int x = 0; x < kMaxLevelWidth; ++x)
+            if (_tileIds[y][x]) rows[y][x] = (char)_tileIds[y][x];
+
+    for (const Placement& p : _objectPlacements)
+        rows[(int)p.placedPosition.y][(int)p.placedPosition.x] = (char)p.id;
+
+    for (const auto& r : rows) out << r << '\n';
 }
 
 bool Level::PlaceObjectById(uint8_t id, int x, int y)
@@ -308,6 +327,11 @@ bool Level::EditorTryToRemoveObject(const Vector2& mousePosition, int x, int y)
         return true;
     }
     return false;
+}
+
+bool Level::CanEnterPlaytest() const
+{
+    return _dogHouses.size() > 0;
 }
 
 template <typename T>
