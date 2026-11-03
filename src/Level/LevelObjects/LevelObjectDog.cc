@@ -12,6 +12,8 @@ void LevelObjectDog::Update(const float deltaTime)
     _coyoteTimer = _isGrounded ? kCoyoteTime : std::max(0.0f, _coyoteTimer - deltaTime);
     const bool jumpPressedThisFrame = _inputJump && !_inputJumpPrev;
     _jumpInputBufferTimer = jumpPressedThisFrame ? kJumpInputBufferTime : std::max(0.0f, _jumpInputBufferTimer - deltaTime);
+    _barkCooldownTimer = std::max(0.0f, _barkCooldownTimer - deltaTime);
+    if (_isGrounded) _canDoBarkJump = true;
 
     switch (_state)
     {
@@ -54,7 +56,20 @@ void LevelObjectDog::Update_Default(const float deltaTime)
             SetVelocityY(GetVelocityY() * kJumpReleasedVelocityMultiplier);
         }
         else SetVelocityY(kJumpVelocity);
+    }
 
+    if (_inputBark && !_inputBarkPrev && _barkCooldownTimer <= 0.0f)
+    {
+        if (_canDoBarkJump)
+        {
+            _canDoBarkJump = false;
+
+            if (_isJumping) _isJumping = false;
+            SetVelocityY(kBarkJumpVelocity);
+        }   
+
+        _barkCooldownTimer = kBarkCooldown;
+        _level->BarkAt(this);
     }
 
     float currentVelocityX = GetVelocityX();

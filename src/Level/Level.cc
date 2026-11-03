@@ -274,6 +274,11 @@ LevelObjectDog* Level::SpawnDogInHouse(uint8_t houseIndex, uint8_t playerSlot, u
     return raw;
 }
 
+void Level::BarkAt(LevelObjectDog* barker)
+{
+
+}
+
 void Level::DigAt(LevelObjectDog* digger, const Vector2& dogFeetPositionLeft, const Vector2& dogFeetPositionRight)
 {
     LevelObject* dugObjectLeft = _physicsManager.GetDugObjectAt(dogFeetPositionLeft, digger);

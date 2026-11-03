@@ -50,6 +50,7 @@ public:
 
 	void UpdateAutotileNeighbors(int x, int y, int radius);
 
+	void BarkAt(LevelObjectDog* barker);
 	void DigAt(LevelObjectDog* digger, const Vector2& dogFeetPositionLeft, const Vector2& dogFeetPositionRight);
 
 	int GetDogHouseCount() const { return _dogHouses.size(); }

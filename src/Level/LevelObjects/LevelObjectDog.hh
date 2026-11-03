@@ -55,6 +55,9 @@ private:
     static constexpr float kJumpHoldTime = 0.25f;
     static constexpr float kJumpReleasedVelocityMultiplier = 0.75f;
 
+    static constexpr float kBarkJumpVelocity = -7.5f;
+    static constexpr float kBarkCooldown = 0.1f;
+
     static constexpr float kInteractionVelocity = 15.0f;
 
     static constexpr float kSlideInitialSpeed = 0.5f;
@@ -84,6 +87,9 @@ private:
     bool _isFacingLeft = false;
     bool _isJumping = false;
     float _jumpTimer{0.0f};
+
+    bool _canDoBarkJump{false};
+    float _barkCooldownTimer{0.0f};
 
     bool _isSlidingLeft = false;
 
