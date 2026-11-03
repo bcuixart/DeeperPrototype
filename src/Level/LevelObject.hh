@@ -12,7 +12,7 @@
 
 class Level;
 
-enum class SurfaceType { None, FlatGround, SlopedLeftGround, SlopedRightGround };
+enum class SurfaceType { None, FlatGround, SlopedLeftGround, SlopedRightGround, Count };
 
 #define SOLID_SIDE_NONE 0
 #define SOLID_SIDE_LEFT 1

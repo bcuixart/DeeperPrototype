@@ -8,7 +8,7 @@
 
 constexpr int      kMaxSlots         = 8;
 constexpr int      kMaxPlayersPerMachine = 4;
-constexpr uint16_t kProtocolVersion  = 12;
+constexpr uint16_t kProtocolVersion  = 13;
 constexpr uint8_t  kNoMachine        = 0xFF;
 constexpr int      kInputRedundancy  = 6;
 constexpr uint32_t kSnapshotInterval = 6;

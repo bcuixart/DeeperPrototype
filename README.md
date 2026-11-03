@@ -9,9 +9,10 @@ It will also feature online multiplayer, or the best approximation thereof.
 
 ## Expected workflow:
 - [X] Add level background.
-- [ ] Add dog stun mechanic.
+- [X] Add dog stun mechanic.
 - [ ] Add dog grabbing and stealing mechanic.
-- [ ] Add dog barking mechanic.
+- [X] Add dog barking mechanic.
+- [ ] Add dog trampoline bouncing mechanic.
 - [ ] Add dirt digging mechanic.
 - [ ] Physics improvements.
 - [ ] Add water physics and visuals.
@@ -22,12 +23,16 @@ It will also feature online multiplayer, or the best approximation thereof.
 
 ## Non-obvious to-do list (Things I could very well forget):
 - [ ] Fix dynamic objects clipping through slopes with solid roof (47, 48)
+- [ ] Fix dog stacked on dog not counting as grounded.
 - [ ] Add swallowed check on slope sweeping in X axis. (Is it necessary?)
 - [ ] Determine how digging priorities are handled.
 - [ ] Add digging in centerX as a fail-safe option in case nothing is found in left or right.
+- [ ] Decide if a stunned dog that is stunned by another dog can change its interaction cause and depth.
 - [X] Specialize interaction velocity.
 - [X] Separate interaction velocity in X and Y components.
 - [ ] Improve force field feel.
-- [ ] Make the dog an interaction agent.
+- [X] Make the dog an interaction agent.
+- [ ] Add fast moving dog stunning.
+- [ ] Add fast moving ball stunning.
 - [ ] Physics act differently in some devices. Unsure if it's compiler or system stuff.
 - [ ] Properly poll editor input.

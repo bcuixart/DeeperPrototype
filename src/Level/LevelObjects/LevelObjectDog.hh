@@ -6,7 +6,7 @@
 #include "Network/NetworkTypes.hh"
 
 enum class DogState {
-    Default, Sliding, InDirt, Flung
+    Default, Sliding, InDirt, Stunned
 };
 
 class LevelObjectDog : public LevelObject {
@@ -20,12 +20,20 @@ public:
     bool NetGet(NetworkLevelObjectDynEntState& state) const override;
     void NetSet(const NetworkLevelObjectDynEntState& state) override;
 
+    void CollidedWithX(LevelObject* other, float prevVelocityX) override;
+    void CollidedWithY(LevelObject* other, float prevVelocityY) override;
+
+    void OnDug(LevelObject* digger) override;
+
     HitboxType GetHitboxType() const override { return HitboxType::Entity; }
 
     void ReceiveInput(uint8_t input);
     void SetSlot(uint8_t slot) { _slot = slot; }
     uint8_t GetSlot() const { return _slot; }
-    uint8_t GetInteractionCauseSlot() const override { return _slot; }
+    uint8_t GetInteractionCauseSlot() const override { return _interactionCauseSlot; }
+    uint8_t GetInteractionDepth() const { return _interactionDepth; }
+
+    void OnForceField(const LevelObject* field) override;
 
     void SetGone() { _isGone = true; }
 
@@ -35,15 +43,20 @@ public:
 
     void StartSliding();
 
+    void StunAddVelocity(const LevelObject* stunner, const float velX, const float velY, const float stunTime);
+    void StunSetVelocity(const LevelObject* stunner, const float velX, const float velY, const float stunTime);
+
 	float GetInteractionVelocity() const override { return kInteractionVelocity; }
 
 private:
     void Update_Default(const float deltaTime);
     void Update_Sliding(const float deltaTime);
     void Update_InDirt(const float deltaTime);
-    void Update_Flung(const float deltaTime);
+    void Update_Stunned(const float deltaTime);
 
     void StartJump();
+
+    void Stun(const LevelObject* stunner, const float stunTime);
 
     static constexpr float kWidth = 0.7f;
     static constexpr float kHeight = 0.625f;
@@ -58,7 +71,7 @@ private:
     static constexpr float kBarkJumpVelocity = -7.5f;
     static constexpr float kBarkCooldown = 0.1f;
 
-    static constexpr float kInteractionVelocity = 15.0f;
+    static constexpr float kInteractionVelocity = 13.0f;
 
     static constexpr float kSlideInitialSpeed = 0.5f;
     static constexpr float kSlideAcceleration = 20.0f;
@@ -70,6 +83,11 @@ private:
 
     static constexpr float kJumpInputBufferTime = 0.1f;
     float _jumpInputBufferTimer{0.0f};
+
+    static constexpr float kStunnedBounciness = 0.25f;
+    static constexpr float kStunnedBounceMinVelocityY = 0.5f;
+    static constexpr float kStunMaxTime = 5.0f;
+    float _stunTimer{0.0f};
 
     bool _inputJump{false};
     bool _inputDig{false};
@@ -93,7 +111,10 @@ private:
 
     bool _isSlidingLeft = false;
 
-    uint8_t _slot{kInteractionNoCause};
+    uint8_t _interactionCauseSlot{kInteractionNoCause};
+    uint8_t _interactionDepth{0};
+
+    uint8_t _slot{0};
     uint8_t _dogType{0};
 
     Level* _level;
