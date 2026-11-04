@@ -279,7 +279,7 @@ void Level::BarkAt(LevelObjectDog* barker)
 
 }
 
-bool Level::ObjectCenteredOnTerrainTile(const LevelObject* obj, int tileX, int tileY) const
+bool Level::IsObjectCenteredOnTerrainTile(const LevelObject* obj, int tileX, int tileY) const
 {
     if (!obj) return false;
 

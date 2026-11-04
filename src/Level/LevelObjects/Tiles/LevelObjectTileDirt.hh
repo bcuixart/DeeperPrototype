@@ -14,8 +14,6 @@ public:
 
 	LevelObjectTileType GetTileType() const override;
 
-	virtual bool IsTerrain() const override { return true; }
-
 	void OnDug(LevelObject* digger) override;
 
 protected:

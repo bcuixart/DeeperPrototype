@@ -162,18 +162,18 @@ void LevelObjectDog::Update_InTerrain(const float deltaTime)
     _canDoBarkJump = false;
 
     // Check if the dog is centered on the target tile
-    bool centeredOnTargetTile = _level->ObjectCenteredOnTerrainTile(this, _terrainTargetTileX, _terrainTargetTileY);
+    bool centeredOnTargetTile = _level->IsObjectCenteredOnTerrainTile(this, _terrainTargetTileX, _terrainTargetTileY);
 
     if (centeredOnTargetTile)
     {
-        printf("I am very much centered.\n");
         if (_inputAxisX > 0.0f) { _isFacingLeft = false; _terrainTargetTileX += 1; }
         else if (_inputAxisX < 0.0f) { _isFacingLeft = true; _terrainTargetTileX -= 1; }
         else if (_inputDig) _terrainTargetTileY += 1;
-        else return; // No input, stay in place
+        else return;
     }
 
-    printf("I am very much not centered.\n");
+    // Otherwise, if the dog is not centered on the target tile, it will continue moving towards 
+    // Whatever happens next, it shall be determined upon reaching the next tile
 }
 
 void LevelObjectDog::Update_Stunned(const float deltaTime)
