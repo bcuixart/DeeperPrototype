@@ -42,6 +42,8 @@ private:
     LevelObject* FindBlockingSolidY(const LevelObject* ignore, const Rectangle& bounds, float proposedY, bool movingDown) const;
     LevelObject* FindBlockingSolidX(const LevelObject* ignore, const Rectangle& bounds, float proposedX, bool affectedByPartialSemisolidsX) const;
 
+    void MoveObjectInTerrain(LevelObject* object, const float deltaTime);
+
     void CheckOverlaps(const std::vector<LevelObject*>& listA, const std::vector<LevelObject*>& listB);
     void CheckOverlapsSelf(const std::vector<LevelObject*>& list);
 
@@ -60,8 +62,6 @@ private:
     std::vector<LevelObject*> _trampolineObjects;
     std::vector<LevelObject*> _forceFieldObjects;
     std::vector<LevelObject*> _triggerObjects;
-
-    constexpr static float kGravity = 25.0f;
 };
 
 #endif

@@ -279,6 +279,20 @@ void Level::BarkAt(LevelObjectDog* barker)
 
 }
 
+bool Level::ObjectCenteredOnTerrainTile(const LevelObject* obj, int tileX, int tileY) const
+{
+    if (!obj) return false;
+
+    const float tileCenterX = static_cast<float>(tileX) + 0.5f;
+    const float tileCenterY = static_cast<float>(tileY) + 0.5f;
+
+    const auto& bounds = obj->GetBounds();
+    const float objectCenterX = bounds.x + bounds.width * 0.5f;
+    const float objectCenterY = bounds.y + bounds.height * 0.5f;
+
+    return (fabsf(objectCenterX - tileCenterX) <= kTerrainSnapDistance && fabsf(objectCenterY - tileCenterY) <= kTerrainSnapDistance);
+}
+
 void Level::DigAt(LevelObjectDog* digger, const Vector2& dogFeetPositionLeft, const Vector2& dogFeetPositionRight)
 {
     LevelObject* dugObjectLeft = _physicsManager.GetDugObjectAt(dogFeetPositionLeft, digger);
@@ -777,12 +791,12 @@ void Level::SetTileSideCollisionMask(int x, int y)
     bool hasN = false, hasS = false, hasW = false, hasE = false;
 
     if (x > 0)
-        hasW = _levelTiles[y][x - 1] && (_levelTiles[y][x - 1]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y][x - 1]->GetTileType() == LevelObjectTileType::Slope || _levelTiles[y][x - 1]->GetTileType() == LevelObjectTileType::Dirt);
+        hasW = _levelTiles[y][x - 1] && (_levelTiles[y][x - 1]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y][x - 1]->GetTileType() == LevelObjectTileType::Slope);
     if (x < kMaxLevelWidth - 1)
-        hasE = _levelTiles[y][x + 1] && (_levelTiles[y][x + 1]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y][x + 1]->GetTileType() == LevelObjectTileType::Slope || _levelTiles[y][x + 1]->GetTileType() == LevelObjectTileType::Dirt);
+        hasE = _levelTiles[y][x + 1] && (_levelTiles[y][x + 1]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y][x + 1]->GetTileType() == LevelObjectTileType::Slope);
     if (y > 0)
     {
-        hasN = _levelTiles[y - 1][x] && (_levelTiles[y - 1][x]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y - 1][x]->GetTileType() == LevelObjectTileType::Slope || _levelTiles[y - 1][x]->GetTileType() == LevelObjectTileType::Dirt);
+        hasN = _levelTiles[y - 1][x] && (_levelTiles[y - 1][x]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y - 1][x]->GetTileType() == LevelObjectTileType::Slope);
         if (_levelTiles[y - 1][x] && IsTileSlope(x, y - 1))
         {
             // Disable internal top collision unless the slope above it ends
@@ -794,7 +808,7 @@ void Level::SetTileSideCollisionMask(int x, int y)
     }
     if (y < kMaxLevelHeight - 1)
     {
-        hasS = _levelTiles[y + 1][x] && (_levelTiles[y + 1][x]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y + 1][x]->GetTileType() == LevelObjectTileType::Slope || _levelTiles[y + 1][x]->GetTileType() == LevelObjectTileType::Dirt);
+        hasS = _levelTiles[y + 1][x] && (_levelTiles[y + 1][x]->GetTileType() == LevelObjectTileType::Ground || _levelTiles[y + 1][x]->GetTileType() == LevelObjectTileType::Slope);
         if (_levelTiles[y + 1][x] && IsTileSlope(x, y + 1))
         {
             // Disable internal bottom collision unless the slope below it ends

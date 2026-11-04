@@ -48,3 +48,9 @@ LevelObjectTileType LevelObjectTileDirt::GetTileType() const
 {
 	return LevelObjectTileType::Dirt;
 }
+
+void LevelObjectTileDirt::OnDug(LevelObject* digger)
+{
+    // Speed is 0 because the dog sets its own speed. This value does not matter here.
+    digger->OnEnteredTerrain(static_cast<int>(_bounds.x), static_cast<int>(_bounds.y), 0.0f);
+}

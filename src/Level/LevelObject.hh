@@ -71,6 +71,11 @@ public:
 
 	virtual void OnDug(LevelObject* digger) { }
 
+	virtual bool IsTerrain() const { return false; }
+	virtual void OnEnteredTerrain(int tileX, int tileY, float speed) { }
+	virtual bool IsInTerrain() const { return false; }
+	virtual bool GetTerrainMoveTarget(int& tileX, int& tileY, float& speed) const { return false; }
+
 	virtual uint8_t GetInteractionCauseSlot() const { return kInteractionNoCause; }
 	virtual uint8_t GetInteractionDepth() const { return 0; }
 	static uint8_t NextInteractionDepth(uint8_t d) { return d < 250 ? d + 1 : d; }

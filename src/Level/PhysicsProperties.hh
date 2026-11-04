@@ -1,6 +1,10 @@
 #ifndef PHYSICSPROPERTIES_HH
 #define PHYSICSPROPERTIES_HH
 
+constexpr float kGravity = 25.0f;
+
+constexpr float kTerrainSnapDistance = 0.125f;
+
 enum class HitboxType {
 	Solid,				// Fully solid, does not move, can be dug (Tiles)
 	SolidMaybeSloped,   // Fully solid, does not move, can be dug (Sloped tiles that may or may not act as actual slopes)

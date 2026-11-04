@@ -41,13 +41,15 @@ void PhysicsManager::Update(const float deltaTime)
 
 void PhysicsManager::ApplyGravity(const std::vector<LevelObject*>& objects, const float deltaTime)
 {
-	for (LevelObject* o : objects) o->AddVelocityY(kGravity * deltaTime);
+	for (LevelObject* o : objects) if (!o->IsInTerrain()) o->AddVelocityY(kGravity * deltaTime);
 }
 
 void PhysicsManager::ApplyForceFields(const std::vector<LevelObject*>& objects, const float deltaTime)
 {
 	for (LevelObject* o : objects)
 	{
+		if (o->IsInTerrain()) continue;
+
 		Rectangle bounds = o->GetBounds();
 		for (LevelObject* field : _forceFieldObjects)
 		{
@@ -68,6 +70,8 @@ void PhysicsManager::MoveAndResolveMovement(const std::vector<LevelObject*>& obj
 {
 	for (LevelObject* o : objects)
 	{
+		if (o->IsInTerrain()) { MoveObjectInTerrain(o, deltaTime); continue; }
+
 		const float startX = o->GetBounds().x;
 
 		MoveAndResolveCollisionsX(o, deltaTime, affectedByPartialSemisolidsX, blockedByRealSlopesX);
@@ -685,6 +689,42 @@ LevelObject* PhysicsManager::FindBlockingSolidX(const LevelObject* ignore, const
 	return nullptr;
 }
 
+void PhysicsManager::MoveObjectInTerrain(LevelObject* object, const float deltaTime)
+{
+	int tileX, tileY;
+	float speedTilesPerSecond;
+	
+	if (object->GetTerrainMoveTarget(tileX, tileY, speedTilesPerSecond))
+	{
+		float targetX = tileX + 0.5f;
+		float targetY = tileY + 0.5f;
+
+		float objectCenterX = object->GetBounds().x + object->GetBounds().width * 0.5f;
+		float objectCenterY = object->GetBounds().y + object->GetBounds().height * 0.5f;
+
+		float dx = targetX - objectCenterX;
+		float dy = targetY - objectCenterY;
+		float distance = sqrt(dx * dx + dy * dy);
+
+		if (distance > 0.0f)
+		{
+			dx /= distance;
+			dy /= distance;
+		}	
+
+		if (distance <= kTerrainSnapDistance)
+		{
+			object->SetBoundsX(targetX - object->GetBounds().width * 0.5f);
+			object->SetBoundsY(targetY - object->GetBounds().height * 0.5f);
+		}
+		else
+		{
+			object->SetBoundsX(object->GetBounds().x + dx * speedTilesPerSecond * deltaTime);
+			object->SetBoundsY(object->GetBounds().y + dy * speedTilesPerSecond * deltaTime);
+		}
+	}
+}
+
 void PhysicsManager::CheckOverlaps(const std::vector<LevelObject*>& listA, const std::vector<LevelObject*>& listB)
 {
 	for (LevelObject* a : listA)
@@ -693,11 +733,11 @@ void PhysicsManager::CheckOverlaps(const std::vector<LevelObject*>& listA, const
 		for (LevelObject* b : listB)
 		{
 			if (a == b) continue;
+			if (a->IsInTerrain() != b->IsInTerrain()) continue;
 
 			Rectangle boundsB = b->GetBounds();
 
-			const bool overlap = CheckCollisionRecs(boundsA, boundsB);
-			if (!overlap) continue;
+			if (!CheckCollisionRecs(boundsA, boundsB)) continue;
 
 			a->OnOverlap(b);
 			b->OnOverlap(a);
@@ -712,6 +752,8 @@ void PhysicsManager::CheckOverlapsSelf(const std::vector<LevelObject*>& list)
 		Rectangle boundsA = list[i]->GetBounds();
 		for (size_t j = i + 1; j < list.size(); ++j)
 		{
+			if (list[i]->IsInTerrain() != list[j]->IsInTerrain()) continue;
+
 			if (!CheckCollisionRecs(boundsA, list[j]->GetBounds())) continue;
 
 			list[i]->OnOverlap(list[j]);

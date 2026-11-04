@@ -54,7 +54,7 @@ private:
     bool _isNetClient = false;
     uint8_t _localSlotMask = 0;
 
-	constexpr static bool DEBUG_DRAW_BOUNDS = false;
+	constexpr static bool DEBUG_DRAW_BOUNDS = true;
 };
 
 #endif

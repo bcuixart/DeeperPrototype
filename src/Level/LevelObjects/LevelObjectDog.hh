@@ -6,7 +6,7 @@
 #include "Network/NetworkTypes.hh"
 
 enum class DogState {
-    Default, Sliding, InDirt, Stunned
+    Default, Sliding, InTerrain, Stunned
 };
 
 class LevelObjectDog : public LevelObject {
@@ -37,6 +37,10 @@ public:
 
     void SetGone() { _isGone = true; }
 
+    void OnEnteredTerrain(int tileX, int tileY, float speed) override;
+    bool IsInTerrain() const override { return _state == DogState::InTerrain; }
+    bool GetTerrainMoveTarget(int& tileX, int& tileY, float& speed) const override;
+
     void SetDogType(uint8_t dogType) { _dogType = dogType % kNumDogTypes; }
 
     void DropThroughSemisolid(const Rectangle& semisolidBounds);
@@ -51,7 +55,7 @@ public:
 private:
     void Update_Default(const float deltaTime);
     void Update_Sliding(const float deltaTime);
-    void Update_InDirt(const float deltaTime);
+    void Update_InTerrain(const float deltaTime);
     void Update_Stunned(const float deltaTime);
 
     void StartJump();
@@ -116,6 +120,9 @@ private:
 
     uint8_t _slot{0};
     uint8_t _dogType{0};
+
+    int _terrainTargetTileX{0};
+    int _terrainTargetTileY{0};
 
     Level* _level;
 };

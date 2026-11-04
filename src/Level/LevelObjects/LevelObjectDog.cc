@@ -23,8 +23,8 @@ void LevelObjectDog::Update(const float deltaTime)
         case DogState::Sliding:
             Update_Sliding(deltaTime);
             break;
-        case DogState::InDirt:
-            Update_InDirt(deltaTime);
+        case DogState::InTerrain:
+            Update_InTerrain(deltaTime);
             break;
         case DogState::Stunned:
             Update_Stunned(deltaTime);
@@ -149,7 +149,7 @@ void LevelObjectDog::Update_Sliding(const float deltaTime)
     if (_isGrounded) SetVelocityY(fabsf(GetVelocityX()));
 }
 
-void LevelObjectDog::Update_InDirt(const float deltaTime)
+void LevelObjectDog::Update_InTerrain(const float deltaTime)
 {
     // Since we're in control, the interactions are in our name
     _interactionCauseSlot = _slot;
@@ -160,6 +160,20 @@ void LevelObjectDog::Update_InDirt(const float deltaTime)
     _isJumping = false;
     _jumpTimer = 0.0f;
     _canDoBarkJump = false;
+
+    // Check if the dog is centered on the target tile
+    bool centeredOnTargetTile = _level->ObjectCenteredOnTerrainTile(this, _terrainTargetTileX, _terrainTargetTileY);
+
+    if (centeredOnTargetTile)
+    {
+        printf("I am very much centered.\n");
+        if (_inputAxisX > 0.0f) { _isFacingLeft = false; _terrainTargetTileX += 1; }
+        else if (_inputAxisX < 0.0f) { _isFacingLeft = true; _terrainTargetTileX -= 1; }
+        else if (_inputDig) _terrainTargetTileY += 1;
+        else return; // No input, stay in place
+    }
+
+    printf("I am very much not centered.\n");
 }
 
 void LevelObjectDog::Update_Stunned(const float deltaTime)
@@ -203,7 +217,7 @@ void LevelObjectDog::StunAddVelocity(const LevelObject* stunner, const float vel
     if (stunner == nullptr) return;
     if (stunner == this) return;
 
-    if (_state == DogState::InDirt) return;
+    if (_state == DogState::InTerrain) return;
 
     AddVelocityX(velX);
     AddVelocityY(velY);
@@ -216,7 +230,7 @@ void LevelObjectDog::StunSetVelocity(const LevelObject* stunner, const float vel
     if (stunner == nullptr) return;
     if (stunner == this) return;
 
-    if (_state == DogState::InDirt) return;
+    if (_state == DogState::InTerrain) return;
 
     SetVelocityX(velX);
     SetVelocityY(velY);
@@ -228,7 +242,7 @@ void LevelObjectDog::Stun(const LevelObject* stunner, const float stunTime)
 {
     if (stunner == nullptr) return;
     
-    if (_state == DogState::InDirt) return;
+    if (_state == DogState::InTerrain) return;
 
     _state = DogState::Stunned;
 
@@ -376,4 +390,22 @@ void LevelObjectDog::OnDug(LevelObject* digger)
 void LevelObjectDog::OnForceField(const LevelObject* field)
 {
     Stun(field, 1.5f);
+}
+
+void LevelObjectDog::OnEnteredTerrain(int tileX, int tileY, float speed)
+{
+    if (_state != DogState::Default) return;
+
+    _terrainTargetTileX = tileX;
+    _terrainTargetTileY = tileY;
+    _state = DogState::InTerrain;
+}
+
+bool LevelObjectDog::GetTerrainMoveTarget(int& tileX, int& tileY, float& speed) const
+{
+    tileX = _terrainTargetTileX;
+    tileY = _terrainTargetTileY;
+    speed = 10.0f;
+
+    return true;
 }
