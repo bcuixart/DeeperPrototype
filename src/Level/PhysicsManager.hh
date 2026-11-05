@@ -5,11 +5,12 @@
 #include <algorithm>
 #include <raylib.h>
 
+class Level;
 class LevelObject;
 
 class PhysicsManager {
 public:
-	PhysicsManager();
+	PhysicsManager(Level* level);
 	~PhysicsManager();
 
 	void Update(const float deltaTime);
@@ -18,6 +19,12 @@ public:
     void UnregisterObject(LevelObject* object);
 
     LevelObject* GetDugObjectAt(const Vector2& position, LevelObject* digger) const;
+
+    static constexpr float kGravity = 25.0f;
+
+    static constexpr float kTerrainSnapDistance = 0.125f;
+    static constexpr float kTerrainVelocityDecay = 0.5f;
+    static constexpr float kTerrainMoveMinVelocity = 1.0f;
 
 protected:
     
@@ -42,7 +49,8 @@ private:
     LevelObject* FindBlockingSolidY(const LevelObject* ignore, const Rectangle& bounds, float proposedY, bool movingDown) const;
     LevelObject* FindBlockingSolidX(const LevelObject* ignore, const Rectangle& bounds, float proposedX, bool affectedByPartialSemisolidsX) const;
 
-    void MoveObjectInTerrain(LevelObject* object, const float deltaTime);
+    void MoveAndResolveObjectInTerrain(LevelObject* object, const float deltaTime);
+    void MoveObjectInTerrain(LevelObject* object, int tX, int tY, const float deltaTime);
 
     void CheckOverlaps(const std::vector<LevelObject*>& listA, const std::vector<LevelObject*>& listB);
     void CheckOverlapsSelf(const std::vector<LevelObject*>& list);
@@ -51,6 +59,8 @@ private:
     bool CanSlopedObjectBeDug(LevelObject* object, const Vector2& position) const;
 
     void RemoveObjectFromList(std::vector<LevelObject*>& list, LevelObject* obj);
+
+    Level* _level;
 
     std::vector<LevelObject*> _solidObjects;
     std::vector<LevelObject*> _solidMaybeSlopedObjects;

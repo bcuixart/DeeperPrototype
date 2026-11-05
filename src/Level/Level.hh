@@ -53,6 +53,8 @@ public:
 	void BarkAt(LevelObjectDog* barker);
 	void DigAt(LevelObjectDog* digger, const Vector2& dogFeetPositionLeft, const Vector2& dogFeetPositionRight);
 
+	bool IsTileTerrain(int x, int y) const;
+	bool CanMoveToTerrainTile(int fromX, int fromY, int toX, int toY) const;
 	bool IsObjectCenteredOnTerrainTile(const LevelObject* obj, int tileX, int tileY) const;
 
 	int GetDogHouseCount() const { return _dogHouses.size(); }
@@ -127,8 +129,8 @@ private:
 	std::unique_ptr<LevelBackground> _background;
 	LevelBackgroundType _backgroundTypeIndex = LevelBackgroundType::Park;
 
-	PhysicsManager _physicsManager;
 	LevelManager* _levelManager{nullptr};
+	PhysicsManager _physicsManager{nullptr};
 };
 
 #endif

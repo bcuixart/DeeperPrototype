@@ -2,9 +2,9 @@
 #include "LevelManager.hh"
 
 Level::Level(LevelManager* levelManager)
-    : _levelManager(levelManager)
+    : _levelManager(levelManager), _physicsManager(this)
 {
-    _physicsManager = PhysicsManager();
+
 }
 
 Level::~Level()
@@ -155,7 +155,7 @@ bool Level::BuildLevelFromStream(std::istream& stream)
     _dogHouses.clear();
     _netBodies.clear();
     _breakableTiles.clear();
-    _physicsManager = PhysicsManager();
+    _physicsManager = PhysicsManager(this);
     _objectPlacements.clear();
     _tileIds = {};
 
@@ -279,6 +279,31 @@ void Level::BarkAt(LevelObjectDog* barker)
 
 }
 
+bool Level::IsTileTerrain(int x, int y) const
+{
+    return (x >= 0 && x < kMaxLevelWidth && y >= 0 && y < kMaxLevelHeight && _levelTiles[y][x] &&
+            (_levelTiles[y][x]->GetTileType() == LevelObjectTileType::Dirt));
+}
+
+bool Level::CanMoveToTerrainTile(int fromX, int fromY, int toX, int toY) const
+{
+    int distanceX = std::abs(toX - fromX);
+    int distanceY = std::abs(toY - fromY);
+
+    if (distanceX > 1 || distanceY > 1) return false;
+
+    bool isDiagonalMove = (distanceX == 1 && distanceY == 1);
+    if (isDiagonalMove)
+    {
+        // If the movement is diagonal, both adjacent tiles must be terrain.
+        // The actual target may not be terrain, but that does not block movement.
+        if (!IsTileTerrain(toX, fromY) || !IsTileTerrain(fromX, toY)) return false;
+    }
+
+    // We can only move to terrain or empty tiles (which can be broken tiles).
+    return IsTileTerrain(toX, toY) || !_levelTiles[toY][toX] || (_levelTiles[toY][toX] && _levelTiles[toY][toX]->GetBreakableIsBroken());
+}
+
 bool Level::IsObjectCenteredOnTerrainTile(const LevelObject* obj, int tileX, int tileY) const
 {
     if (!obj) return false;
@@ -290,7 +315,7 @@ bool Level::IsObjectCenteredOnTerrainTile(const LevelObject* obj, int tileX, int
     const float objectCenterX = bounds.x + bounds.width * 0.5f;
     const float objectCenterY = bounds.y + bounds.height * 0.5f;
 
-    return (fabsf(objectCenterX - tileCenterX) <= kTerrainSnapDistance && fabsf(objectCenterY - tileCenterY) <= kTerrainSnapDistance);
+    return (fabsf(objectCenterX - tileCenterX) <= PhysicsManager::kTerrainSnapDistance && fabsf(objectCenterY - tileCenterY) <= PhysicsManager::kTerrainSnapDistance);
 }
 
 void Level::DigAt(LevelObjectDog* digger, const Vector2& dogFeetPositionLeft, const Vector2& dogFeetPositionRight)

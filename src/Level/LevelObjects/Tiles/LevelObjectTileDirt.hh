@@ -14,6 +14,9 @@ public:
 
 	LevelObjectTileType GetTileType() const override;
 
+	void CollidedWithX(LevelObject* other, float prevVelocityX) override;
+    void CollidedWithY(LevelObject* other, float prevVelocityY) override;
+
 	void OnDug(LevelObject* digger) override;
 
 protected:

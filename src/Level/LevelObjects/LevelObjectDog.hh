@@ -37,9 +37,8 @@ public:
 
     void SetGone() { _isGone = true; }
 
-    void OnEnteredTerrain(int tileX, int tileY, float speed) override;
+    void OnEnteredTerrain(int tileX, int tileY) override;
     bool IsInTerrain() const override { return _state == DogState::InTerrain; }
-    bool GetTerrainMoveTarget(int& tileX, int& tileY, float& speed) const override;
 
     void SetDogType(uint8_t dogType) { _dogType = dogType % kNumDogTypes; }
 
@@ -120,9 +119,6 @@ private:
 
     uint8_t _slot{0};
     uint8_t _dogType{0};
-
-    int _terrainTargetTileX{0};
-    int _terrainTargetTileY{0};
 
     Level* _level;
 };

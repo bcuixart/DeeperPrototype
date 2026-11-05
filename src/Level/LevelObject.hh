@@ -71,9 +71,10 @@ public:
 
 	virtual void OnDug(LevelObject* digger) { }
 
-	virtual void OnEnteredTerrain(int tileX, int tileY, float speed) { }
+	virtual void OnEnteredTerrain(int tileX, int tileY) { }
 	virtual bool IsInTerrain() const { return false; }
-	virtual bool GetTerrainMoveTarget(int& tileX, int& tileY, float& speed) const { return false; }
+	void GetTerrainMoveTarget(int& tileX, int& tileY) const { tileX = _terrainTargetTileX; tileY = _terrainTargetTileY; }
+	void SetTerrainMoveTarget(int tileX, int tileY) { _terrainTargetTileX = tileX; _terrainTargetTileY = tileY; }
 
 	virtual uint8_t GetInteractionCauseSlot() const { return kInteractionNoCause; }
 	virtual uint8_t GetInteractionDepth() const { return 0; }
@@ -103,6 +104,9 @@ protected:
 
 	static constexpr float kRenderOffsetDecay = 12.0f;
 	Vector2 _renderOffset{ 0.0f, 0.0f };
+
+	int _terrainTargetTileX{ 0 };
+	int _terrainTargetTileY{ 0 };
 
 private:
 	void ClampVelocityX() { if (_velocity.x > kTerminalVelocityX) _velocity.x = kTerminalVelocityX; if (_velocity.x < -kTerminalVelocityX) _velocity.x = -kTerminalVelocityX; }

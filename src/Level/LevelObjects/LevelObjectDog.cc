@@ -160,16 +160,44 @@ void LevelObjectDog::Update_InTerrain(const float deltaTime)
     _isJumping = false;
     _jumpTimer = 0.0f;
     _canDoBarkJump = false;
+    _isGrounded = false;
+
+    // We might be stunned while in terrain
+    _stunTimer = std::min(_stunTimer, kStunMaxTime);
+    _stunTimer = std::max(0.0f, _stunTimer - deltaTime);
 
     // Check if the dog is centered on the target tile
     bool centeredOnTargetTile = _level->IsObjectCenteredOnTerrainTile(this, _terrainTargetTileX, _terrainTargetTileY);
 
     if (centeredOnTargetTile)
     {
-        if (_inputAxisX > 0.0f) { _isFacingLeft = false; _terrainTargetTileX += 1; }
-        else if (_inputAxisX < 0.0f) { _isFacingLeft = true; _terrainTargetTileX -= 1; }
-        else if (_inputDig) _terrainTargetTileY += 1;
-        else return;
+        // Check if we exited terrain
+        if (!_level->IsTileTerrain(_terrainTargetTileX, _terrainTargetTileY))
+        {
+            _state = (_stunTimer > 0.0f) ? DogState::Stunned : DogState::Default;
+            return;
+        }
+
+        float velX = GetVelocityX();
+        float velY = GetVelocityY();
+        // If the velocities are not zero, it means inertia is affecting us.
+        // No control for us, then!
+        if (velX != 0.0f || velY != 0.0f) return;
+        if (_stunTimer > 0.0f) return;
+
+        int movementDeltaX = 0;
+        int movementDeltaY = 0;
+
+        // If no inertia, move because of input
+        if (_inputAxisX > 0.0f) { _isFacingLeft = false; movementDeltaX = 1; }
+        else if (_inputAxisX < 0.0f) { _isFacingLeft = true; movementDeltaX = -1; }
+
+        if (_inputDig) movementDeltaY = 1;
+
+        if (movementDeltaX == 0 && movementDeltaY == 0) return;
+
+        _terrainTargetTileX = _terrainTargetTileX + movementDeltaX;
+        _terrainTargetTileX = _terrainTargetTileY + movementDeltaY;
     }
 
     // Otherwise, if the dog is not centered on the target tile, it will continue moving towards 
@@ -193,7 +221,7 @@ void LevelObjectDog::Update_Stunned(const float deltaTime)
     if (GetVelocityX() > 0.0f) _isFacingLeft = false;
     else if (GetVelocityX() < 0.0f) _isFacingLeft = true;
 
-    printf("Dog stunned, timer: %f, grounded: %d, velocityX: %f\n", _stunTimer, _isGrounded, GetVelocityX());
+    //printf("Dog stunned, timer: %f, grounded: %d, velocityX: %f\n", _stunTimer, _isGrounded, GetVelocityX());
 
     // Return to default state when stunned time is over, landed and moving at walk speed or less
     if (fabsf(GetVelocityX()) <= kWalkSpeed && _stunTimer <= 0.0f && _isGrounded) { _state = DogState::Default; return; }
@@ -353,7 +381,7 @@ void LevelObjectDog::NetSet(const NetworkLevelObjectDynEntState& s)
     _inputBarkPrev = (s.flags & 32) != 0;
     _isGrounded = (s.flags & 64) != 0;
     _canDoBarkJump = (s.flags & 128) != 0;
-    if (s.aux >= static_cast<uint8_t>(SurfaceType::None) && s.aux <= static_cast<uint8_t>(SurfaceType::Count)) _surfaceTypeStandingOn = static_cast<SurfaceType>(s.aux);
+    if (s.aux >= static_cast<uint8_t>(SurfaceType::None) && s.aux < static_cast<uint8_t>(SurfaceType::Count)) _surfaceTypeStandingOn = static_cast<SurfaceType>(s.aux);
     else _surfaceTypeStandingOn = SurfaceType::None;
     _jumpTimer = s.t0; _coyoteTimer = s.t1; _jumpInputBufferTimer = s.t2;
     _inputAxisXPrev = s.t3;
@@ -392,20 +420,11 @@ void LevelObjectDog::OnForceField(const LevelObject* field)
     Stun(field, 1.5f);
 }
 
-void LevelObjectDog::OnEnteredTerrain(int tileX, int tileY, float speed)
+void LevelObjectDog::OnEnteredTerrain(int tileX, int tileY)
 {
-    if (_state != DogState::Default) return;
+    if (_state != DogState::Default && _state != DogState::Stunned) return;
 
     _terrainTargetTileX = tileX;
     _terrainTargetTileY = tileY;
     _state = DogState::InTerrain;
-}
-
-bool LevelObjectDog::GetTerrainMoveTarget(int& tileX, int& tileY, float& speed) const
-{
-    tileX = _terrainTargetTileX;
-    tileY = _terrainTargetTileY;
-    speed = 10.0f;
-
-    return true;
 }

@@ -49,8 +49,24 @@ LevelObjectTileType LevelObjectTileDirt::GetTileType() const
 	return LevelObjectTileType::Dirt;
 }
 
+void LevelObjectTileDirt::CollidedWithX(LevelObject* other, float prevVelocityX)
+{
+    if (!other) return;
+    if (fabs(prevVelocityX) < other->GetInteractionVelocity()) return;
+
+    other->OnEnteredTerrain(static_cast<int>(_bounds.x), static_cast<int>(_bounds.y));
+}
+
+void LevelObjectTileDirt::CollidedWithY(LevelObject* other, float prevVelocityY)
+{
+    if (!other) return;
+    if (fabs(prevVelocityY) < other->GetInteractionVelocity()) return;
+
+    other->OnEnteredTerrain(static_cast<int>(_bounds.x), static_cast<int>(_bounds.y));
+}
+
 void LevelObjectTileDirt::OnDug(LevelObject* digger)
 {
     // Speed is 0 because the dog sets its own speed. This value does not matter here.
-    digger->OnEnteredTerrain(static_cast<int>(_bounds.x), static_cast<int>(_bounds.y), 0.0f);
+    digger->OnEnteredTerrain(static_cast<int>(_bounds.x), static_cast<int>(_bounds.y));
 }
