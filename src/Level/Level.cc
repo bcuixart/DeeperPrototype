@@ -279,7 +279,7 @@ void Level::BarkAt(LevelObjectDog* barker)
 
 }
 
-bool Level::IsTileTerrainOrEmpty(int x, int y) const
+bool Level::IsTileTerrainOrEmpty(uint8_t x, uint8_t y) const
 {
     if (x < 0 || x >= kMaxLevelWidth || y < 0 || y >= kMaxLevelHeight) return false;
     if (!_levelTiles[y][x]) return true;
@@ -288,7 +288,7 @@ bool Level::IsTileTerrainOrEmpty(int x, int y) const
     return IsTileTerrain(x, y);
 }
 
-bool Level::IsTileTerrain(int x, int y) const
+bool Level::IsTileTerrain(uint8_t x, uint8_t y) const
 {
     if (x < 0 || x >= kMaxLevelWidth || y < 0 || y >= kMaxLevelHeight) return false;
     if (!_levelTiles[y][x]) return false;
@@ -296,7 +296,7 @@ bool Level::IsTileTerrain(int x, int y) const
     return _levelTiles[y][x]->GetTileType() == LevelObjectTileType::Dirt;
 }
 
-void Level::GetTerrainMovementDelta(int fromX, int fromY, int toX, int toY, int& deltaX, int& deltaY) const
+void Level::GetTerrainMovementDelta(uint8_t fromX, uint8_t fromY, uint8_t toX, uint8_t toY, int8_t& deltaX, int8_t& deltaY) const
 {
     deltaX = toX - fromX;
     deltaY = toY - fromY;
@@ -334,7 +334,7 @@ void Level::GetTerrainMovementDelta(int fromX, int fromY, int toX, int toY, int&
     }
 }
 
-bool Level::IsObjectCenteredOnTerrainTile(const LevelObject* obj, int tileX, int tileY) const
+bool Level::IsObjectCenteredOnTerrainTile(const LevelObject* obj, uint8_t tileX, uint8_t tileY) const
 {
     if (!obj) return false;
 

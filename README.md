@@ -13,7 +13,7 @@ It will also feature online multiplayer, or the best approximation thereof.
 - [ ] Add dog grabbing and stealing mechanic.
 - [X] Add dog barking mechanic.
 - [ ] Add dog trampoline bouncing mechanic.
-- [X] Add dirt digging mechanic.
+- [X] Add terrain digging mechanic.
 - [ ] Physics improvements.
 - [ ] Add water physics and visuals.
 - [ ] Networking improvements.
@@ -32,7 +32,9 @@ It will also feature online multiplayer, or the best approximation thereof.
 - [X] Separate interaction velocity in X and Y components.
 - [ ] Improve force field feel.
 - [X] Make the dog an interaction agent.
+- [ ] Add in-terrain physics interactions.
 - [ ] Add fast moving dog stunning.
 - [ ] Add fast moving ball stunning.
 - [ ] Physics act differently in some devices. Unsure if it's compiler or system stuff.
 - [ ] Properly poll editor input.
+- [ ] Add dog out-of-bounds respawning.

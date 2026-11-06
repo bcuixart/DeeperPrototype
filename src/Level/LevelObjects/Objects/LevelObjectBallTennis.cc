@@ -166,6 +166,8 @@ bool LevelObjectBallTennis::NetGet(NetworkLevelObjectDynEntState& s) const
 	s.interactionCause = _interactionCauseSlot;
 	s.interactionDepth = _interactionDepth;
 	s.t0 = _kickCooldown;
+	s.terrainTargetTileX = _terrainTargetTileX;
+	s.terrainTargetTileY = _terrainTargetTileY;
 	return true;
 }
 
@@ -175,10 +177,14 @@ void LevelObjectBallTennis::NetSet(const NetworkLevelObjectDynEntState& s)
 	_velocity.x = s.vx; _velocity.y = s.vy;
 	_inTerrain = s.mode != 0;
 	_isGrounded = (s.flags & 64) != 0;
-	_interactionCauseSlot = s.interactionCause;
-	_interactionDepth = s.interactionDepth;
-	_surfaceTypeStandingOn = static_cast<SurfaceType>(s.aux);
+	if (s.interactionCause == kInteractionNoCause || (s.interactionCause >= 0 && s.interactionCause < kMaxSlots)) _interactionCauseSlot = s.interactionCause;
+    else _interactionCauseSlot = kInteractionNoCause;
+    _interactionDepth = s.interactionDepth;
+	if (s.aux >= static_cast<uint8_t>(SurfaceType::None) && s.aux < static_cast<uint8_t>(SurfaceType::Count)) _surfaceTypeStandingOn = static_cast<SurfaceType>(s.aux);
+    else _surfaceTypeStandingOn = SurfaceType::None;
 	_kickCooldown = s.t0;
+	_terrainTargetTileX = std::min(s.terrainTargetTileX, static_cast<uint8_t>(kMaxLevelWidth - 1));
+    _terrainTargetTileY = std::min(s.terrainTargetTileY, static_cast<uint8_t>(kMaxLevelHeight - 1));
 }
 
 void LevelObjectBallTennis::OnForceField(const LevelObject* field)
@@ -189,7 +195,7 @@ void LevelObjectBallTennis::OnForceField(const LevelObject* field)
     _interactionDepth = NextInteractionDepth(field->GetInteractionDepth());
 }
 
-void LevelObjectBallTennis::OnEnteredTerrain(int tileX, int tileY, float velX, float velY, bool enteredByDigging)
+void LevelObjectBallTennis::OnEnteredTerrain(uint8_t tileX, uint8_t tileY, float velX, float velY, bool enteredByDigging)
 {
     if (_inTerrain) return;
 

@@ -188,8 +188,8 @@ void LevelObjectDog::Update_InTerrain(const float deltaTime)
         if (velX != 0.0f || velY != 0.0f) return;
         if (_stunTimer > 0.0f) return;
 
-        int inputDeltaX = 0;
-        int inputDeltaY = 0;
+        int8_t inputDeltaX = 0;
+        int8_t inputDeltaY = 0;
 
         // If no inertia, move because of input
         if (_inputAxisX > 0.0f) { _isFacingLeft = false; inputDeltaX = 1; }
@@ -201,7 +201,7 @@ void LevelObjectDog::Update_InTerrain(const float deltaTime)
         if (inputDeltaX == 0 && inputDeltaY == 0) return;
 
         // Otherwise, check if the movement is possible
-        int deltaX, deltaY;
+        int8_t deltaX, deltaY;
         _level->GetTerrainMovementDelta(_terrainTargetTileX, _terrainTargetTileY, _terrainTargetTileX + inputDeltaX, _terrainTargetTileY + inputDeltaY, deltaX, deltaY);
 
         if (deltaX == 0 && deltaY == 0) return;
@@ -374,8 +374,11 @@ bool LevelObjectDog::NetGet(NetworkLevelObjectDynEntState& s) const
     s.t3 = _inputAxisXPrev;
     s.t4 = _stunTimer;
     s.t5 = _barkCooldownTimer;
+    s.t6 = _terrainDesiredMoveSpeed;
     s.interactionCause = _interactionCauseSlot;
 	s.interactionDepth = _interactionDepth;
+    s.terrainTargetTileX = _terrainTargetTileX;
+    s.terrainTargetTileY = _terrainTargetTileY;
     return true;
 }
 
@@ -402,6 +405,9 @@ void LevelObjectDog::NetSet(const NetworkLevelObjectDynEntState& s)
     if (s.interactionCause == kInteractionNoCause || (s.interactionCause >= 0 && s.interactionCause < kMaxSlots)) _interactionCauseSlot = s.interactionCause;
     else _interactionCauseSlot = kInteractionNoCause;
     _interactionDepth = s.interactionDepth;
+    _terrainTargetTileX = std::min(s.terrainTargetTileX, static_cast<uint8_t>(kMaxLevelWidth - 1));
+    _terrainTargetTileY = std::min(s.terrainTargetTileY, static_cast<uint8_t>(kMaxLevelHeight - 1));
+    _terrainDesiredMoveSpeed = std::min(s.t6, kInputTerrainMoveSpeed);
 }
 
 void LevelObjectDog::CollidedWithX(LevelObject* other, float prevVelocityX)
@@ -432,7 +438,7 @@ void LevelObjectDog::OnForceField(const LevelObject* field)
     Stun(field, 1.5f);
 }
 
-void LevelObjectDog::OnEnteredTerrain(int tileX, int tileY, float velX, float velY, bool enteredByDigging)
+void LevelObjectDog::OnEnteredTerrain(uint8_t tileX, uint8_t tileY, float velX, float velY, bool enteredByDigging)
 {
     if (_state != DogState::Default && _state != DogState::Stunned) return;
 

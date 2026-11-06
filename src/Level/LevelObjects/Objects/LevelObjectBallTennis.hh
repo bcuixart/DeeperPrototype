@@ -27,7 +27,7 @@ public:
 
     void OnForceField(const LevelObject* field) override;
 
-    void OnEnteredTerrain(int tileX, int tileY, float velX, float velY, bool enteredByDigging) override;
+    void OnEnteredTerrain(uint8_t tileX, uint8_t tileY, float velX, float velY, bool enteredByDigging) override;
     bool IsInTerrain() const override { return _inTerrain; }
 
 private:

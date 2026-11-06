@@ -4,6 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include <raylib.h>
+#include <cstdint>
 
 class Level;
 class LevelObject;
@@ -22,7 +23,7 @@ public:
 
     static constexpr float kGravity = 25.0f;
 
-    static constexpr float kTerrainVelocityDecay = 0.5f;
+    static constexpr float kTerrainVelocityDecay = 0.25f;
     static constexpr float kTerrainVelocityDecayLimit = 1.0f;
     static constexpr float kTerrainMoveMinVelocity = 1.0f;
 
@@ -50,7 +51,7 @@ private:
     LevelObject* FindBlockingSolidX(const LevelObject* ignore, const Rectangle& bounds, float proposedX, bool affectedByPartialSemisolidsX) const;
 
     void MoveAndResolveObjectInTerrain(LevelObject* object, const float deltaTime);
-    void MoveObjectInTerrain(LevelObject* object, int tX, int tY, const float deltaTime);
+    void MoveObjectInTerrain(LevelObject* object, uint8_t tX, uint8_t tY, const float deltaTime);
 
     void CheckOverlaps(const std::vector<LevelObject*>& listA, const std::vector<LevelObject*>& listB);
     void CheckOverlapsSelf(const std::vector<LevelObject*>& list);

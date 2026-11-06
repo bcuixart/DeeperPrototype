@@ -694,7 +694,7 @@ void PhysicsManager::MoveAndResolveObjectInTerrain(LevelObject* object, const fl
 {
 	if (!object || !object->IsInTerrain()) return;
 
-	int currentTileX, currentTileY;
+	uint8_t currentTileX, currentTileY;
 	object->GetTerrainMoveTarget(currentTileX, currentTileY);
 
 	if (_level->IsObjectCenteredOnTerrainTile(object, currentTileX, currentTileY))
@@ -709,10 +709,10 @@ void PhysicsManager::MoveAndResolveObjectInTerrain(LevelObject* object, const fl
 		// Get the angle and movement deltas.
 		constexpr float kTan30 = 0.57735027f;
 		const float ax = fabsf(velX), ay = fabsf(velY);
-		int angleDeltaX = (ax >= ay * kTan30) ? (velX > 0.0f ? 1 : -1) : 0;
-		int angleDeltaY = (ay >= ax * kTan30) ? (velY > 0.0f ? 1 : -1) : 0;
+		int8_t angleDeltaX = (ax >= ay * kTan30) ? (velX > 0.0f ? 1 : -1) : 0;
+		int8_t angleDeltaY = (ay >= ax * kTan30) ? (velY > 0.0f ? 1 : -1) : 0;
 
-		int deltaX, deltaY;
+		int8_t deltaX, deltaY;
 		_level->GetTerrainMovementDelta(currentTileX, currentTileY, currentTileX + angleDeltaX, currentTileY + angleDeltaY, deltaX, deltaY);
 
 		object->SetTerrainMoveTarget(currentTileX + deltaX, currentTileY + deltaY);
@@ -731,7 +731,7 @@ void PhysicsManager::MoveAndResolveObjectInTerrain(LevelObject* object, const fl
 	}
 }
 
-void PhysicsManager::MoveObjectInTerrain(LevelObject* object, int tX, int tY, const float deltaTime)
+void PhysicsManager::MoveObjectInTerrain(LevelObject* object, uint8_t tX, uint8_t tY, const float deltaTime)
 {	
 	const Rectangle b = object->GetBounds();
 	const float destX = tX + 0.5f - b.width * 0.5f;
