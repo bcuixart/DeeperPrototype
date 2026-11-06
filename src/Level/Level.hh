@@ -53,8 +53,9 @@ public:
 	void BarkAt(LevelObjectDog* barker);
 	void DigAt(LevelObjectDog* digger, const Vector2& dogFeetPositionLeft, const Vector2& dogFeetPositionRight);
 
+	bool IsTileTerrainOrEmpty(int x, int y) const;
 	bool IsTileTerrain(int x, int y) const;
-	bool CanMoveToTerrainTile(int fromX, int fromY, int toX, int toY) const;
+	void GetTerrainMovementDelta(int fromX, int fromY, int toX, int toY, int& deltaX, int& deltaY) const;
 	bool IsObjectCenteredOnTerrainTile(const LevelObject* obj, int tileX, int tileY) const;
 
 	int GetDogHouseCount() const { return _dogHouses.size(); }

@@ -71,10 +71,11 @@ public:
 
 	virtual void OnDug(LevelObject* digger) { }
 
-	virtual void OnEnteredTerrain(int tileX, int tileY) { }
+	virtual void OnEnteredTerrain(int tileX, int tileY, bool enteredByDigging) { }
 	virtual bool IsInTerrain() const { return false; }
 	void GetTerrainMoveTarget(int& tileX, int& tileY) const { tileX = _terrainTargetTileX; tileY = _terrainTargetTileY; }
 	void SetTerrainMoveTarget(int tileX, int tileY) { _terrainTargetTileX = tileX; _terrainTargetTileY = tileY; }
+	float GetTerrainDesiredMoveSpeed() const { return _terrainDesiredMoveSpeed; }
 
 	virtual uint8_t GetInteractionCauseSlot() const { return kInteractionNoCause; }
 	virtual uint8_t GetInteractionDepth() const { return 0; }
@@ -107,6 +108,7 @@ protected:
 
 	int _terrainTargetTileX{ 0 };
 	int _terrainTargetTileY{ 0 };
+	float _terrainDesiredMoveSpeed{ 0.0f };
 
 private:
 	void ClampVelocityX() { if (_velocity.x > kTerminalVelocityX) _velocity.x = kTerminalVelocityX; if (_velocity.x < -kTerminalVelocityX) _velocity.x = -kTerminalVelocityX; }

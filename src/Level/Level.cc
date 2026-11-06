@@ -279,29 +279,58 @@ void Level::BarkAt(LevelObjectDog* barker)
 
 }
 
-bool Level::IsTileTerrain(int x, int y) const
+bool Level::IsTileTerrainOrEmpty(int x, int y) const
 {
-    return (x >= 0 && x < kMaxLevelWidth && y >= 0 && y < kMaxLevelHeight && _levelTiles[y][x] &&
-            (_levelTiles[y][x]->GetTileType() == LevelObjectTileType::Dirt));
+    if (x < 0 || x >= kMaxLevelWidth || y < 0 || y >= kMaxLevelHeight) return false;
+    if (!_levelTiles[y][x]) return true;
+    if (_levelTiles[y][x]->GetBreakableIsBroken()) return true;
+
+    return IsTileTerrain(x, y);
 }
 
-bool Level::CanMoveToTerrainTile(int fromX, int fromY, int toX, int toY) const
+bool Level::IsTileTerrain(int x, int y) const
 {
-    int distanceX = std::abs(toX - fromX);
-    int distanceY = std::abs(toY - fromY);
+    if (x < 0 || x >= kMaxLevelWidth || y < 0 || y >= kMaxLevelHeight) return false;
+    if (!_levelTiles[y][x]) return false;
 
-    if (distanceX > 1 || distanceY > 1) return false;
+    return _levelTiles[y][x]->GetTileType() == LevelObjectTileType::Dirt;
+}
 
-    bool isDiagonalMove = (distanceX == 1 && distanceY == 1);
-    if (isDiagonalMove)
+void Level::GetTerrainMovementDelta(int fromX, int fromY, int toX, int toY, int& deltaX, int& deltaY) const
+{
+    deltaX = toX - fromX;
+    deltaY = toY - fromY;
+
+    // If the target tile is more than 1 tile away in either direction, movement is not allowed.
+    if (abs(deltaX) > 1 || abs(deltaY) > 1) { deltaX = 0; deltaY = 0; return; }
+
+    // Diagonal movement
+    if (deltaX != 0 && deltaY != 0)
     {
-        // If the movement is diagonal, both adjacent tiles must be terrain.
-        // The actual target may not be terrain, but that does not block movement.
-        if (!IsTileTerrain(toX, fromY) || !IsTileTerrain(fromX, toY)) return false;
+        // For a diagonal movement to be properly allowed, both adjacent tiles must be terrain.
+        // TODO: More combinations of terrain and non-terrain tiles could be allowed, but for now, we will only allow diagonal movement if both adjacent tiles are terrain.
+        if (IsTileTerrain(toX, fromY) && IsTileTerrain(fromX, toY) && IsTileTerrainOrEmpty(toX, toY))
+        {
+            // Diagona movement allowed. Deltas already set correctly.
+            return;
+        }
+        // Otherwise, try horizontal and vertical separately. But we only choose one. Arbitrarily horizontal has priority.
+        if (IsTileTerrainOrEmpty(toX, fromY)) deltaY = 0;
+        else deltaX = 0;
+        return;
     }
 
-    // We can only move to terrain or empty tiles (which can be broken tiles).
-    return IsTileTerrain(toX, toY) || !_levelTiles[toY][toX] || (_levelTiles[toY][toX] && _levelTiles[toY][toX]->GetBreakableIsBroken());
+    // Horizontal movement
+    if (deltaX != 0)
+    {
+        if (!IsTileTerrainOrEmpty(toX, fromY)) deltaX = 0;
+    }    
+
+    // Vertical movement
+    if (deltaY != 0)
+    {
+        if (!IsTileTerrainOrEmpty(fromX, toY)) deltaY = 0;
+    }
 }
 
 bool Level::IsObjectCenteredOnTerrainTile(const LevelObject* obj, int tileX, int tileY) const
@@ -315,7 +344,7 @@ bool Level::IsObjectCenteredOnTerrainTile(const LevelObject* obj, int tileX, int
     const float objectCenterX = bounds.x + bounds.width * 0.5f;
     const float objectCenterY = bounds.y + bounds.height * 0.5f;
 
-    return (fabsf(objectCenterX - tileCenterX) <= PhysicsManager::kTerrainSnapDistance && fabsf(objectCenterY - tileCenterY) <= PhysicsManager::kTerrainSnapDistance);
+    return (fabsf(objectCenterX - tileCenterX) <= 0.001f && fabsf(objectCenterY - tileCenterY) <= 0.001f);
 }
 
 void Level::DigAt(LevelObjectDog* digger, const Vector2& dogFeetPositionLeft, const Vector2& dogFeetPositionRight)

@@ -171,6 +171,9 @@ void LevelObjectDog::Update_InTerrain(const float deltaTime)
 
     if (centeredOnTargetTile)
     {
+        // Reset desired move speed to not override possible inertia
+        _terrainDesiredMoveSpeed = 0.0f;
+
         // Check if we exited terrain
         if (!_level->IsTileTerrain(_terrainTargetTileX, _terrainTargetTileY))
         {
@@ -185,19 +188,28 @@ void LevelObjectDog::Update_InTerrain(const float deltaTime)
         if (velX != 0.0f || velY != 0.0f) return;
         if (_stunTimer > 0.0f) return;
 
-        int movementDeltaX = 0;
-        int movementDeltaY = 0;
+        int inputDeltaX = 0;
+        int inputDeltaY = 0;
 
         // If no inertia, move because of input
-        if (_inputAxisX > 0.0f) { _isFacingLeft = false; movementDeltaX = 1; }
-        else if (_inputAxisX < 0.0f) { _isFacingLeft = true; movementDeltaX = -1; }
+        if (_inputAxisX > 0.0f) { _isFacingLeft = false; inputDeltaX = 1; }
+        else if (_inputAxisX < 0.0f) { _isFacingLeft = true; inputDeltaX = -1; }
 
-        if (_inputDig) movementDeltaY = 1;
+        if (_inputDig) inputDeltaY = 1;
 
-        if (movementDeltaX == 0 && movementDeltaY == 0) return;
+        // If no input, do nothing
+        if (inputDeltaX == 0 && inputDeltaY == 0) return;
 
-        _terrainTargetTileX = _terrainTargetTileX + movementDeltaX;
-        _terrainTargetTileX = _terrainTargetTileY + movementDeltaY;
+        // Otherwise, check if the movement is possible
+        int deltaX, deltaY;
+        _level->GetTerrainMovementDelta(_terrainTargetTileX, _terrainTargetTileY, _terrainTargetTileX + inputDeltaX, _terrainTargetTileY + inputDeltaY, deltaX, deltaY);
+
+        if (deltaX == 0 && deltaY == 0) return;
+
+        // If the movement is possible, set the new target tile and desired move speed
+        _terrainTargetTileX = _terrainTargetTileX + deltaX;
+        _terrainTargetTileY = _terrainTargetTileY + deltaY;
+        _terrainDesiredMoveSpeed = kInputTerrainMoveSpeed;
     }
 
     // Otherwise, if the dog is not centered on the target tile, it will continue moving towards 
@@ -420,11 +432,13 @@ void LevelObjectDog::OnForceField(const LevelObject* field)
     Stun(field, 1.5f);
 }
 
-void LevelObjectDog::OnEnteredTerrain(int tileX, int tileY)
+void LevelObjectDog::OnEnteredTerrain(int tileX, int tileY, bool enteredByDigging)
 {
     if (_state != DogState::Default && _state != DogState::Stunned) return;
 
     _terrainTargetTileX = tileX;
     _terrainTargetTileY = tileY;
     _state = DogState::InTerrain;
+
+    _terrainDesiredMoveSpeed = enteredByDigging ? kInputTerrainMoveSpeed : 0.0f;
 }

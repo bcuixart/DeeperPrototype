@@ -695,13 +695,9 @@ void PhysicsManager::MoveAndResolveObjectInTerrain(LevelObject* object, const fl
 	if (!object || !object->IsInTerrain()) return;
 
 	int currentTileX, currentTileY;
-	currentTileX = (int)floorf(object->GetBounds().x);
-	currentTileY = (int)floorf(object->GetBounds().y);
+	object->GetTerrainMoveTarget(currentTileX, currentTileY);
 
-	int tX, tY;
-	object->GetTerrainMoveTarget(tX, tY);
-
-	if (_level->IsObjectCenteredOnTerrainTile(object, tX, tY))
+	if (_level->IsObjectCenteredOnTerrainTile(object, currentTileX, currentTileY))
 	{
 		// Check velocity
 		float velX = object->GetVelocityX();
@@ -711,67 +707,48 @@ void PhysicsManager::MoveAndResolveObjectInTerrain(LevelObject* object, const fl
 		if (velX == 0.0f && velY == 0.0f) return;
 
 		// Get the angle and movement deltas.
-		float angle = atan2f(velY, velX);
-		
-		int deltaX = (int)roundf(cosf(angle));
-		int deltaY = (int)roundf(sinf(angle));
+		constexpr float kTan30 = 0.57735027f;
+		const float ax = fabsf(velX), ay = fabsf(velY);
+		int angleDeltaX = (ax >= ay * kTan30) ? (velX > 0.0f ? 1 : -1) : 0;
+		int angleDeltaY = (ay >= ax * kTan30) ? (velY > 0.0f ? 1 : -1) : 0;
 
-		if (deltaX == 0 && deltaY == 0) return;
-		// First we try to move diagonally, if that fails we try horizontal and vertical movement separately.
-		if (deltaX != 0 && deltaY != 0 && _level->CanMoveToTerrainTile(currentTileX, currentTileY, currentTileX + deltaX, currentTileY + deltaY))
-		{
-			object->SetTerrainMoveTarget(currentTileX + deltaX, currentTileY + deltaY);
-		}
-		// Horizontal movement
-		else if (deltaX != 0)
-		{
-			if (_level->CanMoveToTerrainTile(currentTileX, currentTileY, currentTileX + deltaX, currentTileY))
-				object->SetTerrainMoveTarget(currentTileX + deltaX, currentTileY);
-		}
-		// Vertical movement
-		else if (deltaY != 0)
-		{
-			if (_level->CanMoveToTerrainTile(currentTileX, currentTileY, currentTileX, currentTileY + deltaY))
-				object->SetTerrainMoveTarget(currentTileX, currentTileY + deltaY);
-		}
+		int deltaX, deltaY;
+		_level->GetTerrainMovementDelta(currentTileX, currentTileY, currentTileX + angleDeltaX, currentTileY + angleDeltaY, deltaX, deltaY);
+
+		object->SetTerrainMoveTarget(currentTileX + deltaX, currentTileY + deltaY);
 
 		// Velocity always decays even when not moving to a new tile.
-		object->SetVelocityX(velX * kTerrainVelocityDecay);
-		object->SetVelocityY(velY * kTerrainVelocityDecay);
+		float newVelX = velX * kTerrainVelocityDecay;
+		float newVelY = velY * kTerrainVelocityDecay;
+		
+		object->SetVelocityX(fabs(newVelX) < kTerrainVelocityDecayLimit ? 0.0f : newVelX);
+		object->SetVelocityY(fabs(newVelY) < kTerrainVelocityDecayLimit ? 0.0f : newVelY);
 	}
 	else
 	{
-		MoveObjectInTerrain(object, tX, tY, deltaTime);
+		// currentTileX and Y are the target, despite the name here
+		MoveObjectInTerrain(object, currentTileX, currentTileY, deltaTime);
 	}
 }
 
 void PhysicsManager::MoveObjectInTerrain(LevelObject* object, int tX, int tY, const float deltaTime)
 {	
-	float targetX = tX + 0.5f;
-	float targetY = tY + 0.5f;
-	float objectCenterX = object->GetBounds().x + object->GetBounds().width * 0.5f;
-	float objectCenterY = object->GetBounds().y + object->GetBounds().height * 0.5f;
+	const Rectangle b = object->GetBounds();
+	const float destX = tX + 0.5f - b.width * 0.5f;
+	const float destY = tY + 0.5f - b.height * 0.5f;
+	const float dx = destX - b.x, dy = destY - b.y;
+	const float distance = sqrtf(dx * dx + dy * dy);
 
-	float dx = targetX - objectCenterX;
-	float dy = targetY - objectCenterY;
-	float distance = sqrt(dx * dx + dy * dy);
-
-	if (distance <= kTerrainSnapDistance)
+	float speed = object->GetTerrainDesiredMoveSpeed();
+	if (speed <= 0.0f)
 	{
-		object->SetBoundsX(targetX - object->GetBounds().width * 0.5f);
-		object->SetBoundsY(targetY - object->GetBounds().height * 0.5f);
+		const float vx = object->GetVelocityX(), vy = object->GetVelocityY();
+		speed = std::max(kTerrainMoveMinVelocity, sqrtf(vx * vx + vy * vy));
 	}
-	else
-	{
-		int xDirection = (dx > 0.0f) ? 1 : ((dx < 0.0f) ? -1 : 0);
-		int yDirection = (dy > 0.0f) ? 1 : ((dy < 0.0f) ? -1 : 0);
 
-		float speedX = std::max(kTerrainMoveMinVelocity, fabs(object->GetVelocityX())) * xDirection;
-		float speedY = std::max(kTerrainMoveMinVelocity, fabs(object->GetVelocityY())) * yDirection;
-
-		object->SetBoundsX(object->GetBounds().x + speedX * deltaTime);
-		object->SetBoundsY(object->GetBounds().y + speedY * deltaTime);
-	}
+	const float step = speed * deltaTime;
+	if (step >= distance) { object->SetBoundsX(destX); object->SetBoundsY(destY); }
+	else { const float k = step / distance; object->SetBoundsX(b.x + dx * k); object->SetBoundsY(b.y + dy * k); }
 }
 
 void PhysicsManager::CheckOverlaps(const std::vector<LevelObject*>& listA, const std::vector<LevelObject*>& listB)
