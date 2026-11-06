@@ -236,7 +236,7 @@ bool Level::PlaceObjectById(uint8_t id, int x, int y)
             break;
 
         // --- Objects ---
-        case kIdTennisBall:   AddSingleObject<LevelObjectBallTennis>(id, pos, editorBounds);   break;
+        case kIdTennisBall:   AddSingleObjectWithLevel<LevelObjectBallTennis>(id, pos, editorBounds);   break;
         case kIdBench:        AddSingleObject<LevelObjectBench001>(id, pos, editorBounds);     break;
         case kIdUmbrellaTall: AddSingleObject<LevelObjectUmbrellaTall>(id, pos, editorBounds); break;
         case kIdDogHouse:
@@ -316,7 +316,8 @@ void Level::GetTerrainMovementDelta(int fromX, int fromY, int toX, int toY, int&
         }
         // Otherwise, try horizontal and vertical separately. But we only choose one. Arbitrarily horizontal has priority.
         if (IsTileTerrainOrEmpty(toX, fromY)) deltaY = 0;
-        else deltaX = 0;
+        else if (IsTileTerrainOrEmpty(fromX, toY)) deltaX = 0; 
+        else { deltaX = 0; deltaY = 0; }
         return;
     }
 
@@ -433,6 +434,19 @@ template <typename T>
 T* Level::AddSingleObject(uint8_t id, const Vector2& pos, const Rectangle& editorBounds)
 {
     auto obj = std::make_unique<T>(pos);
+    T* raw = obj.get();
+
+    std::vector<std::unique_ptr<LevelObject>> parts;
+    parts.push_back(std::move(obj));
+    AddPlacement(id, pos, editorBounds, std::move(parts));
+
+    return raw;
+}
+
+template <typename T>
+T* Level::AddSingleObjectWithLevel(uint8_t id, const Vector2& pos, const Rectangle& editorBounds)
+{
+    auto obj = std::make_unique<T>(pos, this);
     T* raw = obj.get();
 
     std::vector<std::unique_ptr<LevelObject>> parts;

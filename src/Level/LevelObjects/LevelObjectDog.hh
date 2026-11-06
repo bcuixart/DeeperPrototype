@@ -37,7 +37,7 @@ public:
 
     void SetGone() { _isGone = true; }
 
-    void OnEnteredTerrain(int tileX, int tileY, bool enteredByDigging) override;
+    void OnEnteredTerrain(int tileX, int tileY, float velX, float velY, bool enteredByDigging) override;
     bool IsInTerrain() const override { return _state == DogState::InTerrain; }
 
     void SetDogType(uint8_t dogType) { _dogType = dogType % kNumDogTypes; }
@@ -87,7 +87,7 @@ private:
     static constexpr float kJumpInputBufferTime = 0.1f;
     float _jumpInputBufferTimer{0.0f};
 
-    static constexpr float kInputTerrainMoveSpeed = 5.0f;
+    static constexpr float kInputTerrainMoveSpeed = 10.0f;
 
     static constexpr float kStunnedBounciness = 0.25f;
     static constexpr float kStunnedBounceMinVelocityY = 0.5f;

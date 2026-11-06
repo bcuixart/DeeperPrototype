@@ -80,6 +80,7 @@ private:
 	bool PlaceObjectById(uint8_t id, int x, int y);
 
 	template <typename T> T* AddSingleObject(uint8_t id, const Vector2& pos, const Rectangle& editorBounds);
+	template <typename T> T* AddSingleObjectWithLevel(uint8_t id, const Vector2& pos, const Rectangle& editorBounds);
 	void AddPlacement(uint8_t id, const Vector2& placedPosition, const Rectangle& editorBounds, std::vector<std::unique_ptr<LevelObject>>&& parts);
 	LevelObjectTile* AddTile(uint8_t id, std::unique_ptr<LevelObjectTile> tile, int x, int y);
 	void AddDog(std::unique_ptr<LevelObjectDog> dog, uint8_t playerSlot, uint8_t dogType);

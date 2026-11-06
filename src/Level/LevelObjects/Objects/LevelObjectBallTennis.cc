@@ -1,6 +1,8 @@
 #include "LevelObjectBallTennis.hh"
+#include "Level/Level.hh"
 
-LevelObjectBallTennis::LevelObjectBallTennis(const Vector2& position)
+LevelObjectBallTennis::LevelObjectBallTennis(const Vector2& position, Level* level)
+    : _level(level)
 {
     _bounds = { position.x + kWidth / 2.0f, position.y + kHeight / 2.0f, kWidth, kHeight };
     
@@ -9,6 +11,16 @@ LevelObjectBallTennis::LevelObjectBallTennis(const Vector2& position)
 
 void LevelObjectBallTennis::Update(const float deltaTime) 
 {
+	if (_inTerrain)
+	{
+		bool centeredOnTargetTile = _level->IsObjectCenteredOnTerrainTile(this, _terrainTargetTileX, _terrainTargetTileY);
+
+		if (centeredOnTargetTile)
+		{
+			if (!_level->IsTileTerrain(_terrainTargetTileX, _terrainTargetTileY)) _inTerrain = false;
+		}
+	}
+
     if (_isGrounded) SetVelocityX(GetVelocityX() * powf(kGroundFriction, deltaTime));
 
 	if (_kickCooldown > 0.0f) _kickCooldown -= deltaTime;
@@ -40,16 +52,22 @@ void LevelObjectBallTennis::Render(const float deltaTime) const
 
 void LevelObjectBallTennis::CollidedWithX(LevelObject* other, float prevVelocityX)
 {
+	if (_inTerrain) return;
+
 	SetVelocityX(-prevVelocityX * kBounciness);
 }
 
 void LevelObjectBallTennis::CollidedWithY(LevelObject* other, float prevVelocityY)
 {
+	if (_inTerrain) return;
+
 	SetVelocityY(-prevVelocityY * kBounciness);
 }
 
 void LevelObjectBallTennis::OnOverlap(LevelObject* other)
 {
+	if (_inTerrain) return;
+
 	if (LevelObjectDog* dog = dynamic_cast<LevelObjectDog*>(other))
 	{
 		KickFromDog(dog);
@@ -65,6 +83,8 @@ void LevelObjectBallTennis::OnOverlap(LevelObject* other)
 
 void LevelObjectBallTennis::KickFromDog(LevelObjectDog* dog)
 {
+	if (_inTerrain) return;
+
 	if (_kickCooldown > 0.0f) return;
 
 	_interactionCauseSlot = dog->GetInteractionCauseSlot();
@@ -140,6 +160,7 @@ void LevelObjectBallTennis::BounceOffBall(LevelObjectBallTennis* otherBall)
 bool LevelObjectBallTennis::NetGet(NetworkLevelObjectDynEntState& s) const 
 {
 	s.x = _bounds.x; s.y = _bounds.y; s.vx = _velocity.x; s.vy = _velocity.y;
+	s.mode = static_cast<uint8_t>(_inTerrain);
 	s.flags = _isGrounded ? 64 : 0;
 	s.aux = static_cast<uint8_t>(_surfaceTypeStandingOn);
 	s.interactionCause = _interactionCauseSlot;
@@ -152,6 +173,7 @@ void LevelObjectBallTennis::NetSet(const NetworkLevelObjectDynEntState& s)
 {
 	_bounds.x = s.x; _bounds.y = s.y;
 	_velocity.x = s.vx; _velocity.y = s.vy;
+	_inTerrain = s.mode != 0;
 	_isGrounded = (s.flags & 64) != 0;
 	_interactionCauseSlot = s.interactionCause;
 	_interactionDepth = s.interactionDepth;
@@ -165,4 +187,16 @@ void LevelObjectBallTennis::OnForceField(const LevelObject* field)
 
     _interactionCauseSlot = field->GetInteractionCauseSlot();
     _interactionDepth = NextInteractionDepth(field->GetInteractionDepth());
+}
+
+void LevelObjectBallTennis::OnEnteredTerrain(int tileX, int tileY, float velX, float velY, bool enteredByDigging)
+{
+    if (_inTerrain) return;
+
+    _terrainTargetTileX = tileX;
+    _terrainTargetTileY = tileY;
+    _inTerrain = true;
+
+    SetVelocityX(velX);
+    SetVelocityY(velY);
 }

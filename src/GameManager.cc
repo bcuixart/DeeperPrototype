@@ -256,7 +256,7 @@ void GameManager::OnStartGamePressed()
     {
         _willEnterEditor = false;
         _gameState = GameState::EDITOR;
-        _editorManager->LoadLevelFromFile("test_level");
+        _editorManager->LoadLevelFromFile("test_level_editor");
 
         return;
     }

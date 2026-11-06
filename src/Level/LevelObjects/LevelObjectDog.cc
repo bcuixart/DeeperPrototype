@@ -159,7 +159,7 @@ void LevelObjectDog::Update_InTerrain(const float deltaTime)
     _jumpInputBufferTimer = 0.0f;
     _isJumping = false;
     _jumpTimer = 0.0f;
-    _canDoBarkJump = false;
+    _canDoBarkJump = true;
     _isGrounded = false;
 
     // We might be stunned while in terrain
@@ -432,7 +432,7 @@ void LevelObjectDog::OnForceField(const LevelObject* field)
     Stun(field, 1.5f);
 }
 
-void LevelObjectDog::OnEnteredTerrain(int tileX, int tileY, bool enteredByDigging)
+void LevelObjectDog::OnEnteredTerrain(int tileX, int tileY, float velX, float velY, bool enteredByDigging)
 {
     if (_state != DogState::Default && _state != DogState::Stunned) return;
 
@@ -440,5 +440,16 @@ void LevelObjectDog::OnEnteredTerrain(int tileX, int tileY, bool enteredByDiggin
     _terrainTargetTileY = tileY;
     _state = DogState::InTerrain;
 
-    _terrainDesiredMoveSpeed = enteredByDigging ? kInputTerrainMoveSpeed : 0.0f;
+    if (enteredByDigging)
+    {
+        SetVelocityX(0.0f);
+        SetVelocityY(0.0f);
+        _terrainDesiredMoveSpeed = kInputTerrainMoveSpeed;
+    }
+    else
+    {
+        SetVelocityX(velX);
+        SetVelocityY(velY);
+        _terrainDesiredMoveSpeed = 0.0f;
+    }
 }

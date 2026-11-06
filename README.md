@@ -13,7 +13,7 @@ It will also feature online multiplayer, or the best approximation thereof.
 - [ ] Add dog grabbing and stealing mechanic.
 - [X] Add dog barking mechanic.
 - [ ] Add dog trampoline bouncing mechanic.
-- [ ] Add dirt digging mechanic.
+- [X] Add dirt digging mechanic.
 - [ ] Physics improvements.
 - [ ] Add water physics and visuals.
 - [ ] Networking improvements.

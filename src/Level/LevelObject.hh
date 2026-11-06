@@ -71,7 +71,7 @@ public:
 
 	virtual void OnDug(LevelObject* digger) { }
 
-	virtual void OnEnteredTerrain(int tileX, int tileY, bool enteredByDigging) { }
+	virtual void OnEnteredTerrain(int tileX, int tileY, float velX, float velY,bool enteredByDigging) { }
 	virtual bool IsInTerrain() const { return false; }
 	void GetTerrainMoveTarget(int& tileX, int& tileY) const { tileX = _terrainTargetTileX; tileY = _terrainTargetTileY; }
 	void SetTerrainMoveTarget(int tileX, int tileY) { _terrainTargetTileX = tileX; _terrainTargetTileY = tileY; }

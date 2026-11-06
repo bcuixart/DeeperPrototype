@@ -6,7 +6,7 @@
 
 class LevelObjectBallTennis : public LevelObject {
 public:
-    LevelObjectBallTennis(const Vector2& position);
+    LevelObjectBallTennis(const Vector2& position, Level* level);
 
     void Update(const float deltaTime) override;
     void Render(const float deltaTime) const override;
@@ -26,6 +26,9 @@ public:
 	float GetInteractionVelocity() const override { return kInteractionVelocity; }
 
     void OnForceField(const LevelObject* field) override;
+
+    void OnEnteredTerrain(int tileX, int tileY, float velX, float velY, bool enteredByDigging) override;
+    bool IsInTerrain() const override { return _inTerrain; }
 
 private:
     void KickFromDog(LevelObjectDog* dog);
@@ -47,8 +50,12 @@ private:
     static constexpr float kKickCooldownDuration = 0.5f;
     static constexpr float kSeparationSpeed = 2.0f;
 
+    Level* _level{ nullptr };
+
     uint8_t _interactionCauseSlot{ kInteractionNoCause };
     uint8_t _interactionDepth{ 0 };
+
+    bool _inTerrain{ false };
 };
 
 #endif
