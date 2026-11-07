@@ -438,6 +438,21 @@ void LevelObjectDog::OnForceField(const LevelObject* field)
     Stun(field, 1.5f);
 }
 
+void LevelObjectDog::OnTrampoline(const LevelObject* trampoline, float prevVelocityY)
+{
+    if (_state == DogState::InTerrain) return;
+
+    _canDoBarkJump = true;
+    LevelObject::OnTrampoline(trampoline, prevVelocityY);
+
+    if (_state == DogState::Default && (_jumpInputBufferTimer > 0.0f || _inputJump))
+    {
+        SetVelocityY(GetVelocityY() * kTrampolineJumpBoost);
+        _jumpInputBufferTimer = 0.0f;
+        _coyoteTimer = 0.0f;
+    }
+}
+
 void LevelObjectDog::OnEnteredTerrain(uint8_t tileX, uint8_t tileY, float velX, float velY, bool enteredByDigging)
 {
     if (_state != DogState::Default && _state != DogState::Stunned) return;

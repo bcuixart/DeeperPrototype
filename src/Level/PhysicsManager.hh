@@ -23,9 +23,14 @@ public:
 
     static constexpr float kGravity = 25.0f;
 
+    static constexpr float kTerminalVelocityX = 30.0f;
+	static constexpr float kTerminalVelocityY = 30.0f;
+
     static constexpr float kTerrainVelocityDecay = 0.25f;
     static constexpr float kTerrainVelocityDecayLimit = 1.0f;
     static constexpr float kTerrainMoveMinVelocity = 1.0f;
+
+    static constexpr float kMinTrampolineBounceVelocity = 5.0f;
 
 protected:
     

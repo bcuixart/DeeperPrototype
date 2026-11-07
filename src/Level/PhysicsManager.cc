@@ -393,20 +393,27 @@ bool PhysicsManager::MoveAndResolveCollisionsY(LevelObject* object, const float 
 	if (hitFound)
 	{
 		object->SetVelocityY(0.0f);
-		if (willGround)
-		{
-			object->SetIsGrounded(true, (hitObject ? hitObject->GetSurfaceType() : SurfaceType::FlatGround));
-
-			// Snap to surface. This fixes slightly clipping into flat ground after going up a slope.
-			if (tMin <= 0.0f && hitObject && !hitObject->HasActualSlopedHitbox())
-			{
-				object->SetBoundsY(hitObject->GetBounds().y - startBounds.height);
-			}
+		if (willBounceTrampoline) 
+		{ 
+			if (hitObject) hitObject->CollidedWithY(object, vel);
+			object->OnTrampoline(hitObject, vel);
 		}
-		else if (willBounceTrampoline) { object->SetVelocityY(std::min(-vel, -5.0f)); }
+		else
+		{
+			if (willGround)
+			{
+				object->SetIsGrounded(true, (hitObject ? hitObject->GetSurfaceType() : SurfaceType::FlatGround));
 
-		if (hitObject) hitObject->CollidedWithY(object, vel);
-		object->CollidedWithY(hitObject, vel);
+				// Snap to surface. This fixes slightly clipping into flat ground after going up a slope.
+				if (tMin <= 0.0f && hitObject && !hitObject->HasActualSlopedHitbox())
+				{
+					object->SetBoundsY(hitObject->GetBounds().y - startBounds.height);
+				}
+			}
+
+			if (hitObject) hitObject->CollidedWithY(object, vel);
+			object->CollidedWithY(hitObject, vel);
+		}
 	}
 
 	// After moving, we check for collisions with actually sloped tiles and resolve them if necessary.

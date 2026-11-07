@@ -8,6 +8,7 @@
 
 #include "AssetManager.hh"
 #include "PhysicsProperties.hh"
+#include "PhysicsManager.hh"
 #include "NetworkLevelObjectDynEntState.hh"
 
 class Level;
@@ -80,7 +81,7 @@ public:
 	virtual uint8_t GetInteractionCauseSlot() const { return kInteractionNoCause; }
 	virtual uint8_t GetInteractionDepth() const { return 0; }
 	static uint8_t NextInteractionDepth(uint8_t d) { return d < 250 ? d + 1 : d; }
-	virtual float GetInteractionVelocity() const { return kTerminalVelocityX; };
+	virtual float GetInteractionVelocity() const { return PhysicsManager::kTerminalVelocityX; };
 
 	virtual void BreakableBreak(const LevelObject* other) { }
 	virtual bool GetBreakableIsBroken() const { return false; }
@@ -89,6 +90,8 @@ public:
 	virtual bool GetForceFieldIsActive() const { return false; }
 	virtual Vector2 GetForceFieldForce() const { return { 0.0f, 0.0f }; }
 	virtual void OnForceField(const LevelObject* field) { }
+
+	virtual void OnTrampoline(const LevelObject* trampoline, float prevVelocityY) { SetVelocityY(std::min(-prevVelocityY, -PhysicsManager::kMinTrampolineBounceVelocity)); }
 
 	void AddRenderOffset(const Vector2& d) { _renderOffset.x += d.x; _renderOffset.y += d.y; }
 	void ClearRenderOffset() { _renderOffset = { 0.0f, 0.0f }; }
@@ -111,11 +114,8 @@ protected:
 	float _terrainDesiredMoveSpeed{ 0.0f };
 
 private:
-	void ClampVelocityX() { if (_velocity.x > kTerminalVelocityX) _velocity.x = kTerminalVelocityX; if (_velocity.x < -kTerminalVelocityX) _velocity.x = -kTerminalVelocityX; }
-	void ClampVelocityY() { if (_velocity.y > kTerminalVelocityY) _velocity.y = kTerminalVelocityY; if (_velocity.y < -kTerminalVelocityY) _velocity.y = -kTerminalVelocityY; }
-
-	static constexpr float kTerminalVelocityX = 30.0f;
-	static constexpr float kTerminalVelocityY = 30.0f;
+	void ClampVelocityX() { if (_velocity.x > PhysicsManager::kTerminalVelocityX) _velocity.x = PhysicsManager::kTerminalVelocityX; if (_velocity.x < -PhysicsManager::kTerminalVelocityX) _velocity.x = -PhysicsManager::kTerminalVelocityX; }
+	void ClampVelocityY() { if (_velocity.y > PhysicsManager::kTerminalVelocityY) _velocity.y = PhysicsManager::kTerminalVelocityY; if (_velocity.y < -PhysicsManager::kTerminalVelocityY) _velocity.y = -PhysicsManager::kTerminalVelocityY; }
 };
 
 #endif

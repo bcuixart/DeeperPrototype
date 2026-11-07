@@ -35,6 +35,8 @@ public:
 
     void OnForceField(const LevelObject* field) override;
 
+    void OnTrampoline(const LevelObject* trampoline, float prevVelocityY) override;
+
     void SetGone() { _isGone = true; }
 
     void OnEnteredTerrain(uint8_t tileX, uint8_t tileY, float velX, float velY, bool enteredByDigging) override;
@@ -75,6 +77,8 @@ private:
     static constexpr float kBarkCooldown = 0.1f;
 
     static constexpr float kInteractionVelocity = 13.0f;
+
+    static constexpr float kTrampolineJumpBoost = 1.2f;
 
     static constexpr float kSlideInitialSpeed = 0.5f;
     static constexpr float kSlideAcceleration = 20.0f;
