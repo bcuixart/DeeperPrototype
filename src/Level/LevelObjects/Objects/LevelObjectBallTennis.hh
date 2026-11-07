@@ -23,7 +23,8 @@ public:
 
     uint8_t GetInteractionCauseSlot() const override { return _interactionCauseSlot; }
     uint8_t GetInteractionDepth() const override { return _interactionDepth; }
-	float GetInteractionVelocity() const override { return kInteractionVelocity; }
+	float GetInteractionVelocityX() const override { return kInteractionVelocity; }
+	float GetInteractionVelocityY() const override { return kInteractionVelocity; }
 
     void OnForceField(const LevelObject* field) override;
 

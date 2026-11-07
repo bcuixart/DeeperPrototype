@@ -127,7 +127,7 @@ void PhysicsManager::MoveAndResolveCollisionsX(LevelObject* object, const float 
 		float t;
 		if (!SweepX(bounds, dx, breakable, t)) continue;
 
-		if (fabs(object->GetVelocityX()) >= object->GetInteractionVelocity())
+		if (fabs(object->GetVelocityX()) >= object->GetInteractionVelocityX())
 		{
 			breakablesToBreak.push_back(breakable);
 			breakablesT.push_back(t);
@@ -342,7 +342,7 @@ bool PhysicsManager::MoveAndResolveCollisionsY(LevelObject* object, const float 
 		float t;
 		if (!SweepY(startBounds, dy, breakable, t)) continue;
 
-		if (fabsf(object->GetVelocityY()) >= object->GetInteractionVelocity())
+		if (fabsf(object->GetVelocityY()) >= object->GetInteractionVelocityY())
 		{
 			breakablesToBreak.push_back(breakable);
 			breakablesT.push_back(t);

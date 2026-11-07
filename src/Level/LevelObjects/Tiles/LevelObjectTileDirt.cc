@@ -52,7 +52,7 @@ LevelObjectTileType LevelObjectTileDirt::GetTileType() const
 void LevelObjectTileDirt::CollidedWithX(LevelObject* other, float prevVelocityX)
 {
     if (!other) return;
-    if (fabs(prevVelocityX) < other->GetInteractionVelocity()) return;
+    if (fabs(prevVelocityX) < other->GetInteractionVelocityX()) return;
 
     other->OnEnteredTerrain(static_cast<int>(_bounds.x), static_cast<int>(_bounds.y), prevVelocityX, other->GetVelocityY(), false);
 }
@@ -60,7 +60,7 @@ void LevelObjectTileDirt::CollidedWithX(LevelObject* other, float prevVelocityX)
 void LevelObjectTileDirt::CollidedWithY(LevelObject* other, float prevVelocityY)
 {
     if (!other) return;
-    if (fabs(prevVelocityY) < other->GetInteractionVelocity()) return;
+    if (fabs(prevVelocityY) < other->GetInteractionVelocityY()) return;
 
     other->OnEnteredTerrain(static_cast<int>(_bounds.x), static_cast<int>(_bounds.y), other->GetVelocityX(), prevVelocityY, false);
 }

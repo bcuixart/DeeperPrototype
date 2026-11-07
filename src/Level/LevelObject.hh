@@ -81,7 +81,8 @@ public:
 	virtual uint8_t GetInteractionCauseSlot() const { return kInteractionNoCause; }
 	virtual uint8_t GetInteractionDepth() const { return 0; }
 	static uint8_t NextInteractionDepth(uint8_t d) { return d < 250 ? d + 1 : d; }
-	virtual float GetInteractionVelocity() const { return PhysicsManager::kTerminalVelocityX; };
+	virtual float GetInteractionVelocityX() const { return PhysicsManager::kTerminalVelocityX; };
+	virtual float GetInteractionVelocityY() const { return PhysicsManager::kTerminalVelocityY; };
 
 	virtual void BreakableBreak(const LevelObject* other) { }
 	virtual bool GetBreakableIsBroken() const { return false; }

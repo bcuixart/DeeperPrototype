@@ -51,7 +51,8 @@ public:
     void StunAddVelocity(const LevelObject* stunner, const float velX, const float velY, const float stunTime);
     void StunSetVelocity(const LevelObject* stunner, const float velX, const float velY, const float stunTime);
 
-	float GetInteractionVelocity() const override { return kInteractionVelocity; }
+	float GetInteractionVelocityX() const override { return kInteractionVelocityX; }
+	float GetInteractionVelocityY() const override { return kInteractionVelocityY; }
 
 private:
     void Update_Default(const float deltaTime);
@@ -76,7 +77,8 @@ private:
     static constexpr float kBarkJumpVelocity = -7.5f;
     static constexpr float kBarkCooldown = 0.1f;
 
-    static constexpr float kInteractionVelocity = 13.0f;
+    static constexpr float kInteractionVelocityX = 12.0f;
+    static constexpr float kInteractionVelocityY = 15.0f;
 
     static constexpr float kTrampolineJumpBoost = 1.2f;
 
