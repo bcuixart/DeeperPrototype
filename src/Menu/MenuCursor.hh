@@ -27,7 +27,7 @@ public:
 	void Update(const float deltaTime);
 	void Render(const float deltaTime);
 
-	void ReceiveInput(uint8_t input);
+	void ReceiveInput(uint16_t input);
 	bool IsSelecting() const { return _selecting; }
 
 	void SetRemoteTarget(float x, float y, CursorPose pose);
@@ -58,8 +58,8 @@ private:
 
 	Rectangle _bounds;
 
-	uint8_t _input;
-	uint8_t _prevInput;
+	uint16_t _input;
+	uint16_t _prevInput;
 
 	bool _selecting;
 
@@ -71,7 +71,7 @@ private:
 	float _targetY = 0.0f;
 	bool _hasRemoteTarget = false;
 
-	static constexpr float kCursorSpeed = 100.0f;
+	static constexpr float kCursorSpeed = 150.0f;
 	static constexpr float kRemoteSmoothing = 20.0f;
 
 	static constexpr float kTimeToSelectPose = 0.5f;

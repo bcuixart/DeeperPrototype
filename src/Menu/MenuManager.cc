@@ -208,7 +208,7 @@ void MenuManager::SetCursorPose(uint8_t id, CursorPose pose)
 	_menuCursors[id]->SetPose(pose);
 }
 
-void MenuManager::ReceiveInput(const std::array<uint8_t, MAX_LOCAL_PLAYERS>& input)
+void MenuManager::ReceiveInput(const std::array<uint16_t, MAX_LOCAL_PLAYERS>& input)
 {
 	for (auto& cursor : _menuCursors)
 	{

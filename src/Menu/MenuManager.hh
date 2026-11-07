@@ -31,7 +31,7 @@ public:
 
 	void LoadMenu(const std::string& menuName);
 
-	void ReceiveInput(const std::array<uint8_t, MAX_LOCAL_PLAYERS>& input);
+	void ReceiveInput(const std::array<uint16_t, MAX_LOCAL_PLAYERS>& input);
 
 	void ConfigureLocalCursors(uint8_t activeCount);
 	void ConfigureOnlineCursors(const LobbyState& lobby, uint8_t myMachineId);

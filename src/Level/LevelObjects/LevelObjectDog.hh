@@ -103,11 +103,15 @@ private:
     bool _inputJump{false};
     bool _inputDig{false};
     bool _inputBark{false};
+    bool _inputTerrainUp{false};
+    bool _inputTerrainDown{false};
     float _inputAxisX{0.0f};
 
     bool _inputJumpPrev{false};
     bool _inputDigPrev{false};
     bool _inputBarkPrev{false};
+    bool _inputTerrainUpPrev{false};
+    bool _inputTerrainDownPrev{false};
     float _inputAxisXPrev{0.0f};
 
     DogState _state{DogState::Default};

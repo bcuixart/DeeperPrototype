@@ -14,6 +14,13 @@ MenuCursor::~MenuCursor()
 {
 }
 
+static float DecodeMenuAxis(uint16_t raw)
+{
+    const int v = static_cast<int>(raw) - 32;
+    return v >= 0 ? v / static_cast<float>(63 - 32)
+                  : v / static_cast<float>(32);
+}
+
 void MenuCursor::ResetCursor()
 {
 	_bounds = { 0, 0, 16, 16 };
@@ -50,24 +57,13 @@ void MenuCursor::Update(const float deltaTime)
 		return;
 	}
 
-	uint8_t axisX = (_input & BITMASK_MENU_AXIS_X) >> 2;
-	uint8_t axisY = (_input & BITMASK_MENU_AXIS_Y) >> 5;
+	uint16_t axisX = (_input & BITMASK_MENU_AXIS_X) >> 2;
+	uint16_t axisY = (_input & BITMASK_MENU_AXIS_Y) >> 10;
 
-	float movementX = 0.0f;
-	if (axisX == 0x00) movementX = -1.0f;
-	else if (axisX == 0x01) movementX = -0.5f;
-	else if (axisX == 0x02) movementX = -0.25f;
-	else if (axisX == 0x05) movementX = 0.25f;
-	else if (axisX == 0x06) movementX = 0.5f;
-	else if (axisX == 0x07) movementX = 1.0f;
-
-	float movementY = 0.0f;
-	if (axisY == 0x00) movementY = -1.0f;
-	else if (axisY == 0x01) movementY = -0.5f;
-	else if (axisY == 0x02) movementY = -0.25f;
-	else if (axisY == 0x05) movementY = 0.25f;
-	else if (axisY == 0x06) movementY = 0.5f;
-	else if (axisY == 0x07) movementY = 1.0f;
+	float movementX = DecodeMenuAxis(axisX);
+	float movementY = DecodeMenuAxis(axisY);
+	const float lenSq = movementX * movementX + movementY * movementY;
+	if (lenSq > 1.0f) { const float inv = 1.0f / sqrtf(lenSq); movementX *= inv; movementY *= inv; }
 
 	if (_input & BITMASK_MENU_SELECT || _input & BITMASK_MENU_SECONDARY) _choosingPoseTimer += deltaTime;
 	else _choosingPoseTimer = 0.0f;
@@ -80,14 +76,9 @@ void MenuCursor::Update(const float deltaTime)
 		if (magnitude > 0.5f)
 		{
 			// 8 directions
-			if (angle >= 0 && angle < PI / 8.0f) _poseChoice = CursorPose::PointE;
-			else if (angle >= PI / 8.0f && angle < 3.0f * PI / 8.0f) _poseChoice = CursorPose::PointNE;
-			else if (angle >= 3.0f * PI / 8.0f && angle < 5.0f * PI / 8.0f) _poseChoice = CursorPose::PointN;
-			else if (angle >= 5.0f * PI / 8.0f && angle < 7.0f * PI / 8.0f) _poseChoice = CursorPose::PointNW;
-			else if (angle >= 7.0f * PI / 8.0f || angle < -7.0f * PI / 8.0f) _poseChoice = CursorPose::PointW;
-			else if (angle >= -7.0f * PI / 8.0f && angle < -5.0f * PI / 8.0f) _poseChoice = CursorPose::PointSW;
-			else if (angle >= -5.0f * PI / 8.0f && angle < -3.0f * PI / 8.0f) _poseChoice = CursorPose::PointS;
-			else if (angle >= -3.0f * PI / 8.0f && angle < -1.0f * PI / 8.0f) _poseChoice = CursorPose::PointSE;
+			static constexpr CursorPose kPoses[8] = { CursorPose::PointE, CursorPose::PointNE, CursorPose::PointN, CursorPose::PointNW, CursorPose::PointW, CursorPose::PointSW, CursorPose::PointS, CursorPose::PointSE };
+			const int sector = (static_cast<int>(roundf(angle / (PI * 0.25f))) + 8) % 8;
+			_poseChoice = kPoses[sector];
 		}
 
 		SetPose(_poseChoice);
@@ -100,6 +91,8 @@ void MenuCursor::Update(const float deltaTime)
 			SetPose(_poseChoice);
 		}
 
+		_selecting = false;
+		_prevInput = _input;
 		return;
 	}	
 
@@ -133,7 +126,7 @@ void MenuCursor::Render(const float deltaTime)
 	DrawText(std::to_string(_id + 1).c_str(), _bounds.x + 14, _bounds.y + 10, 8, WHITE);
 }
 
-void MenuCursor::ReceiveInput(uint8_t input)
+void MenuCursor::ReceiveInput(uint16_t input)
 {
 	_input = input;
 }

@@ -34,6 +34,8 @@ void LevelObjectDog::Update(const float deltaTime)
     _inputJumpPrev = _inputJump;
     _inputDigPrev = _inputDig;
     _inputBarkPrev = _inputBark;
+    _inputTerrainUpPrev = _inputTerrainUp;
+    _inputTerrainDownPrev = _inputTerrainDown;
     _inputAxisXPrev = _inputAxisX;
 }
 
@@ -195,7 +197,8 @@ void LevelObjectDog::Update_InTerrain(const float deltaTime)
         if (_inputAxisX > 0.0f) { _isFacingLeft = false; inputDeltaX = 1; }
         else if (_inputAxisX < 0.0f) { _isFacingLeft = true; inputDeltaX = -1; }
 
-        if (_inputDig) inputDeltaY = 1;
+        if (_inputTerrainDown) inputDeltaY = 1;
+        else if (_inputTerrainUp) inputDeltaY = -1;
 
         // If no input, do nothing
         if (inputDeltaX == 0 && inputDeltaY == 0) return;
@@ -305,12 +308,14 @@ void LevelObjectDog::ReceiveInput(uint8_t input)
     _inputJump = (input & BITMASK_LEVEL_JUMP) != 0;
     _inputDig = (input & BITMASK_LEVEL_DIG) != 0;
     _inputBark = (input & BITMASK_LEVEL_BARK) != 0;
+    _inputTerrainUp = (input & BITMASK_LEVEL_TERRAIN_UP) != 0;
+    _inputTerrainDown = (input & BITMASK_LEVEL_TERRAIN_DOWN) != 0;
 
-    uint8_t axisX = (input & BITMASK_LEVEL_AXIS_X) >> 3;
+    uint8_t axisX = (input & BITMASK_LEVEL_AXIS_X) >> 5;
 
-    constexpr int kAxisXCenter = 16;
+    constexpr int kAxisXCenter = 4;
     int axisXSigned = static_cast<int>(axisX) - kAxisXCenter;
-    _inputAxisX = (axisXSigned >= 0) ? axisXSigned / 15.0f : axisXSigned / 16.0f;
+    _inputAxisX = (axisXSigned >= 0) ? axisXSigned / 3.0f : axisXSigned / 4.0f;
 }
 
 void LevelObjectDog::DropThroughSemisolid(const Rectangle& semisolidBounds)
