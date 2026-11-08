@@ -279,7 +279,7 @@ void Level::BarkAt(LevelObjectDog* barker)
 
 }
 
-bool Level::IsTileTerrainOrEmpty(uint8_t x, uint8_t y) const
+bool Level::IsTileTerrainOrEmpty(int8_t x, int8_t y) const
 {
     if (x < 0 || x >= kMaxLevelWidth || y < 0 || y >= kMaxLevelHeight) return false;
     if (!_levelTiles[y][x]) return true;
@@ -288,7 +288,7 @@ bool Level::IsTileTerrainOrEmpty(uint8_t x, uint8_t y) const
     return IsTileTerrain(x, y);
 }
 
-bool Level::IsTileTerrain(uint8_t x, uint8_t y) const
+bool Level::IsTileTerrain(int8_t x, int8_t y) const
 {
     if (x < 0 || x >= kMaxLevelWidth || y < 0 || y >= kMaxLevelHeight) return false;
     if (!_levelTiles[y][x]) return false;
@@ -296,42 +296,31 @@ bool Level::IsTileTerrain(uint8_t x, uint8_t y) const
     return _levelTiles[y][x]->GetTileType() == LevelObjectTileType::Dirt;
 }
 
-void Level::GetTerrainMovementDelta(uint8_t fromX, uint8_t fromY, uint8_t toX, uint8_t toY, int8_t& deltaX, int8_t& deltaY) const
+bool Level::CanEnterTerrainTile(int8_t x, int8_t y, int8_t moveDeltaY) const
 {
-    deltaX = toX - fromX;
-    deltaY = toY - fromY;
+    if (x < 0 || x >= kMaxLevelWidth || y < 0 || y >= kMaxLevelHeight) return false;
+    if (IsTileTerrainOrEmpty(x, y)) return true;
 
-    // If the target tile is more than 1 tile away in either direction, movement is not allowed.
-    if (abs(deltaX) > 1 || abs(deltaY) > 1) { deltaX = 0; deltaY = 0; return; }
+    return _levelTiles[y][x]->GetTileType() == LevelObjectTileType::Bridge && moveDeltaY <= 0;
+}
 
-    // Diagonal movement
-    if (deltaX != 0 && deltaY != 0)
-    {
-        // For a diagonal movement to be properly allowed, both adjacent tiles must be terrain.
-        // TODO: More combinations of terrain and non-terrain tiles could be allowed, but for now, we will only allow diagonal movement if both adjacent tiles are terrain.
-        if (IsTileTerrain(toX, fromY) && IsTileTerrain(fromX, toY) && IsTileTerrainOrEmpty(toX, toY))
-        {
-            // Diagona movement allowed. Deltas already set correctly.
-            return;
-        }
-        // Otherwise, try horizontal and vertical separately. But we only choose one. Arbitrarily horizontal has priority.
-        if (IsTileTerrainOrEmpty(toX, fromY)) deltaY = 0;
-        else if (IsTileTerrainOrEmpty(fromX, toY)) deltaX = 0; 
-        else { deltaX = 0; deltaY = 0; }
-        return;
-    }
+void Level::GetTerrainMovementDelta(int8_t fromX, int8_t fromY, int8_t toX, int8_t toY, int8_t& deltaX, int8_t& deltaY, bool preferVertical) const
+{
+    const int8_t dx = toX - fromX, dy = toY - fromY;
+    deltaX = 0; deltaY = 0;
+    if (abs(dx) > 1 || abs(dy) > 1 || (dx == 0 && dy == 0)) return;
 
-    // Horizontal movement
-    if (deltaX != 0)
-    {
-        if (!IsTileTerrainOrEmpty(toX, fromY)) deltaX = 0;
-    }    
+    // TODO: Check all diagonal possibilities
+    if (dx != 0 && dy != 0 && IsTileTerrain(toX, fromY) && IsTileTerrain(fromX, toY) && CanEnterTerrainTile(toX, toY, dy))
+    { deltaX = dx; deltaY = dy; return; }
 
-    // Vertical movement
-    if (deltaY != 0)
-    {
-        if (!IsTileTerrainOrEmpty(fromX, toY)) deltaY = 0;
-    }
+    // If rejected diagonal or was not diagonal, we only move in one axis
+    const bool horizontalOk = dx != 0 && CanEnterTerrainTile(toX, fromY, 0);
+    const bool verticalOk   = dy != 0 && CanEnterTerrainTile(fromX, toY, dy);
+
+    if (preferVertical && verticalOk) { deltaY = dy; return; }
+    if (horizontalOk) { deltaX = dx; return; }
+    if (verticalOk)   { deltaY = dy; }
 }
 
 bool Level::IsObjectCenteredOnTerrainTile(const LevelObject* obj, uint8_t tileX, uint8_t tileY) const

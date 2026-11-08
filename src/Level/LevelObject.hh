@@ -74,8 +74,8 @@ public:
 
 	virtual void OnEnteredTerrain(uint8_t tileX, uint8_t tileY, float velX, float velY,bool enteredByDigging) { }
 	virtual bool IsInTerrain() const { return false; }
-	void GetTerrainMoveTarget(uint8_t& tileX, uint8_t& tileY) const { tileX = _terrainTargetTileX; tileY = _terrainTargetTileY; }
-	void SetTerrainMoveTarget(uint8_t tileX, uint8_t tileY) { _terrainTargetTileX = tileX; _terrainTargetTileY = tileY; }
+	void GetTerrainMoveTarget(int8_t& tileX, int8_t& tileY) const { tileX = _terrainTargetTileX; tileY = _terrainTargetTileY; }
+	void SetTerrainMoveTarget(int8_t tileX, int8_t tileY) { _terrainTargetTileX = tileX; _terrainTargetTileY = tileY; }
 	float GetTerrainDesiredMoveSpeed() const { return _terrainDesiredMoveSpeed; }
 
 	virtual uint8_t GetInteractionCauseSlot() const { return kInteractionNoCause; }
@@ -110,8 +110,8 @@ protected:
 	static constexpr float kRenderOffsetDecay = 12.0f;
 	Vector2 _renderOffset{ 0.0f, 0.0f };
 
-	uint8_t _terrainTargetTileX{ 0 };
-	uint8_t _terrainTargetTileY{ 0 };
+	int8_t _terrainTargetTileX{ 0 };
+	int8_t _terrainTargetTileY{ 0 };
 	float _terrainDesiredMoveSpeed{ 0.0f };
 
 private:

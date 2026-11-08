@@ -205,7 +205,7 @@ void LevelObjectDog::Update_InTerrain(const float deltaTime)
 
         // Otherwise, check if the movement is possible
         int8_t deltaX, deltaY;
-        _level->GetTerrainMovementDelta(_terrainTargetTileX, _terrainTargetTileY, _terrainTargetTileX + inputDeltaX, _terrainTargetTileY + inputDeltaY, deltaX, deltaY);
+        _level->GetTerrainMovementDelta(_terrainTargetTileX, _terrainTargetTileY, _terrainTargetTileX + inputDeltaX, _terrainTargetTileY + inputDeltaY, deltaX, deltaY, false);
 
         if (deltaX == 0 && deltaY == 0) return;
 

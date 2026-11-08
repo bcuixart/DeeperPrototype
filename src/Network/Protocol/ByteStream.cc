@@ -7,6 +7,11 @@ void ByteWriter::U8(uint8_t v)
 	_data.push_back(v); 
 }
 
+void ByteWriter::S8(int8_t v)
+{
+	U8(static_cast<uint8_t>(v));
+}
+
 void ByteWriter::U16(uint16_t v) 
 {
 	U8(v & 0xFF); U8((v >> 8) & 0xFF); 
@@ -36,6 +41,11 @@ uint8_t ByteReader::U8()
 		return 0; 
 	} 
 	return _data[_pos++]; 
+}
+
+int8_t ByteReader::S8()
+{
+	return static_cast<int8_t>(U8());
 }
 
 uint16_t ByteReader::U16() 

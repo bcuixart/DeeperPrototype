@@ -701,7 +701,7 @@ void PhysicsManager::MoveAndResolveObjectInTerrain(LevelObject* object, const fl
 {
 	if (!object || !object->IsInTerrain()) return;
 
-	uint8_t currentTileX, currentTileY;
+	int8_t currentTileX, currentTileY;
 	object->GetTerrainMoveTarget(currentTileX, currentTileY);
 
 	if (_level->IsObjectCenteredOnTerrainTile(object, currentTileX, currentTileY))
@@ -720,7 +720,7 @@ void PhysicsManager::MoveAndResolveObjectInTerrain(LevelObject* object, const fl
 		int8_t angleDeltaY = (ay >= ax * kTan30) ? (velY > 0.0f ? 1 : -1) : 0;
 
 		int8_t deltaX, deltaY;
-		_level->GetTerrainMovementDelta(currentTileX, currentTileY, currentTileX + angleDeltaX, currentTileY + angleDeltaY, deltaX, deltaY);
+		_level->GetTerrainMovementDelta(currentTileX, currentTileY, currentTileX + angleDeltaX, currentTileY + angleDeltaY, deltaX, deltaY, ay > ax);
 
 		object->SetTerrainMoveTarget(currentTileX + deltaX, currentTileY + deltaY);
 

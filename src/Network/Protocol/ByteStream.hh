@@ -8,6 +8,7 @@
 class ByteWriter {
 public:
     void U8(uint8_t v);
+    void S8(int8_t v);
     void U16(uint16_t v);
     void U32(uint32_t v);
     void F32(float v);
@@ -23,6 +24,7 @@ public:
     ByteReader(const uint8_t* data, size_t size) : _data(data), _size(size) {}
 
     uint8_t  U8();
+    int8_t   S8();
     uint16_t U16();
     uint32_t U32();
     float    F32();
