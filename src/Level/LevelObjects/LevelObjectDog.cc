@@ -29,6 +29,8 @@ void LevelObjectDog::Update(const float deltaTime)
         case DogState::Stunned:
             Update_Stunned(deltaTime);
             break;
+        default:
+            break;
     }
 
     _inputJumpPrev = _inputJump;
@@ -391,7 +393,7 @@ void LevelObjectDog::NetSet(const NetworkLevelObjectDynEntState& s)
 {
     _bounds.x = s.x; _bounds.y = s.y;
     _velocity.x = s.vx; _velocity.y = s.vy;
-    if (s.mode >= static_cast<uint8_t>(DogState::Default) && s.mode <= static_cast<uint8_t>(DogState::Stunned)) _state = static_cast<DogState>(s.mode);
+    if (s.mode >= static_cast<uint8_t>(DogState::Default) && s.mode < static_cast<uint8_t>(DogState::Count)) _state = static_cast<DogState>(s.mode);
     else _state = DogState::Default;
     _isJumping = (s.flags & 1) != 0;
     _isSlidingLeft = (s.flags & 2) != 0;

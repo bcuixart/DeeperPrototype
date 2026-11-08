@@ -34,6 +34,7 @@ void AssetManager::LoadTextures()
 	_textures[(size_t)TextureId::Bench001] = LoadTexture("assets/sprites/deco/Deco_Bench_001.png");
 	_textures[(size_t)TextureId::DogHouse] = LoadTexture("assets/sprites/objects/Object_DogHouse.png");
 	_textures[(size_t)TextureId::UmbrellaTall] = LoadTexture("assets/sprites/objects/Object_Umbrella_Tall.png");
+	_textures[(size_t)TextureId::Bone] = LoadTexture("assets/sprites/objects/Object_Bone.png");
 	_textures[(size_t)TextureId::BackgroundPark] = LoadTexture("assets/sprites/backgrounds/Background_Park.png");
 	_textures[(size_t)TextureId::BackgroundHood] = LoadTexture("assets/sprites/backgrounds/Background_Hood.png");
 	_textures[(size_t)TextureId::BackgroundCity] = LoadTexture("assets/sprites/backgrounds/Background_City.png");

@@ -19,6 +19,7 @@
 #include "LevelObjects/Deco/LevelObjectBench001.hh"
 #include "LevelObjects/Objects/LevelObjectDogHouse.hh"
 #include "LevelObjects/Objects/LevelObjectUmbrellaTall.hh"
+#include "LevelObjects/Objects/LevelObjectBone.hh"
 
 enum class LevelObjectCategory : uint8_t { Tile, Interactable, Mobile, Decoration };
 
@@ -32,8 +33,9 @@ constexpr uint8_t kIdHydrant = 'h';
 constexpr uint8_t kIdBench = 'b';
 constexpr uint8_t kIdDogHouse = 'D';
 constexpr uint8_t kIdUmbrellaTall = 'U';
+constexpr uint8_t kBone = 'o';
 
-const std::vector<uint8_t> kLevelObjectEditorOrder = { kIdGround, kIdSlope, kIdSand, kIdDirt, kIdBridge, kIdTennisBall, kIdHydrant, kIdBench, kIdDogHouse, kIdUmbrellaTall };
+const std::vector<uint8_t> kLevelObjectEditorOrder = { kIdGround, kIdSlope, kIdSand, kIdDirt, kIdBridge, kIdTennisBall, kIdHydrant, kIdBench, kIdDogHouse, kIdUmbrellaTall, kBone };
 
 struct LevelObjectProperties
 {
@@ -54,7 +56,8 @@ const std::unordered_map<uint8_t, LevelObjectProperties> levelObjectsList =
 	{kIdHydrant,		{LevelObjectCategory::Interactable,		{0, -0.5f, 1, 1.5f},			false}},				// Hydrant
 	{kIdBench,			{LevelObjectCategory::Decoration,		{-0.25f,-0.1875f, 1.5f,1.1875f},false}},				// Bench
 	{kIdDogHouse,		{LevelObjectCategory::Interactable,		{0, -0.5f, 1, 1.5f},			false}},				// Dog House
-	{kIdUmbrellaTall,	{LevelObjectCategory::Decoration,		{-0.5f, -2.0f, 2.0f, 3},		false}}					// Umbrella Tall
+	{kIdUmbrellaTall,	{LevelObjectCategory::Decoration,		{-0.5f, -2.0f, 2.0f, 3},		false}},				// Umbrella Tall
+	{kBone,				{LevelObjectCategory::Interactable,		{0.0625f, 0.25f, 0.875f, 0.4375f},false}}				// Bone
 
 };
 

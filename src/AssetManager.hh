@@ -23,6 +23,7 @@ enum class TextureId
     Bench001,
     DogHouse,
     UmbrellaTall,
+    Bone,
     BackgroundPark,
     BackgroundHood,
     BackgroundCity,

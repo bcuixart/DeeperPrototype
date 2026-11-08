@@ -6,7 +6,7 @@
 #include "Network/NetworkTypes.hh"
 
 enum class DogState {
-    Default, Sliding, InTerrain, Stunned
+    Default, Sliding, InTerrain, Stunned, Count
 };
 
 class LevelObjectDog : public LevelObject {

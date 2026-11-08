@@ -242,6 +242,7 @@ bool Level::PlaceObjectById(uint8_t id, int x, int y)
         case kIdDogHouse:
             _dogHouses.push_back(AddSingleObject<LevelObjectDogHouse>(id, pos, editorBounds));
             break;
+        case kBone:         AddSingleObject<LevelObjectBone>(id, pos, editorBounds); break;
         case kIdHydrant:
         {
             auto waterLeft  = std::make_unique<LevelObjectHydrant001Water>(pos, true);
