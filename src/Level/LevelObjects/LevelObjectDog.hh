@@ -48,6 +48,9 @@ public:
 
     void StartSliding();
 
+    bool TryToGrabObject(LevelObject* obj);
+    void TryToStealFromDog(LevelObjectDog* victimDog);
+
     void StunAddVelocity(const LevelObject* stunner, const float velX, const float velY, const float stunTime);
     void StunSetVelocity(const LevelObject* stunner, const float velX, const float velY, const float stunTime);
 
@@ -99,6 +102,8 @@ private:
     static constexpr float kStunnedBounceMinVelocityY = 0.5f;
     static constexpr float kStunMaxTime = 5.0f;
     float _stunTimer{0.0f};
+
+    uint8_t _heldGrabbableId{kNotGrabbableIndex};
 
     bool _inputJump{false};
     bool _inputDig{false};

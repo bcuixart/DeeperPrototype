@@ -61,11 +61,13 @@ public:
 
 	int GetDogHouseCount() const { return _dogHouses.size(); }
 
+	GrabbableType GetGrabbableType(int index) const;
+
 	const std::vector<LevelObject*>& GetNetBodies() const { return _netBodies; }
 	const std::vector<LevelObject*>& GetNetBreakableTiles() const { return _breakableTiles; }
 
 	bool ManagerCanApplyBreak(const LevelObject* cause) const;
-	void ManagerNotifyScore(const LevelObject* cause, int points);
+	void ManagerNotifyScore(const LevelObject* cause, int basePoints);
 
 protected:
 
@@ -128,6 +130,9 @@ private:
 
 	std::vector<LevelObject*> _netBodies;
 	std::vector<LevelObject*> _breakableTiles;
+
+	std::vector<LevelObject*> _grabbables;
+	static constexpr int kMaxGrabbables = 254;
 
 	std::unique_ptr<LevelBackground> _background;
 	LevelBackgroundType _backgroundTypeIndex = LevelBackgroundType::Park;

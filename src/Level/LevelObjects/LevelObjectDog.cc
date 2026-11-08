@@ -342,6 +342,43 @@ void LevelObjectDog::StartSliding()
     if (GetVelocityY() == 0.0f) SetVelocityY(kSlideInitialSpeed);
 }
 
+bool LevelObjectDog::TryToGrabObject(LevelObject* obj)
+{
+    if (!obj) return false;
+    if (_isGone) return false;
+
+    if (_state == DogState::Stunned) return false;
+
+    // Already holding something
+    if (_heldGrabbableId != kNotGrabbableIndex) return false; 
+
+    // Check if the object is grabbable
+    uint8_t grabbableIndex = obj->GetGrabbableIndex();
+    if (grabbableIndex == kNotGrabbableIndex) return false;
+
+    // Make sure the object is really grabbable
+    if (_level->GetGrabbableType(grabbableIndex) == GrabbableType::None) return false;
+
+    _heldGrabbableId = grabbableIndex;
+
+    return true;
+}
+
+void LevelObjectDog::TryToStealFromDog(LevelObjectDog* victimDog)
+{
+    if (!victimDog) return;
+    if (_isGone) return;
+
+    // If the stealer already holding something, it cannot steal
+    if (_heldGrabbableId != kNotGrabbableIndex) return;
+
+    // If the victim dog is not holding anything, it cannot be stolen from
+    if (victimDog->_heldGrabbableId == kNotGrabbableIndex) return;
+
+    _heldGrabbableId = victimDog->_heldGrabbableId;
+    victimDog->_heldGrabbableId = kNotGrabbableIndex;
+}
+
 void LevelObjectDog::Render(const float deltaTime) const 
 {
     const Texture2D& tex = AssetManager::instance->GetTexture(TextureId((uint8_t)TextureId::DogTest_Long + _dogType));
@@ -357,6 +394,14 @@ void LevelObjectDog::Render(const float deltaTime) const
     };
 
     DrawTexturePro(tex, src, dst, { 0.0f, 0.0f }, 0.0f, _isGone ? Color{ 110, 110, 110, 170 } : WHITE);
+
+    if (_heldGrabbableId != kNotGrabbableIndex)
+    {
+        if (_level->GetGrabbableType(_heldGrabbableId) == GrabbableType::Bone)
+        {
+            DrawCircleV({ _bounds.x + _bounds.width / 2.0f, _bounds.y + _bounds.height / 2.0f }, 0.1f, YELLOW);
+        }
+    }
 }
 
 void LevelObjectDog::RenderBounds(const float deltaTime, const Color& color) const
@@ -435,9 +480,15 @@ void LevelObjectDog::CollidedWithY(LevelObject* other, float prevVelocityY)
 void LevelObjectDog::OnDug(LevelObject* digger)
 {
     if (digger == this) return;
+    if (_state == DogState::InTerrain) return;
 
-    printf("Dog dug\n");
     Stun(digger, 1.5f);
+
+    LevelObjectDog* dogDigger = dynamic_cast<LevelObjectDog*>(digger);
+    if (dogDigger)
+    {
+        dogDigger->TryToStealFromDog(this);
+    }
 }
 
 void LevelObjectDog::OnForceField(const LevelObject* field)

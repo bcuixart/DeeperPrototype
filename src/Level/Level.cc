@@ -155,6 +155,7 @@ bool Level::BuildLevelFromStream(std::istream& stream)
     _dogHouses.clear();
     _netBodies.clear();
     _breakableTiles.clear();
+    _grabbables.clear();
     _physicsManager = PhysicsManager(this);
     _objectPlacements.clear();
     _tileIds = {};
@@ -176,6 +177,19 @@ bool Level::BuildLevelFromStream(std::istream& stream)
     for (int y = 0; y < kMaxLevelHeight; ++y)
         for (int x = 0; x < kMaxLevelWidth; ++x)
             if (_levelTiles[y][x]) SetTileSideCollisionMask(x, y);
+
+    // Populate grabbables list
+    for (auto& o : _levelObjects)
+    {
+        if (o->GetGrabbableType() != GrabbableType::None)
+        {
+            if (_grabbables.size() < kMaxGrabbables) 
+            {
+                _grabbables.push_back(o.get());
+                o->SetGrabbableIndex(static_cast<uint8_t>(_grabbables.size() - 1));
+            }
+        }
+    }
 
     ComputeLevelBounds();
 
@@ -336,6 +350,13 @@ bool Level::IsObjectCenteredOnTerrainTile(const LevelObject* obj, uint8_t tileX,
     const float objectCenterY = bounds.y + bounds.height * 0.5f;
 
     return (fabsf(objectCenterX - tileCenterX) <= 0.001f && fabsf(objectCenterY - tileCenterY) <= 0.001f);
+}
+
+GrabbableType Level::GetGrabbableType(int index) const
+{
+    if (index < 0 || index >= (int)_grabbables.size()) return GrabbableType::None;
+
+    return _grabbables[index]->GetGrabbableType();
 }
 
 void Level::DigAt(LevelObjectDog* digger, const Vector2& dogFeetPositionLeft, const Vector2& dogFeetPositionRight)
@@ -530,6 +551,7 @@ void Level::RemoveFromViews(LevelObject* obj)
     auto drop = [obj](auto& v) { v.erase(std::remove(v.begin(), v.end(), obj), v.end()); };
     drop(_netBodies);
     drop(_breakableTiles);
+    drop(_grabbables);
     drop(_dogs);
     drop(_dogHouses);
 }
@@ -938,9 +960,9 @@ bool Level::ManagerCanApplyBreak(const LevelObject* cause) const
     return false;
 }
 
-void Level::ManagerNotifyScore(const LevelObject* cause, int points)
+void Level::ManagerNotifyScore(const LevelObject* cause, int basePoints)
 {
     if (!_levelManager) return;
 
-    _levelManager->NotifyScore(cause, points);
+    _levelManager->NotifyScore(cause, basePoints);
 }

@@ -23,6 +23,8 @@ enum class SurfaceType { None, FlatGround, SlopedLeftGround, SlopedRightGround, 
 
 static constexpr uint8_t kInteractionNoCause = 0xFF;
 
+enum class GrabbableType : uint8_t{ None, Bone, Squeaky, Count };
+
 class LevelObject {
 public:
 	LevelObject();
@@ -94,6 +96,10 @@ public:
 
 	virtual void OnTrampoline(const LevelObject* trampoline, float prevVelocityY) { SetVelocityY(std::min(-prevVelocityY, -PhysicsManager::kMinTrampolineBounceVelocity)); }
 
+	virtual GrabbableType GetGrabbableType() const { return GrabbableType::None; }
+	void SetGrabbableIndex(uint8_t index) { _grabbableIndex = index; }
+	uint8_t GetGrabbableIndex() const { return _grabbableIndex; }
+
 	void AddRenderOffset(const Vector2& d) { _renderOffset.x += d.x; _renderOffset.y += d.y; }
 	void ClearRenderOffset() { _renderOffset = { 0.0f, 0.0f }; }
 	void DecayRenderOffset(const float frameDt);
@@ -113,6 +119,9 @@ protected:
 	int8_t _terrainTargetTileX{ 0 };
 	int8_t _terrainTargetTileY{ 0 };
 	float _terrainDesiredMoveSpeed{ 0.0f };
+
+	static constexpr int kNotGrabbableIndex = 255;
+	uint8_t _grabbableIndex{kNotGrabbableIndex};
 
 private:
 	void ClampVelocityX() { if (_velocity.x > PhysicsManager::kTerminalVelocityX) _velocity.x = PhysicsManager::kTerminalVelocityX; if (_velocity.x < -PhysicsManager::kTerminalVelocityX) _velocity.x = -PhysicsManager::kTerminalVelocityX; }

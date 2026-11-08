@@ -13,9 +13,15 @@ public:
 
     HitboxType GetHitboxType() const override { return HitboxType::Trigger; }
 
+    void OnOverlap(LevelObject* other) override;
+
+    GrabbableType GetGrabbableType() const override { return GrabbableType::Bone; }
+
 private:
     static constexpr float kWidth = 0.875f;
     static constexpr float kHeight = 0.4375f;
+
+    bool _isGrabbed = false;
 };
 
 #endif
