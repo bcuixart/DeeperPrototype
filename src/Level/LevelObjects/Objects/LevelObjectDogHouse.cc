@@ -1,6 +1,8 @@
 #include "LevelObjectDogHouse.hh"
+#include "Level/Level.hh"
 
-LevelObjectDogHouse::LevelObjectDogHouse(const Vector2& position)
+LevelObjectDogHouse::LevelObjectDogHouse(const Vector2& position, Level* level)
+    : _level(level)
 {
     _bounds = { position.x + (1.0f - kWidth) / 2.0f, position.y + (1.0f - kHeight), kWidth, kHeight };
 }
@@ -48,7 +50,8 @@ void LevelObjectDogHouse::OnOverlap(LevelObject* other)
         // If the dog is not in a valid slot, it cannot place the bone
         if (!(_dogSlotsMask & (1u << dogSlot))) return;
 
-
         dog->LetGo();
+
+        _level->ManagerNotifyScore(other, 10);
 	}
 }

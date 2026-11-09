@@ -4,7 +4,7 @@ LevelObjectBone::LevelObjectBone(const Vector2& position)
 {
     _bounds = { position.x + (1 - kWidth) / 2.0f, position.y + 0.25f, kWidth, kHeight };
 
-    _isGrabbed = false;
+    _wasGrabbed = false;
 }
 
 void LevelObjectBone::Update(const float deltaTime) 
@@ -14,7 +14,7 @@ void LevelObjectBone::Update(const float deltaTime)
 
 void LevelObjectBone::Render(const float deltaTime) const 
 {
-    if (_isGrabbed) return;
+    if (_wasGrabbed) return;
 
     const Texture2D& tex = AssetManager::instance->GetTexture(TextureId::Bone);
 
@@ -31,14 +31,25 @@ void LevelObjectBone::Render(const float deltaTime) const
 
 void LevelObjectBone::OnOverlap(LevelObject* other)
 {
-    if (_isGrabbed) return;
+    if (_wasGrabbed) return;
 
     if (LevelObjectDog* dog = dynamic_cast<LevelObjectDog*>(other))
 	{
         if (!dog->TryToGrabObject(this)) return;
 
-        _isGrabbed = true;       
+        _wasGrabbed = true;       
 
 		return;
 	}
+}
+
+bool LevelObjectBone::NetGet(NetworkLevelObjectDynEntState& s) const 
+{
+	s.flags = _wasGrabbed ? 1 : 0;
+	return true;
+}
+
+void LevelObjectBone::NetSet(const NetworkLevelObjectDynEntState& s) 
+{
+    _wasGrabbed = (s.flags & 1) != 0;
 }

@@ -437,7 +437,7 @@ bool LevelObjectDog::NetGet(NetworkLevelObjectDynEntState& s) const
     s.flags = (_isJumping ? 1 : 0) | (_isSlidingLeft ? 2 : 0) | (_isFacingLeft ? 4 : 0)
         | (_inputJumpPrev ? 8 : 0) | (_inputDigPrev ? 16 : 0) | (_inputBarkPrev ? 32 : 0)
         | (_isGrounded ? 64 : 0) | (_canDoBarkJump ? 128 : 0);
-    s.flags2 = 0;
+    s.flags2 = static_cast<int>(_heldGrabbableId);
     s.aux = static_cast<uint8_t>(_surfaceTypeStandingOn);
     s.t0 = _jumpTimer; s.t1 = _coyoteTimer; s.t2 = _jumpInputBufferTimer;
     s.t3 = _inputAxisXPrev;
@@ -465,6 +465,8 @@ void LevelObjectDog::NetSet(const NetworkLevelObjectDynEntState& s)
     _inputBarkPrev = (s.flags & 32) != 0;
     _isGrounded = (s.flags & 64) != 0;
     _canDoBarkJump = (s.flags & 128) != 0;
+    uint8_t id = s.flags2;
+    _heldGrabbableId = (id < _level->GetGrabbableCount()) ? static_cast<uint8_t>(id) : kNotGrabbableIndex;
     if (s.aux >= static_cast<uint8_t>(SurfaceType::None) && s.aux < static_cast<uint8_t>(SurfaceType::Count)) _surfaceTypeStandingOn = static_cast<SurfaceType>(s.aux);
     else _surfaceTypeStandingOn = SurfaceType::None;
     _jumpTimer = s.t0; _coyoteTimer = s.t1; _jumpInputBufferTimer = s.t2;

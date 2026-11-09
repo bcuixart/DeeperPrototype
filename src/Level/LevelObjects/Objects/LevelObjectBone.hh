@@ -11,6 +11,9 @@ public:
     void Update(const float deltaTime) override;
     void Render(const float deltaTime) const override;
 
+    bool NetGet(NetworkLevelObjectDynEntState& state) const override;
+    void NetSet(const NetworkLevelObjectDynEntState& state) override;
+
     HitboxType GetHitboxType() const override { return HitboxType::Trigger; }
 
     void OnOverlap(LevelObject* other) override;
@@ -21,7 +24,7 @@ private:
     static constexpr float kWidth = 0.875f;
     static constexpr float kHeight = 0.4375f;
 
-    bool _isGrabbed = false;
+    bool _wasGrabbed = false;
 };
 
 #endif

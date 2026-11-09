@@ -6,7 +6,7 @@
 
 class LevelObjectDogHouse : public LevelObject {
 public:
-    LevelObjectDogHouse(const Vector2& position);
+    LevelObjectDogHouse(const Vector2& position, Level* level);
 
     void Update(const float deltaTime) override;
     void Render(const float deltaTime) const override;
@@ -23,6 +23,8 @@ private:
     static constexpr float kHeight = 0.8f;
 
     uint8_t _dogSlotsMask{0};
+
+    Level* _level{ nullptr };
 };
 
 #endif

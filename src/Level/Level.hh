@@ -64,6 +64,7 @@ public:
 	void AddDogHouseSlot(int houseIndex, uint8_t slot) { if (houseIndex >= 0 && houseIndex < (int)_dogHouses.size()) _dogHouses[houseIndex]->AddDogSlot(slot); }
 
 	GrabbableType GetGrabbableType(int index) const;
+	int GetGrabbableCount() const { return (int)_grabbables.size(); }
 
 	const std::vector<LevelObject*>& GetNetBodies() const { return _netBodies; }
 	const std::vector<LevelObject*>& GetNetBreakableTiles() const { return _breakableTiles; }

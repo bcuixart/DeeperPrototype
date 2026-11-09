@@ -10,7 +10,7 @@ It will also feature online multiplayer, or the best approximation thereof.
 ## Expected workflow:
 - [X] Add level background.
 - [X] Add dog stun mechanic.
-- [ ] Add dog grabbing and stealing mechanic.
+- [X] Add dog grabbing and stealing mechanic.
 - [X] Add dog barking mechanic.
 - [X] Add dog trampoline bouncing mechanic.
 - [X] Add terrain digging mechanic.

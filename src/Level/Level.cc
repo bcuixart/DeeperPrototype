@@ -254,7 +254,7 @@ bool Level::PlaceObjectById(uint8_t id, int x, int y)
         case kIdBench:        AddSingleObject<LevelObjectBench001>(id, pos, editorBounds);     break;
         case kIdUmbrellaTall: AddSingleObject<LevelObjectUmbrellaTall>(id, pos, editorBounds); break;
         case kIdDogHouse:
-            _dogHouses.push_back(AddSingleObject<LevelObjectDogHouse>(id, pos, editorBounds));
+            _dogHouses.push_back(AddSingleObjectWithLevel<LevelObjectDogHouse>(id, pos, editorBounds));
             break;
         case kBone:         AddSingleObject<LevelObjectBone>(id, pos, editorBounds); break;
         case kIdHydrant:
