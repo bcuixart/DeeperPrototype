@@ -31,3 +31,24 @@ void LevelObjectDogHouse::Render(const float deltaTime) const
 
     DrawTexturePro(tex, src, dst, { 0.0f, 0.0f }, 0.0f, WHITE);
 }
+
+void LevelObjectDogHouse::OnOverlap(LevelObject* other)
+{
+    if (LevelObjectDog* dog = dynamic_cast<LevelObjectDog*>(other))
+	{
+        if (dog->IsGone()) return;
+        if (!dog->IsInDefaultState()) return;
+
+        // If the dog is not holding a bone, it cannot place it in the dog house
+        if (dog->GetHeldGrabbableType() != GrabbableType::Bone) return;
+
+        uint8_t dogSlot = dog->GetSlot();
+        if (dogSlot >= MAX_PLAYERS) return;
+
+        // If the dog is not in a valid slot, it cannot place the bone
+        if (!(_dogSlotsMask & (1u << dogSlot))) return;
+
+
+        dog->LetGo();
+	}
+}

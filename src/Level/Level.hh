@@ -60,6 +60,8 @@ public:
 	bool IsObjectCenteredOnTerrainTile(const LevelObject* obj, uint8_t tileX, uint8_t tileY) const;
 
 	int GetDogHouseCount() const { return _dogHouses.size(); }
+	void ResetDogHouseSlotMask(int houseIndex) { if (houseIndex >= 0 && houseIndex < (int)_dogHouses.size()) _dogHouses[houseIndex]->SetDogSlotMask(0); }
+	void AddDogHouseSlot(int houseIndex, uint8_t slot) { if (houseIndex >= 0 && houseIndex < (int)_dogHouses.size()) _dogHouses[houseIndex]->AddDogSlot(slot); }
 
 	GrabbableType GetGrabbableType(int index) const;
 

@@ -59,6 +59,8 @@ void LevelManager::SpawnDogs(const LevelPlayers& players, uint32_t spawnSeed)
     int housesNum = _level.GetDogHouseCount();
     if (housesNum <= 0) return;
 
+    for (int i = 0; i < housesNum; ++i) _level.ResetDogHouseSlotMask(i);
+
     std::vector<uint8_t> houseIndexes(housesNum);
     for (int i = 0; i < housesNum; ++i) houseIndexes[i] = static_cast<uint8_t>(i);
 
@@ -74,6 +76,8 @@ void LevelManager::SpawnDogs(const LevelPlayers& players, uint32_t spawnSeed)
         uint8_t houseIndex = houseIndexes[spawnIndex % housesNum];
         LevelObjectDog* dog = _level.SpawnDogInHouse(houseIndex, static_cast<uint8_t>(i), players[i].dogType);
         _dogBySlot[i] = dog;
+
+        _level.AddDogHouseSlot(houseIndex, static_cast<uint8_t>(i));
 
         spawnIndex++;
     }

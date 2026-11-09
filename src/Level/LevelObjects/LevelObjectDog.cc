@@ -379,6 +379,13 @@ void LevelObjectDog::TryToStealFromDog(LevelObjectDog* victimDog)
     victimDog->_heldGrabbableId = kNotGrabbableIndex;
 }
 
+GrabbableType LevelObjectDog::GetHeldGrabbableType() const
+{
+    if (_heldGrabbableId == kNotGrabbableIndex) return GrabbableType::None;
+
+    return _level->GetGrabbableType(_heldGrabbableId);
+}
+
 void LevelObjectDog::Render(const float deltaTime) const 
 {
     const Texture2D& tex = AssetManager::instance->GetTexture(TextureId((uint8_t)TextureId::DogTest_Long + _dogType));
@@ -399,7 +406,17 @@ void LevelObjectDog::Render(const float deltaTime) const
     {
         if (_level->GetGrabbableType(_heldGrabbableId) == GrabbableType::Bone)
         {
-            DrawCircleV({ _bounds.x + _bounds.width / 2.0f, _bounds.y + _bounds.height / 2.0f }, 0.1f, YELLOW);
+            const Texture2D& boneTex = AssetManager::instance->GetTexture(TextureId::Bone);
+
+            src = { 0.0f, 0.0f, 14.0f, 7.0f };    
+            Rectangle dst = {
+                _bounds.x + (_isFacingLeft ? -0.9f : 0.9f),
+                _bounds.y - 0.15f,
+                0.875f,
+                0.4375f
+            };
+
+            DrawTexturePro(boneTex, src, dst, { 0.0f, 0.0f }, 0.0f, WHITE);
         }
     }
 }

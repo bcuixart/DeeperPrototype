@@ -38,6 +38,7 @@ public:
     void OnTrampoline(const LevelObject* trampoline, float prevVelocityY) override;
 
     void SetGone() { _isGone = true; }
+    bool IsGone() const { return _isGone; }
 
     void OnEnteredTerrain(uint8_t tileX, uint8_t tileY, float velX, float velY, bool enteredByDigging) override;
     bool IsInTerrain() const override { return _state == DogState::InTerrain; }
@@ -48,8 +49,12 @@ public:
 
     void StartSliding();
 
+    bool IsInDefaultState() const { return _state == DogState::Default; }
+
     bool TryToGrabObject(LevelObject* obj);
     void TryToStealFromDog(LevelObjectDog* victimDog);
+    GrabbableType GetHeldGrabbableType() const;
+    void LetGo() { _heldGrabbableId = kNotGrabbableIndex; }
 
     void StunAddVelocity(const LevelObject* stunner, const float velX, const float velY, const float stunTime);
     void StunSetVelocity(const LevelObject* stunner, const float velX, const float velY, const float stunTime);
