@@ -534,6 +534,9 @@ bool PhysicsManager::SweepYOnlyFromTop(const Rectangle& startBounds, float dy, L
 	const float gap = stillBounds.y - startFeet;
 	const float t = gap / dy;
 
+	// If the gap is negative, it means we are already overlapping. If it's positive, we can calculate the time of collision
+	if (gap <= 0.0f) { tOut = 0.0f; return true; }
+
 	// If t is not between 0 and 1 the objects will not collide this frame
 	if (t < 0.0f || t > 1.0f) return false;
 
@@ -914,4 +917,66 @@ bool PhysicsManager::CanSlopedObjectBeDug(LevelObject* object, const Vector2& po
 	const float objectBottom = objectBoundsTopBottom.y;
 
 	return digY <= objectTop + kSlopeDigTolerance && digY >= objectBottom - kSlopeDigTolerance;
+}
+
+bool PhysicsManager::IsTestObjectInValidPosition(const LevelObject* testObj) const
+{
+	if (!testObj) return false;
+
+	Rectangle testBounds = testObj->GetBounds();
+
+	for (LevelObject* solid : _solidObjects)
+	{
+		if (testObj == solid) continue;
+		Rectangle overlap = GetCollisionRec(testBounds, solid->GetBounds());
+		if (overlap.width > kTestTolerance && overlap.height > kTestTolerance) return false;
+	}
+
+	for (LevelObject* slope : _solidMaybeSlopedObjects)
+	{
+		if (testObj == slope) continue;
+		if (slope->HasActualSlopedHitbox())
+		{
+			const Rectangle sb = slope->GetBounds();
+			const float cx = testBounds.x + testBounds.width  * 0.5f;
+			const float cy = testBounds.y + testBounds.height * 0.5f;
+
+			if (cx >= sb.x && cx <= sb.x + sb.width)
+			{
+				const Vector2 tb = slope->SampleTopBottomAtX(cx);
+				const float overlap = std::min(testBounds.y + testBounds.height, tb.y) - std::max(testBounds.y, tb.x);
+				if (overlap > kTestTolerance) return false;
+			}
+
+			if (testObj->GetHitboxType() == HitboxType::Dynamic && cy >= sb.y && cy <= sb.y + sb.height)
+			{
+				const Vector2 lr = slope->SampleLeftRightAtY(cy);
+				const float overlap = std::min(testBounds.x + testBounds.width, lr.y) - std::max(testBounds.x, lr.x);
+				if (overlap > kTestTolerance) return false;
+			}
+		}
+		else
+		{
+			Rectangle overlap = GetCollisionRec(testBounds, slope->GetBounds());
+			if (overlap.width > kTestTolerance && overlap.height > kTestTolerance) return false;
+		}
+	}
+
+	for (LevelObject* breakable : _solidBreakableObjects)
+	{
+		if (testObj == breakable) continue;
+		if (breakable->GetBreakableIsBroken()) continue;
+		Rectangle overlap = GetCollisionRec(testBounds, breakable->GetBounds());
+		if (overlap.width > kTestTolerance && overlap.height > kTestTolerance) return false;
+	}
+
+	if (testObj->GetHitboxType() == HitboxType::Entity) return true; // Entities can overlap partial semisolids, dynamics cannot
+	for (LevelObject* semisolid : _semisolidPartialObjects)
+	{
+		if (testObj == semisolid) continue;
+		Rectangle overlap = GetCollisionRec(testBounds, semisolid->GetBounds());
+		if (overlap.width > kTestTolerance && overlap.height > kTestTolerance) return false;
+	}
+
+	return true;
 }

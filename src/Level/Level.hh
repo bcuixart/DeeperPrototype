@@ -45,6 +45,8 @@ public:
 
 	LevelObjectTest* SpawnTestObject(const Rectangle& bounds, const Vector2& vel, bool isEntity);
 
+	bool IsTestObjectInValidPosition(const LevelObject* testObj) const { return _physicsManager.IsTestObjectInValidPosition(testObj); }
+
 	bool EditorTryToPlaceObject(int x, int y, uint8_t objectId);
 	bool EditorTryToRemoveObject(const Vector2& position, int x, int y);
 

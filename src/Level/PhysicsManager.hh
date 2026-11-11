@@ -21,6 +21,8 @@ public:
 
     LevelObject* GetDugObjectAt(const Vector2& position, LevelObject* digger) const;
 
+    bool IsTestObjectInValidPosition(const LevelObject* testObj) const;
+
     static constexpr float kGravity = 25.0f;
 
     static constexpr float kTerminalVelocityX = 30.0f;
@@ -31,6 +33,8 @@ public:
     static constexpr float kTerrainMoveMinVelocity = 1.0f;
 
     static constexpr float kMinTrampolineBounceVelocity = 5.0f;
+
+    static constexpr float kTestTolerance = 0.01f;
 
 protected:
     
