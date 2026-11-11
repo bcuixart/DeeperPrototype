@@ -362,7 +362,7 @@ bool PhysicsManager::MoveAndResolveCollisionsY(LevelObject* object, const float 
 	{
 		float t;
 		if (checkSemisolidPartialBottom) {
-			if (SweepY(startBounds, dy, semisolidPartial, t) && t < tMin) { tMin = t; hitFound = true; willGround = true; willBounceTrampoline = false; hitObject = semisolidPartial; }
+			if (SweepY(startBounds, dy, semisolidPartial, t) && t < tMin) { tMin = t; hitFound = true; willGround = dy > 0.0f; willBounceTrampoline = false; hitObject = semisolidPartial; }
 		} else {
 			if (SweepYOnlyFromTop(startBounds, dy, semisolidPartial, t) && t < tMin) { tMin = t; hitFound = true; willGround = true; willBounceTrampoline = false; hitObject = semisolidPartial; }
 		}
@@ -884,6 +884,8 @@ bool PhysicsManager::CanObjectBeDug(LevelObject* object, const Vector2& position
 {
 	if (object == digger) return false;
 	if (object == nullptr) return false;
+
+	if (object->IsInTerrain()) return false;
 
 	const Rectangle bounds = object->GetBounds();
 	if (position.x < bounds.x || position.x > bounds.x + bounds.width) return false;

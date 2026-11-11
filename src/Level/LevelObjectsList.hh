@@ -7,6 +7,9 @@
 
 #include "LevelObject.hh"
 #include "LevelObjects/LevelObjectDog.hh"
+#include "LevelObjects/Test/LevelObjectTest.hh"
+#include "LevelObjects/Test/LevelObjectTestEntity.hh"
+#include "LevelObjects/Test/LevelObjectTestDynamic.hh"
 #include "LevelObjects/Tiles/Autotile.hh"
 #include "LevelObjects/Tiles/LevelObjectTile.hh"
 #include "LevelObjects/Tiles/LevelObjectTileGround.hh"

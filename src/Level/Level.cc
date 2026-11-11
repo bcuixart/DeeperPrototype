@@ -289,6 +289,21 @@ LevelObjectDog* Level::SpawnDogInHouse(uint8_t houseIndex, uint8_t playerSlot, u
     return raw;
 }
 
+LevelObjectTest* Level::SpawnTestObject(const Rectangle& bounds, const Vector2& vel, bool isEntity)
+{
+    std::unique_ptr<LevelObjectTest> testObj;
+    if (isEntity) testObj = std::make_unique<LevelObjectTestEntity>(bounds, this);
+    else          testObj = std::make_unique<LevelObjectTestDynamic>(bounds, this);
+
+    auto raw = testObj.get();
+    AddTestObject(std::move(testObj));
+
+    raw->SetVelocityX(vel.x);
+    raw->SetVelocityY(vel.y);
+
+    return raw;
+}
+
 void Level::BarkAt(LevelObjectDog* barker)
 {
 
@@ -509,6 +524,13 @@ void Level::AddDog(std::unique_ptr<LevelObjectDog> dog, uint8_t playerSlot, uint
     raw->SetDogType(dogType);
 
     _dogs.push_back(raw);
+}
+
+void Level::AddTestObject(std::unique_ptr<LevelObjectTest> testObj)
+{
+    LevelObjectTest* raw = testObj.get();
+    _levelObjects.push_back(std::move(testObj));
+    _physicsManager.RegisterObject(raw);
 }
 
 void Level::DeleteLevelObject(size_t placementIndex)

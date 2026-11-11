@@ -43,6 +43,8 @@ public:
 
 	LevelObjectDog* SpawnDogInHouse(uint8_t houseIndex, uint8_t playerSlot, uint8_t dogType);
 
+	LevelObjectTest* SpawnTestObject(const Rectangle& bounds, const Vector2& vel, bool isEntity);
+
 	bool EditorTryToPlaceObject(int x, int y, uint8_t objectId);
 	bool EditorTryToRemoveObject(const Vector2& position, int x, int y);
 
@@ -90,6 +92,7 @@ private:
 	void AddPlacement(uint8_t id, const Vector2& placedPosition, const Rectangle& editorBounds, std::vector<std::unique_ptr<LevelObject>>&& parts);
 	LevelObjectTile* AddTile(uint8_t id, std::unique_ptr<LevelObjectTile> tile, int x, int y);
 	void AddDog(std::unique_ptr<LevelObjectDog> dog, uint8_t playerSlot, uint8_t dogType);
+	void AddTestObject(std::unique_ptr<LevelObjectTest> testObj);
 
 	void DeleteLevelObject(size_t placementIndex);
 	void DeleteLevelTile(int x, int y);

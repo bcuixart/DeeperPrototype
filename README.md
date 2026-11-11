@@ -33,6 +33,7 @@ It will also feature online multiplayer, or the best approximation thereof.
 - [ ] Improve force field feel.
 - [X] Make the dog an interaction agent.
 - [ ] Add in-terrain physics interactions.
+- [ ] Entities must detect partial semisolids when exiting terrain.
 - [ ] Add fast moving dog stunning.
 - [ ] Add fast moving ball stunning.
 - [ ] Physics act differently in some devices. Unsure if it's compiler or system stuff.
