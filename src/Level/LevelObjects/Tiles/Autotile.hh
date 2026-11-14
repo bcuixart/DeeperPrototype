@@ -102,6 +102,11 @@ const std::unordered_map<uint16_t, uint8_t> groundAutotileMap =
     { 0x085F, 73 }, // W slope
     { 0x185F, 75 }, // E + W slope
 
+    // mask 88: left | right
+    { 0x0858, 103 }, // E slope
+    { 0x1058, 102 }, // W slope
+    { 0x1858, 104 }, // E + W slope
+
     // Tiles with 7 variations
 
     // mask 94:
@@ -136,7 +141,7 @@ const std::unordered_set<uint8_t> slopedSpriteIndexes =
 {
     47, 48, 
     49, 50, 51, 52, 53, 54, 55, 56, 
-    102, 103, 104, 105, 106, 107, 108, 109, 110, 111
+    105, 106, 107, 108, 109, 110, 111, 112, 113, 114
 };
 
 const std::unordered_map<uint8_t, SlopeOrientation> slopeSpriteIndexToOrientation =
@@ -151,16 +156,16 @@ const std::unordered_map<uint8_t, SlopeOrientation> slopeSpriteIndexToOrientatio
     { 54, SlopeOrientation::FallingRight },
     { 55, SlopeOrientation::FallingLeft },
     { 56, SlopeOrientation::RisingLeft },
-    { 102, SlopeOrientation::RisingRight },
-    { 103, SlopeOrientation::RisingLeft },
-    { 104, SlopeOrientation::RisingRight },
     { 105, SlopeOrientation::RisingRight },
-    { 106, SlopeOrientation::RisingRight },
-    { 107, SlopeOrientation::FallingRight },
-    { 108, SlopeOrientation::FallingLeft },
-    { 109, SlopeOrientation::RisingLeft },
-    { 110, SlopeOrientation::RisingLeft },
-    { 111, SlopeOrientation::RisingLeft },
+    { 106, SlopeOrientation::RisingLeft },
+    { 107, SlopeOrientation::RisingRight },
+    { 108, SlopeOrientation::RisingRight },
+    { 109, SlopeOrientation::RisingRight },
+    { 110, SlopeOrientation::FallingRight },
+    { 111, SlopeOrientation::FallingLeft },
+    { 112, SlopeOrientation::RisingLeft },
+    { 113, SlopeOrientation::RisingLeft },
+    { 114, SlopeOrientation::RisingLeft },
 };
 
 const std::unordered_set<uint8_t> slopePossibleVariationsMasks =
@@ -170,21 +175,21 @@ const std::unordered_set<uint8_t> slopePossibleVariationsMasks =
 
 const std::unordered_map<uint16_t, uint8_t> slopeVariationAutotileMap =
 {
-    { (208 << 8) | 1, 102 },
+    { (208 << 8) | 1, 105 },
 
-    { (104 << 8) | 1, 103 },
+    { (104 << 8) | 1, 106 },
 
-    { (80 << 8) | 1, 105 },
-    { (80 << 8) | 2, 104 },
-    { (80 << 8) | 3, 106 },
+    { (80 << 8) | 1, 108 },
+    { (80 << 8) | 2, 107 },
+    { (80 << 8) | 3, 109 },
 
-    { (18 << 8) | 1, 107 },
+    { (18 << 8) | 1, 110 },
 
-    { (10 << 8) | 1, 108 },
+    { (10 << 8) | 1, 111 },
 
-    { (72 << 8) | 1, 110 },
-    { (72 << 8) | 2, 109 },
-    { (72 << 8) | 3, 111 },
+    { (72 << 8) | 1, 113 },
+    { (72 << 8) | 2, 112 },
+    { (72 << 8) | 3, 114 },
 };
 
 const std::unordered_map<uint8_t, uint8_t> sandDirtAutotileMap = 

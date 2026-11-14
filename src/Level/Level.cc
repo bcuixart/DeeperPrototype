@@ -642,7 +642,7 @@ void Level::UpdateTileAutotile(int x, int y)
             uint16_t normalized = NormalizeFullMask(ComputeFullMask(x, y));
 
             auto it = groundAutotileMap.find(normalized);
-            _levelTiles[y][x]->SetSpriteIndex(it != groundAutotileMap.end() ? it->second : 113);
+            _levelTiles[y][x]->SetSpriteIndex(it != groundAutotileMap.end() ? it->second : 116);
             break;
         }
         case LevelObjectTileType::Slope:
@@ -655,7 +655,7 @@ void Level::UpdateTileAutotile(int x, int y)
             else 
             {
                 auto itG = groundAutotileMap.find(normalized);
-                _levelTiles[y][x]->SetSpriteIndex(itG != groundAutotileMap.end() ? itG->second : 113);
+                _levelTiles[y][x]->SetSpriteIndex(itG != groundAutotileMap.end() ? itG->second : 116);
             }
 
             uint16_t variationKey = ComputeSlopeVariationMask(normalized & 0xFF, x, y);
