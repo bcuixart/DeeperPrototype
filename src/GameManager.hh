@@ -77,6 +77,8 @@ public:
 	float GetTimeScale() const;
 	void SetNetLaunchOptions(const NetLaunchOptions& options) { _netOptions = options; }
 
+	void StartLevelFromMain(const std::string& levelName);
+
 	void OnLobbyAdjustOption(int slot, LobbyOption option, int delta);
 
 	void OnLobbyPickDogType(int slot, uint8_t dogType);

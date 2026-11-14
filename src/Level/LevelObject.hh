@@ -63,6 +63,9 @@ public:
 	bool GetIsGrounded() const { return _isGrounded; }
 	void SetIsGrounded(const bool grounded, SurfaceType surfaceType) { _isGrounded = grounded; _surfaceTypeStandingOn = surfaceType; }
 
+	bool GetWasGroundedBeforePhysicsUpdate() const { return _wasGroundedBeforePhysicsUpdate; }
+	void SetWasGroundedBeforePhysicsUpdate() { _wasGroundedBeforePhysicsUpdate = _isGrounded; }
+
 	virtual SurfaceType GetSurfaceType() const { return SurfaceType::FlatGround; }
 
 	virtual HitboxType GetHitboxType() const = 0;
@@ -126,6 +129,8 @@ protected:
 private:
 	void ClampVelocityX() { if (_velocity.x > PhysicsManager::kTerminalVelocityX) _velocity.x = PhysicsManager::kTerminalVelocityX; if (_velocity.x < -PhysicsManager::kTerminalVelocityX) _velocity.x = -PhysicsManager::kTerminalVelocityX; }
 	void ClampVelocityY() { if (_velocity.y > PhysicsManager::kTerminalVelocityY) _velocity.y = PhysicsManager::kTerminalVelocityY; if (_velocity.y < -PhysicsManager::kTerminalVelocityY) _velocity.y = -PhysicsManager::kTerminalVelocityY; }
+
+	bool _wasGroundedBeforePhysicsUpdate{ false };
 };
 
 #endif

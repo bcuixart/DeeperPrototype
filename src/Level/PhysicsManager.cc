@@ -15,6 +15,8 @@ PhysicsManager::~PhysicsManager()
 void PhysicsManager::Update(const float deltaTime)
 {
 	// Reset grounded state for all objects
+	for (LevelObject* o : _entityObjects) o->SetWasGroundedBeforePhysicsUpdate();
+	for (LevelObject* o : _dynamicObjects) o->SetWasGroundedBeforePhysicsUpdate();
 	for (LevelObject* o : _entityObjects) o->SetIsGrounded(false, SurfaceType::None);
 	for (LevelObject* o : _dynamicObjects) o->SetIsGrounded(false, SurfaceType::None);
 
@@ -73,15 +75,31 @@ void PhysicsManager::MoveAndResolveMovement(const std::vector<LevelObject*>& obj
 	{
 		if (o->IsInTerrain()) { MoveAndResolveObjectInTerrain(o, deltaTime); continue; }
 
-		const float startX = o->GetBounds().x;
-
-		MoveAndResolveCollisionsX(o, deltaTime, affectedByPartialSemisolidsX, blockedByRealSlopesX);
-
-		if (MoveAndResolveCollisionsY(o, deltaTime, checkSemisolidPartialBottom, affectedByEntitiesTop))
+		// Substeps only for entities: their move is split in dependent phases (X, Y, slope snap)
+		int steps = 1;
+		if (!blockedByRealSlopesX)
 		{
-			//printf("Collision with slope caused whole move to be canceled for object %p\n", o);
-			o->SetBoundsX(startX);
-			o->SetVelocityX(0.0f);
+			const float kMaxMoveStep = 0.2f;
+			const float maxMove = std::max(fabsf(o->GetVelocityX()), fabsf(o->GetVelocityY())) * deltaTime;
+			steps = std::max(1, (int)std::ceil(maxMove / kMaxMoveStep));
+		}
+		const float stepDeltaTime = deltaTime / steps;
+
+		for (int i = 0; i < steps; ++i)
+		{
+			if (o->IsInTerrain()) break; // A previous substep callback may have sent it into terrain
+			const float stepStartX = o->GetBounds().x;
+
+			MoveAndResolveCollisionsX(o, stepDeltaTime, affectedByPartialSemisolidsX, blockedByRealSlopesX);
+			if (o->IsInTerrain()) break;
+
+			const float groundMargin = (!blockedByRealSlopesX) ? fabsf(o->GetBounds().x - stepStartX) + kGroundTolerance : -1.0f;
+			if (MoveAndResolveCollisionsY(o, stepDeltaTime, checkSemisolidPartialBottom, affectedByEntitiesTop, groundMargin))
+			{
+				o->SetBoundsX(stepStartX);
+				o->SetVelocityX(0.0f);
+				break;
+			}
 		}
 	}
 }
@@ -305,10 +323,10 @@ bool PhysicsManager::CheckAndResolveCollisionXSlope(LevelObject* slopeObject, Le
 	return true;
 }
 
-bool PhysicsManager::MoveAndResolveCollisionsY(LevelObject* object, const float deltaTime, bool checkSemisolidPartialBottom, bool affectedByEntitiesTop)
+bool PhysicsManager::MoveAndResolveCollisionsY(LevelObject* object, const float deltaTime, bool checkSemisolidPartialBottom, bool affectedByEntitiesTop, float groundMargin)
 {
 	float vel = object->GetVelocityY();
-	if (vel == 0.0f) return false;
+	if (vel == 0.0f) return ResolveSlopesY(object, 0.0f, groundMargin);
 
 	Rectangle startBounds = object->GetBounds();
 
@@ -418,18 +436,7 @@ bool PhysicsManager::MoveAndResolveCollisionsY(LevelObject* object, const float 
 
 	// After moving, we check for collisions with actually sloped tiles and resolve them if necessary.
 	// This is done after the initial move to ensure that we handle slopes correctly, especially if the object is moving into a slope.
-	for (LevelObject* solidMaybeSloped : _solidMaybeSlopedObjects)
-	{
-		if (!solidMaybeSloped->HasActualSlopedHitbox()) continue;
-
-		bool cancelWholeMove = false;
-		if (CheckAndResolveCollisionYSlope(solidMaybeSloped, object, vel, cancelWholeMove))
-		{
-			if (cancelWholeMove) return true;
-		}
-	}
-
-	return false;
+	return ResolveSlopesY(object, vel, groundMargin);
 }
 
 bool PhysicsManager::SweepY(const Rectangle& bounds, float dy, LevelObject* stillObject, float& tOut)
@@ -544,16 +551,19 @@ bool PhysicsManager::SweepYOnlyFromTop(const Rectangle& startBounds, float dy, L
 	return true;
 }
 
-bool PhysicsManager::CheckAndResolveCollisionYSlope(LevelObject* slopeObject, LevelObject* movingObject, float prevVelocityY, bool& outCancelWholeMove)
+bool PhysicsManager::CheckAndResolveCollisionYSlope(LevelObject* slopeObject, LevelObject* movingObject, float prevVelocityY, float groundMargin, bool wasGrounded, bool& outCancelWholeMove)
 {
 	if (!slopeObject->HasActualSlopedHitbox()) return false;
+
+	const bool useGround = groundMargin >= 0.0f;
 
 	Rectangle bounds = movingObject->GetBounds();
 	Rectangle slopeBounds = slopeObject->GetBounds();
 
 	float centerX = bounds.x + bounds.width * 0.5f;
 	if (centerX < slopeBounds.x || centerX > slopeBounds.x + slopeBounds.width) return false;
-	if (bounds.y + bounds.height < slopeBounds.y || bounds.y > slopeBounds.y + slopeBounds.height) return false;
+	const float slack = useGround ? groundMargin : 0.0f;
+	if (bounds.y + bounds.height < slopeBounds.y - slack || bounds.y > slopeBounds.y + slopeBounds.height) return false;
 
 	Vector2 sample = slopeObject->SampleTopBottomAtX(centerX);
 	const float top = sample.x;
@@ -562,15 +572,28 @@ bool PhysicsManager::CheckAndResolveCollisionYSlope(LevelObject* slopeObject, Le
 	const float feetY = bounds.y + bounds.height;
 	const float headY = bounds.y;
 
-	const bool feetInSlice = feetY >= top && feetY <= bottom;
-	const bool headInSlice = headY >= top && headY <= bottom;
-	const bool swallowed   = top >= headY && bottom <= feetY;
+	bool groundSnap = false;
+	if (useGround)
+	{
+		const float depth = feetY - top;
+		const bool embedded = depth > 0.0f && depth <= groundMargin;
+		const bool stick    = depth <= 0.0f && wasGrounded && prevVelocityY >= 0.0f && -depth <= groundMargin;
+		groundSnap = embedded || stick;
+	}
 
 	bool isFloor;
-	if (swallowed) isFloor = (feetY - top) <= (bottom - headY);
-	else if (feetInSlice) isFloor = true;
-	else if (headInSlice) isFloor = false;
-	else return false;
+	if (groundSnap) isFloor = true;
+	else
+	{
+		const bool feetInSlice = feetY >= top && feetY <= bottom;
+		const bool headInSlice = headY >= top && headY <= bottom;
+		const bool swallowed   = top >= headY && bottom <= feetY;
+
+		if (swallowed) isFloor = (feetY - top) <= (bottom - headY);
+		else if (feetInSlice) isFloor = true;
+		else if (headInSlice) isFloor = false;
+		else return false;
+	}
 
 	const float proposedY = isFloor ? (top - bounds.height) : bottom;
 
@@ -588,6 +611,13 @@ bool PhysicsManager::CheckAndResolveCollisionYSlope(LevelObject* slopeObject, Le
 		return true;
 	}
 
+	// Rising object pushed up by a slope (jumping while moving up a ramp): reposition but keep its upward velocity.
+	if (groundSnap && prevVelocityY < 0.0f)
+	{
+		movingObject->SetBoundsY(proposedY);
+		return true;
+	}
+
 	movingObject->SetBoundsY(proposedY);
 	if (isFloor) movingObject->SetIsGrounded(true, slopeObject->GetSurfaceType());
 
@@ -595,6 +625,22 @@ bool PhysicsManager::CheckAndResolveCollisionYSlope(LevelObject* slopeObject, Le
 	slopeObject->CollidedWithY(movingObject, prevVelocityY);
 	movingObject->CollidedWithY(slopeObject, prevVelocityY);
 	return true;
+}
+
+bool PhysicsManager::ResolveSlopesY(LevelObject* object, float prevVelocityY, float groundMargin)   // returns true if the whole move must be canceled
+{
+	const bool wasGrounded = object->GetWasGroundedBeforePhysicsUpdate();
+	for (LevelObject* solidMaybeSloped : _solidMaybeSlopedObjects)
+	{
+		if (!solidMaybeSloped->HasActualSlopedHitbox()) continue;
+
+		bool cancelWholeMove = false;
+		if (CheckAndResolveCollisionYSlope(solidMaybeSloped, object, prevVelocityY, groundMargin, wasGrounded, cancelWholeMove))
+		{
+			if (cancelWholeMove) return true;
+		}
+	}
+	return false;
 }
 
 LevelObject* PhysicsManager::FindBlockingSolidY(const LevelObject* ignore, const Rectangle& bounds, float proposedY, bool movingDown) const

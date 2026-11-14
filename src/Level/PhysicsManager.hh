@@ -32,6 +32,8 @@ public:
     static constexpr float kTerrainVelocityDecayLimit = 1.0f;
     static constexpr float kTerrainMoveMinVelocity = 1.0f;
 
+    static constexpr float kGroundTolerance = 0.02f;
+
     static constexpr float kMinTrampolineBounceVelocity = 5.0f;
 
     static constexpr float kTestTolerance = 0.01f;
@@ -50,11 +52,12 @@ private:
     bool SweepXSlope(const Rectangle& bounds, float dx, LevelObject* slopeObject, float& tOut);
     bool CheckAndResolveCollisionXSlope(LevelObject* slopeObject, LevelObject* movingObject, bool affectedByPartialSemisolidsX, bool blockedByRealSlopes, float prevVelocityX);
 
-    bool MoveAndResolveCollisionsY(LevelObject* object, const float deltaTime, bool checkSemisolidPartialBottom, bool affectedByEntitiesTop);
+    bool MoveAndResolveCollisionsY(LevelObject* object, const float deltaTime, bool checkSemisolidPartialBottom, bool affectedByEntitiesTop, float groundMargin);
     bool SweepY(const Rectangle& bounds, float dy, LevelObject* stillObject, float& tOut);
     bool SweepYSlope(const Rectangle& bounds, float dy, LevelObject* slopeObject, float& tOut);
     bool SweepYOnlyFromTop(const Rectangle& startBounds, float dy, LevelObject* stillObject, float& tOut);
-    bool CheckAndResolveCollisionYSlope(LevelObject* slopeObject, LevelObject* movingObject, float prevVelocityY, bool& outCancelWholeMove);
+    bool CheckAndResolveCollisionYSlope(LevelObject* slopeObject, LevelObject* movingObject, float prevVelocityY, float groundMargin, bool wasGrounded, bool& outCancelWholeMove);
+    bool ResolveSlopesY(LevelObject* object, float prevVelocityY, float groundMargin);   // returns true if the whole move must be canceled
 
     LevelObject* FindBlockingSolidY(const LevelObject* ignore, const Rectangle& bounds, float proposedY, bool movingDown) const;
     LevelObject* FindBlockingSolidX(const LevelObject* ignore, const Rectangle& bounds, float proposedX, bool affectedByPartialSemisolidsX) const;

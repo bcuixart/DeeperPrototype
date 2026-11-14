@@ -370,6 +370,30 @@ void GameManager::StartPlaytestLevel()
     _gameState = GameState::EDITOR_PLAYTEST;
 }
 
+void GameManager::StartLevelFromMain(const std::string& levelName)
+{
+    TryToAddPlayer(PlayerControllerType::KEYBOARD_WASD, 0);
+
+    LevelPlayers players;
+    players[0].active  = true;
+    players[0].dogType = 0;
+    _slotOfLocalPlayers[0] = 0;
+    _mySlots.clear();
+
+    static std::mt19937 rng{ std::random_device{}() };
+
+    _levelTick = 0;
+    _levelManager = std::make_unique<LevelManager>();
+    _levelManager->LoadLevelFromFile(levelName, players, rng());
+
+    std::array<bool, kMaxSlots> active{};
+    active[0] = true;
+    _roundManager->Begin(RoundManager::kNoTimeLimit, true, active);
+    _levelManager->SetScoreCallback([this](uint8_t slot, int points) { OnScore(slot, points); });
+
+    _gameState = GameState::EDITOR_PLAYTEST;
+}
+
 void GameManager::EndPlaytestLevel()
 {
     _levelManager.reset();

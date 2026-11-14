@@ -15,6 +15,11 @@ void LevelManager::Update(const float deltaTime)
 {
     _level.Update(deltaTime);
 
+    for (int slot = 0; slot < MAX_PLAYERS; slot++)
+    {
+        if (_dogBySlot[slot]) if (!_level.IsTestObjectInValidPosition(_dogBySlot[slot])) printf("Dog in slot %d is in an invalid position\n", slot);
+    }
+
     _cam = _level.FitCameraToBounds(1.0f, 16.0f, 9.0f);
 }
 

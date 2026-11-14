@@ -75,7 +75,7 @@ private:
     static constexpr float kWidth = 0.7f;
     static constexpr float kHeight = 0.625f;
 
-    static constexpr float kWalkSpeed = 10.0f;
+    static constexpr float kWalkSpeed = 10.0f; // 10.0f
     static constexpr float kGroundFriction = 0.1f;
 
     static constexpr float kJumpVelocity = -10.0f;

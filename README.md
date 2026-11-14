@@ -24,7 +24,7 @@ It will also feature online multiplayer, or the best approximation thereof.
 ## Non-obvious to-do list (Things I could very well forget):
 - [ ] Fix dynamic objects clipping through slopes with solid roof (47, 48)
 - [ ] Fix dog stacked on dog not counting as grounded.
-- [ ] Add swallowed check on slope sweeping in X axis. (Is it necessary?)
+- [X] Add swallowed check on slope sweeping in X axis. (Is it necessary?)
 - [ ] Determine how digging priorities are handled.
 - [ ] Add digging in centerX as a fail-safe option in case nothing is found in left or right.
 - [ ] Decide if a stunned dog that is stunned by another dog can change its interaction cause and depth.
