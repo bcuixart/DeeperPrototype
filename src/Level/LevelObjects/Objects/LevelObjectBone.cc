@@ -29,6 +29,12 @@ void LevelObjectBone::Render(const float deltaTime) const
     DrawTexturePro(tex, src, dst, { 0.0f, 0.0f }, 0.0f, WHITE);
 }
 
+void LevelObjectBone::RenderBounds(const float deltaTime, const Color& color) const
+{
+    if (_wasGrabbed) return;
+    LevelObject::RenderBounds(deltaTime, color);
+}
+
 void LevelObjectBone::OnOverlap(LevelObject* other)
 {
     if (_wasGrabbed) return;

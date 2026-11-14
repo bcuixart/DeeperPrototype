@@ -461,8 +461,10 @@ bool PhysicsManager::SweepY(const Rectangle& bounds, float dy, LevelObject* stil
 	// kPenetrationEpsilon is a small value to account for floating-point inaccuracies and prevent objects from getting stuck when they are very close to each other
 	// However, if the still object is a ramp, we want to allow a larger penetration epsilon to avoid getting stuck on ramps
 	const bool nearRamp = !stillObject->GetSolidSideCollisionMask(SOLID_SIDE_LEFT) ||
-	                       !stillObject->GetSolidSideCollisionMask(SOLID_SIDE_RIGHT);
-	const float penetrationEpsilon = nearRamp ? 1.0f : 0.01f;
+                       !stillObject->GetSolidSideCollisionMask(SOLID_SIDE_RIGHT);
+	const float centerX = bounds.x + bounds.width * 0.5f;
+	const bool centerOver = centerX >= stillBounds.x && centerX <= stillBounds.x + stillBounds.width;
+	const float penetrationEpsilon = (nearRamp && centerOver) ? 1.0f : 0.01f;
 
 	// If the gap is negative, it means we are already overlapping. If it's positive, we can calculate the time of collision
 	float t;

@@ -39,9 +39,6 @@ void LevelObjectDog::Update(const float deltaTime)
     _inputTerrainUpPrev = _inputTerrainUp;
     _inputTerrainDownPrev = _inputTerrainDown;
     _inputAxisXPrev = _inputAxisX;
-
-    printf("Position = (%.2f, %.2f), Velocity = (%.2f, %.2f)\n", 
-        _bounds.x, _bounds.y, GetVelocityX(), GetVelocityY());
 }
 
 void LevelObjectDog::Update_Default(const float deltaTime)
