@@ -275,7 +275,9 @@ bool PhysicsManager::CheckAndResolveCollisionXSlope(LevelObject* slopeObject, Le
 	Rectangle bounds = movingObject->GetBounds();
 	Rectangle slopeBounds = slopeObject->GetBounds();
 
-	if (bounds.y + bounds.height < slopeBounds.y || bounds.y > slopeBounds.y + slopeBounds.height) return false;
+	constexpr float kMinVerticalOverlap = 0.01f;
+	if (bounds.y + bounds.height <= slopeBounds.y + kMinVerticalOverlap ||
+		bounds.y >= slopeBounds.y + slopeBounds.height - kMinVerticalOverlap) return false;
 	if (bounds.x + bounds.width < slopeBounds.x || bounds.x > slopeBounds.x + slopeBounds.width) return false;
 
 	float topY    = Clamp(bounds.y,                slopeBounds.y, slopeBounds.y + slopeBounds.height);

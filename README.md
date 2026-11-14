@@ -22,7 +22,7 @@ It will also feature online multiplayer, or the best approximation thereof.
 - [ ] Particles.
 
 ## Non-obvious to-do list (Things I could very well forget):
-- [ ] Fix dynamic objects clipping through slopes with solid roof (47, 48)
+- [X] Fix dynamic objects clipping through slopes with solid roof (47, 48)
 - [ ] Fix dog stacked on dog not counting as grounded.
 - [X] Add swallowed check on slope sweeping in X axis. (Is it necessary?)
 - [ ] Determine how digging priorities are handled.
