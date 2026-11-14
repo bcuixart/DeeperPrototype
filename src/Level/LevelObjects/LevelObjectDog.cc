@@ -71,11 +71,8 @@ void LevelObjectDog::Update_Default(const float deltaTime)
     {
         if (_canDoBarkJump)
         {
-            _canDoBarkJump = false;
-
-            if (_isJumping) _isJumping = false;
-            SetVelocityY(kBarkJumpVelocity);
-        }   
+            DoBarkJump();
+        }
 
         _barkCooldownTimer = kBarkCooldown;
         _level->BarkAt(this);
@@ -143,6 +140,19 @@ void LevelObjectDog::Update_Sliding(const float deltaTime)
 
         _state = DogState::Default;
         return;
+    }
+
+        // Bark and bark jump mechanic
+    if (_inputBark && !_inputBarkPrev && _barkCooldownTimer <= 0.0f)
+    {
+        if (_canDoBarkJump)
+        {   
+            DoBarkJump(); 
+            _state = DogState::Default;
+        } 
+
+        _barkCooldownTimer = kBarkCooldown;
+        _level->BarkAt(this);
     }
 }
 
@@ -248,6 +258,14 @@ void LevelObjectDog::StartJump()
 
     _coyoteTimer = 0.0f;
     _jumpInputBufferTimer = 0.0f;
+}
+
+void LevelObjectDog::DoBarkJump()
+{
+    _canDoBarkJump = false;
+
+    if (_isJumping) _isJumping = false;
+    SetVelocityY(kBarkJumpVelocity);
 }
 
 void LevelObjectDog::StunAddVelocity(const LevelObject* stunner, const float velX, const float velY, const float stunTime)

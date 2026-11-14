@@ -71,6 +71,7 @@ private:
     void Update_Stunned(const float deltaTime);
 
     void StartJump();
+    void DoBarkJump();
 
     void Stun(const LevelObject* stunner, const float stunTime);
 
