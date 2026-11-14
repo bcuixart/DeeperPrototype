@@ -147,10 +147,6 @@ void LevelObjectDog::Update_Sliding(const float deltaTime)
 
     // Determine sliding direction based on the slope type, you keep moving the same direction if not grounded
     if (_isGrounded) _isSlidingLeft = _surfaceTypeStandingOn == SurfaceType::SlopedRightGround;
-
-    // Move in a 45-degree angle downwards while sliding
-    AddVelocityX(_isSlidingLeft ? -kSlideAcceleration * deltaTime : kSlideAcceleration * deltaTime);
-    if (_isGrounded) SetVelocityY(fabsf(GetVelocityX()));
 }
 
 void LevelObjectDog::Update_InTerrain(const float deltaTime)

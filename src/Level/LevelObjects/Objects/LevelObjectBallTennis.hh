@@ -21,6 +21,8 @@ public:
 
     HitboxType GetHitboxType() const override { return HitboxType::Dynamic; }
 
+    float GetSlopeAcceleration() const override { return kSlideAcceleration; }
+
     uint8_t GetInteractionCauseSlot() const override { return _interactionCauseSlot; }
     uint8_t GetInteractionDepth() const override { return _interactionDepth; }
 	float GetInteractionVelocityX() const override { return kInteractionVelocity; }
@@ -40,6 +42,7 @@ private:
 
     static constexpr float kBounciness = 0.75f;
     static constexpr float kGroundFriction = 0.1f;
+    static constexpr float kSlideAcceleration = 20.0f;
 
     static constexpr float kInteractionVelocity = 10.0f;
     static constexpr float kInteractionStopVelocityX = 0.05f;

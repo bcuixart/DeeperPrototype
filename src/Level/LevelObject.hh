@@ -61,6 +61,7 @@ public:
 	virtual void OnOverlap(LevelObject* other) { }
 
 	bool GetIsGrounded() const { return _isGrounded; }
+	SurfaceType GetSurfaceTypeStandingOn() const { return _surfaceTypeStandingOn; }
 	void SetIsGrounded(const bool grounded, SurfaceType surfaceType) { _isGrounded = grounded; _surfaceTypeStandingOn = surfaceType; }
 
 	bool GetWasGroundedBeforePhysicsUpdate() const { return _wasGroundedBeforePhysicsUpdate; }
@@ -74,6 +75,8 @@ public:
 	bool GetSolidSideCollisionMask(const uint8_t side) const { return (_solidSidecollisionMask & side) != 0; }
 
 	virtual bool HasActualSlopedHitbox() const { return false; }
+
+	virtual float GetSlopeAcceleration() const { return 0.0f; }
 
 	virtual void OnDug(LevelObject* digger) { }
 

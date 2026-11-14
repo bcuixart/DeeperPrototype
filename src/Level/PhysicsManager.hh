@@ -28,6 +28,8 @@ public:
     static constexpr float kTerminalVelocityX = 30.0f;
 	static constexpr float kTerminalVelocityY = 30.0f;
 
+    static constexpr float kMaxMoveStep = 0.2f;
+
     static constexpr float kTerrainVelocityDecay = 0.25f;
     static constexpr float kTerrainVelocityDecayLimit = 1.0f;
     static constexpr float kTerrainMoveMinVelocity = 1.0f;
@@ -45,12 +47,10 @@ private:
 
     void ApplyForceFields(const std::vector<LevelObject*>& objects, const float deltaTime);
 
-    void MoveAndResolveMovement(const std::vector<LevelObject*>& objects, const float deltaTime, bool affectedByPartialSemisolidsX, bool blockedByRealSlopesX, bool checkSemisolidPartialBottom, bool affectedByEntitiesTop);
+    void MoveAndResolveMovement(const std::vector<LevelObject*>& objects, const float deltaTime, bool affectedByPartialSemisolidsX, bool checkSemisolidPartialBottom, bool affectedByEntitiesTop);
 
-    void MoveAndResolveCollisionsX(LevelObject* object, const float deltaTime, bool afectedByPartialSemisolids, bool blockedByRealSlopes);
+    void MoveAndResolveCollisionsX(LevelObject* object, const float deltaTime, bool afectedByPartialSemisolids);
     bool SweepX(const Rectangle& bounds, float dx, LevelObject* stillObject, float& tOut);
-    bool SweepXSlope(const Rectangle& bounds, float dx, LevelObject* slopeObject, float& tOut);
-    bool CheckAndResolveCollisionXSlope(LevelObject* slopeObject, LevelObject* movingObject, bool affectedByPartialSemisolidsX, bool blockedByRealSlopes, float prevVelocityX);
 
     bool MoveAndResolveCollisionsY(LevelObject* object, const float deltaTime, bool checkSemisolidPartialBottom, bool affectedByEntitiesTop, float groundMargin);
     bool SweepY(const Rectangle& bounds, float dy, LevelObject* stillObject, float& tOut);
@@ -60,13 +60,14 @@ private:
     bool ResolveSlopesY(LevelObject* object, float prevVelocityY, float groundMargin);   // returns true if the whole move must be canceled
 
     LevelObject* FindBlockingSolidY(const LevelObject* ignore, const Rectangle& bounds, float proposedY, bool movingDown) const;
-    LevelObject* FindBlockingSolidX(const LevelObject* ignore, const Rectangle& bounds, float proposedX, bool affectedByPartialSemisolidsX) const;
 
     void MoveAndResolveObjectInTerrain(LevelObject* object, const float deltaTime);
     void MoveObjectInTerrain(LevelObject* object, uint8_t tX, uint8_t tY, const float deltaTime);
 
     void CheckOverlaps(const std::vector<LevelObject*>& listA, const std::vector<LevelObject*>& listB);
     void CheckOverlapsSelf(const std::vector<LevelObject*>& list);
+
+    void ApplySlopeAccelerations(const std::vector<LevelObject*>& objects, const float deltaTime);
 
     bool CanObjectBeDug(LevelObject* object, const Vector2& position, LevelObject* digger) const;
     bool CanSlopedObjectBeDug(LevelObject* object, const Vector2& position) const;

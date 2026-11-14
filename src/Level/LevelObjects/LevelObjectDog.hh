@@ -49,6 +49,8 @@ public:
 
     void StartSliding();
 
+    float GetSlopeAcceleration() const override { return (_state == DogState::Sliding) ? kSlideAcceleration : 0.0f; }
+
     bool IsInDefaultState() const { return _state == DogState::Default; }
 
     bool TryToGrabObject(LevelObject* obj);

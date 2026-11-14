@@ -21,7 +21,8 @@ void LevelObjectBallTennis::Update(const float deltaTime)
 		}
 	}
 
-    if (_isGrounded) SetVelocityX(GetVelocityX() * powf(kGroundFriction, deltaTime));
+    if (_isGrounded && _surfaceTypeStandingOn != SurfaceType::SlopedLeftGround && _surfaceTypeStandingOn != SurfaceType::SlopedRightGround)
+		SetVelocityX(GetVelocityX() * powf(kGroundFriction, deltaTime));
 
 	if (_kickCooldown > 0.0f) _kickCooldown -= deltaTime;
 
