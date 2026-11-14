@@ -136,8 +136,6 @@ private:
     bool _canDoBarkJump{false};
     float _barkCooldownTimer{0.0f};
 
-    bool _isSlidingLeft = false;
-
     uint8_t _interactionCauseSlot{kInteractionNoCause};
     uint8_t _interactionDepth{0};
 

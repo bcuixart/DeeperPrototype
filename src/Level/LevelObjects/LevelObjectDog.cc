@@ -144,9 +144,6 @@ void LevelObjectDog::Update_Sliding(const float deltaTime)
         _state = DogState::Default;
         return;
     }
-
-    // Determine sliding direction based on the slope type, you keep moving the same direction if not grounded
-    if (_isGrounded) _isSlidingLeft = _surfaceTypeStandingOn == SurfaceType::SlopedRightGround;
 }
 
 void LevelObjectDog::Update_InTerrain(const float deltaTime)
@@ -430,7 +427,7 @@ bool LevelObjectDog::NetGet(NetworkLevelObjectDynEntState& s) const
     s.x = _bounds.x;  s.y = _bounds.y;
     s.vx = _velocity.x; s.vy = _velocity.y;
     s.mode = static_cast<uint8_t>(_state);
-    s.flags = (_isJumping ? 1 : 0) | (_isSlidingLeft ? 2 : 0) | (_isFacingLeft ? 4 : 0)
+    s.flags = (_isJumping ? 1 : 0) | (true ? 2 : 0) | (_isFacingLeft ? 4 : 0)
         | (_inputJumpPrev ? 8 : 0) | (_inputDigPrev ? 16 : 0) | (_inputBarkPrev ? 32 : 0)
         | (_isGrounded ? 64 : 0) | (_canDoBarkJump ? 128 : 0);
     s.flags2 = static_cast<int>(_heldGrabbableId);
@@ -454,7 +451,7 @@ void LevelObjectDog::NetSet(const NetworkLevelObjectDynEntState& s)
     if (s.mode >= static_cast<uint8_t>(DogState::Default) && s.mode < static_cast<uint8_t>(DogState::Count)) _state = static_cast<DogState>(s.mode);
     else _state = DogState::Default;
     _isJumping = (s.flags & 1) != 0;
-    _isSlidingLeft = (s.flags & 2) != 0;
+
     _isFacingLeft = (s.flags & 4) != 0;
     _inputJumpPrev = (s.flags & 8) != 0;
     _inputDigPrev = (s.flags & 16) != 0;

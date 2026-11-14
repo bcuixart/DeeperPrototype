@@ -694,11 +694,9 @@ void PhysicsManager::ApplySlopeAccelerations(const std::vector<LevelObject*>& ob
 		if (accel <= 0.0f) continue;
 
 		const SurfaceType surface = o->GetSurfaceTypeStandingOn();
-		if (surface == SurfaceType::SlopedRightGround) { o->AddVelocityX(-accel * deltaTime); }
-		else if (surface == SurfaceType::SlopedLeftGround) { o->AddVelocityX(accel * deltaTime); }
-
-		// To move in a 45 degree slope
-		o->SetVelocityY(fabs(o->GetVelocityX()));
+		
+		if (surface == SurfaceType::SlopedRightGround) { o->AddVelocityX(-accel * deltaTime); o->SetVelocityY(fabs(o->GetVelocityX())); }
+		else if (surface == SurfaceType::SlopedLeftGround) { o->AddVelocityX(accel * deltaTime); o->SetVelocityY(fabs(o->GetVelocityX())); }	
 	}
 }
 
