@@ -20,8 +20,8 @@ public:
     bool NetGet(NetworkLevelObjectDynEntState& state) const override;
     void NetSet(const NetworkLevelObjectDynEntState& state) override;
 
-    void CollidedWithX(LevelObject* other, float prevVelocityX) override;
-    void CollidedWithY(LevelObject* other, float prevVelocityY) override;
+    void CollidedWithStillObjectX(LevelObject* other, float myPrevVelocityX) override;
+    void CollidedWithStillObjectY(LevelObject* other, float myPrevVelocityY) override;
 
     void OnDug(LevelObject* digger) override;
 

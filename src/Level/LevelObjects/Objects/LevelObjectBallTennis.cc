@@ -51,18 +51,18 @@ void LevelObjectBallTennis::Render(const float deltaTime) const
     DrawTexturePro(tex, src, dst, { 0.0f, 0.0f }, 0.0f, WHITE);
 }
 
-void LevelObjectBallTennis::CollidedWithX(LevelObject* other, float prevVelocityX)
+void LevelObjectBallTennis::CollidedWithStillObjectX(LevelObject* other, float myPrevVelocityX)
 {
 	if (_inTerrain) return;
 
-	SetVelocityX(-prevVelocityX * kBounciness);
+	SetVelocityX(-myPrevVelocityX * kBounciness);
 }
 
-void LevelObjectBallTennis::CollidedWithY(LevelObject* other, float prevVelocityY)
+void LevelObjectBallTennis::CollidedWithStillObjectY(LevelObject* other, float myPrevVelocityY)
 {
 	if (_inTerrain) return;
 
-	SetVelocityY(-prevVelocityY * kBounciness);
+	SetVelocityY(-myPrevVelocityY * kBounciness);
 }
 
 void LevelObjectBallTennis::OnOverlap(LevelObject* other)

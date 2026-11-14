@@ -49,20 +49,20 @@ LevelObjectTileType LevelObjectTileDirt::GetTileType() const
 	return LevelObjectTileType::Dirt;
 }
 
-void LevelObjectTileDirt::CollidedWithX(LevelObject* other, float prevVelocityX)
+void LevelObjectTileDirt::HitByMovingObjectX(LevelObject* movingObject, float movingObjectPrevVelocityX)
 {
-    if (!other) return;
-    if (fabs(prevVelocityX) < other->GetInteractionVelocityX()) return;
+    if (!movingObject) return;
+    if (fabs(movingObjectPrevVelocityX) < movingObject->GetInteractionVelocityX()) return;
 
-    other->OnEnteredTerrain(static_cast<int>(_bounds.x), static_cast<int>(_bounds.y), prevVelocityX, other->GetVelocityY(), false);
+    movingObject->OnEnteredTerrain(static_cast<int>(_bounds.x), static_cast<int>(_bounds.y), movingObjectPrevVelocityX, movingObject->GetVelocityY(), false);
 }
 
-void LevelObjectTileDirt::CollidedWithY(LevelObject* other, float prevVelocityY)
+void LevelObjectTileDirt::HitByMovingObjectY(LevelObject* movingObject, float movingObjectPrevVelocityY)
 {
-    if (!other) return;
-    if (fabs(prevVelocityY) < other->GetInteractionVelocityY()) return;
+    if (!movingObject) return;
+    if (fabs(movingObjectPrevVelocityY) < movingObject->GetInteractionVelocityY()) return;
 
-    other->OnEnteredTerrain(static_cast<int>(_bounds.x), static_cast<int>(_bounds.y), other->GetVelocityX(), prevVelocityY, false);
+    movingObject->OnEnteredTerrain(static_cast<int>(_bounds.x), static_cast<int>(_bounds.y), movingObject->GetVelocityX(), movingObjectPrevVelocityY, false);
 }
 
 void LevelObjectTileDirt::OnDug(LevelObject* digger)

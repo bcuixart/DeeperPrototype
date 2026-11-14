@@ -55,8 +55,10 @@ public:
 	void ApplyVelocityX(const float deltaTime) { _bounds.x += _velocity.x * deltaTime; }
 	void ApplyVelocityY(const float deltaTime) { _bounds.y += _velocity.y * deltaTime; }
 
-	virtual void CollidedWithX(LevelObject* other, float prevVelocityX) { }
-	virtual void CollidedWithY(LevelObject* other, float prevVelocityY) { }
+	virtual void CollidedWithStillObjectX(LevelObject* stillObject, float myPrevVelocityX) { }
+	virtual void CollidedWithStillObjectY(LevelObject* stillObject, float myPrevVelocityY) { }
+	virtual void HitByMovingObjectX(LevelObject* movingObject, float movingObjectPrevVelocityX) { }
+	virtual void HitByMovingObjectY(LevelObject* movingObject, float movingObjectPrevVelocityY) { }
 
 	virtual void OnOverlap(LevelObject* other) { }
 

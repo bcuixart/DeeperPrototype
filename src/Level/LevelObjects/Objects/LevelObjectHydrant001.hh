@@ -17,8 +17,8 @@ public:
 
     HitboxType GetHitboxType() const override { return HitboxType::SemisolidPartial; }
 
-    void CollidedWithX(LevelObject* other, float prevVelocityX) override;
-    void CollidedWithY(LevelObject* other, float prevVelocityY) override;
+    void HitByMovingObjectX(LevelObject* movingObject, float movingObjectPrevVelocityX) override;
+    void HitByMovingObjectY(LevelObject* movingObject, float movingObjectPrevVelocityY) override;
 
     void OnDug(LevelObject* digger) override;
 

@@ -39,6 +39,8 @@ void LevelObjectDog::Update(const float deltaTime)
     _inputTerrainUpPrev = _inputTerrainUp;
     _inputTerrainDownPrev = _inputTerrainDown;
     _inputAxisXPrev = _inputAxisX;
+
+    //printf("Dog %d state: %d, position: (%.2f, %.2f), velocity: (%.2f, %.2f), grounded: %s\n", _slot, static_cast<int>(_state), _bounds.x, _bounds.y, GetVelocityX(), GetVelocityY(), _isGrounded ? "true" : "false");
 }
 
 void LevelObjectDog::Update_Default(const float deltaTime)
@@ -492,18 +494,18 @@ void LevelObjectDog::NetSet(const NetworkLevelObjectDynEntState& s)
     _terrainDesiredMoveSpeed = std::min(s.t6, kInputTerrainMoveSpeed);
 }
 
-void LevelObjectDog::CollidedWithX(LevelObject* other, float prevVelocityX)
+void LevelObjectDog::CollidedWithStillObjectX(LevelObject* other, float myPrevVelocityX)
 {
-    if (_state == DogState::Stunned) SetVelocityX(-prevVelocityX * kStunnedBounciness);
+    if (_state == DogState::Stunned) SetVelocityX(-myPrevVelocityX * kStunnedBounciness);
 }
 
-void LevelObjectDog::CollidedWithY(LevelObject* other, float prevVelocityY)
+void LevelObjectDog::CollidedWithStillObjectY(LevelObject* other, float myPrevVelocityY)
 {
     if (_state == DogState::Stunned) 
     {
         // To prevent isGrounded flickering
-        if (std::abs(prevVelocityY) < kStunnedBounceMinVelocityY) SetVelocityY(0.0f);
-        else SetVelocityY(-prevVelocityY * kStunnedBounciness);
+        if (std::abs(myPrevVelocityY) < kStunnedBounceMinVelocityY) SetVelocityY(0.0f);
+        else SetVelocityY(-myPrevVelocityY * kStunnedBounciness);
     }
 }
 

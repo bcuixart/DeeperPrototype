@@ -166,8 +166,8 @@ void PhysicsManager::MoveAndResolveCollisionsX(LevelObject* object, const float 
 	if (hitFound)
 	{
 		object->SetVelocityX(0.0f);
-		if (hitObject) hitObject->CollidedWithX(object, vel);
-		object->CollidedWithX(hitObject, vel);
+		if (hitObject) hitObject->HitByMovingObjectX(object, vel);
+		object->CollidedWithStillObjectX(hitObject, vel);
 	}
 }
 
@@ -299,7 +299,7 @@ bool PhysicsManager::MoveAndResolveCollisionsY(LevelObject* object, const float 
 		object->SetVelocityY(0.0f);
 		if (willBounceTrampoline) 
 		{ 
-			if (hitObject) hitObject->CollidedWithY(object, vel);
+			if (hitObject) hitObject->HitByMovingObjectY(object, vel);
 			object->OnTrampoline(hitObject, vel);
 		}
 		else
@@ -315,8 +315,8 @@ bool PhysicsManager::MoveAndResolveCollisionsY(LevelObject* object, const float 
 				}
 			}
 
-			if (hitObject) hitObject->CollidedWithY(object, vel);
-			object->CollidedWithY(hitObject, vel);
+			if (hitObject) hitObject->HitByMovingObjectY(object, vel);
+			object->CollidedWithStillObjectY(hitObject, vel);
 		}
 	}
 
@@ -485,8 +485,8 @@ bool PhysicsManager::CheckAndResolveCollisionYSlope(LevelObject* slopeObject, Le
 		movingObject->SetVelocityY(0.0f);
 		if (isFloor) movingObject->SetIsGrounded(true, blocker->GetSurfaceType());
 
-		blocker->CollidedWithY(movingObject, prevVelocityY);
-		movingObject->CollidedWithY(blocker, prevVelocityY);
+		blocker->HitByMovingObjectY(movingObject, prevVelocityY);
+		movingObject->CollidedWithStillObjectY(blocker, prevVelocityY);
 
 		outCancelWholeMove = true;
 		return true;
@@ -503,8 +503,8 @@ bool PhysicsManager::CheckAndResolveCollisionYSlope(LevelObject* slopeObject, Le
 	if (isFloor) movingObject->SetIsGrounded(true, slopeObject->GetSurfaceType());
 
 	movingObject->SetVelocityY(0.0f);
-	slopeObject->CollidedWithY(movingObject, prevVelocityY);
-	movingObject->CollidedWithY(slopeObject, prevVelocityY);
+	slopeObject->HitByMovingObjectY(movingObject, prevVelocityY);
+	movingObject->CollidedWithStillObjectY(slopeObject, prevVelocityY);
 	return true;
 }
 
@@ -540,9 +540,6 @@ LevelObject* PhysicsManager::FindBlockingSolidY(const LevelObject* ignore, const
 		{
 			if (movingDown && !o->GetSolidSideCollisionMask(SOLID_SIDE_TOP)) continue;
 			else if (!movingDown && !o->GetSolidSideCollisionMask(SOLID_SIDE_BOTTOM)) continue;
-			//printf("Found blocking solid Y: %p\n", o);
-			//printf("Dog bounds: (%f, %f, %f, %f), proposedY: %f\n", bounds.x, bounds.y, bounds.width, bounds.height, proposedY);
-			//printf("Collided object bounds: (%f, %f, %f, %f)\n", o->GetBounds().x, o->GetBounds().y, o->GetBounds().width, o->GetBounds().height);
 			return o;
 		}
 	}
@@ -550,7 +547,6 @@ LevelObject* PhysicsManager::FindBlockingSolidY(const LevelObject* ignore, const
 	for (LevelObject* o : _solidBreakableObjects)
 		if (o != ignore && !o->GetBreakableIsBroken() && overlaps(o->GetBounds())) 
 		{
-			//printf("Found blocking solid breakable Y: %p\n", o);
 			return o;
 		}
 
@@ -565,7 +561,6 @@ LevelObject* PhysicsManager::FindBlockingSolidY(const LevelObject* ignore, const
 			if (bounds.y + bounds.height > b.y + kAboveEpsilon) continue;
 			if (proposedY + bounds.height > b.y) 
 			{
-				//printf("Found blocking semisolid total Y: %p\n", o);
 				return o;
 			}
 		}
@@ -577,7 +572,6 @@ LevelObject* PhysicsManager::FindBlockingSolidY(const LevelObject* ignore, const
 			if (bounds.y + bounds.height > b.y + kAboveEpsilon) continue;
 			if (proposedY + bounds.height > b.y) 
 			{
-				//printf("Found blocking semisolid partial Y: %p\n", o);
 				return o;
 			}
 		}
