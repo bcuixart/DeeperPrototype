@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <raylib.h>
 #include <cstdint>
+#include <cassert>
 
 class Level;
 class LevelObject;

@@ -713,6 +713,12 @@ void PhysicsManager::RegisterObject(LevelObject* object)
 		case HitboxType::Trigger:			_triggerObjects.push_back(object); break;
 		default: break;
 	}
+
+	if (hitboxType == HitboxType::Entity || hitboxType == HitboxType::Dynamic)
+	{
+		const Rectangle b = object->GetBounds();
+		assert(b.height - b.width * 0.5f > kMaxMoveStep && "Hitbox too wide/flat for kMaxMoveStep: ramps could be crossed");
+	}
 }
 
 void PhysicsManager::UnregisterObject(LevelObject* object)

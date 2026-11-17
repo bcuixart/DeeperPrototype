@@ -1,4 +1,5 @@
 #include <iostream>
+#include <chrono>
 
 #include "Level/Level.hh"
 #include "Level/LevelObjects/Test/LevelObjectTest.hh"
@@ -29,14 +30,14 @@ Result Run(Level& level, const Rectangle& b, Vector2 vel, bool isEntity, int tic
 
 int RunTest(const PhysicsTest& test, int& lastTickExecuted)
 {
-    const float bottom = 6.0f;          // substitueix pel bottom real del parcial
+    const float bottom = 6.0f;
     const float size = 0.4f;
     const float cx = 25.5f;
 
     struct Cas { float capOffset; float vy; };
     const Cas casos[] = {
-        {0.000f, -5}, {0.002f, -5}, {0.005f, -5}, {0.009f, -5},   // casos t = 0
-        {0.3f, -3}, {0.3f, -10}, {0.3f, -30}                       // casos generals
+        {0.000f, -5}, {0.002f, -5}, {0.005f, -5}, {0.009f, -5},
+        {0.3f, -3}, {0.3f, -10}, {0.3f, -30}
     };
 
     for (const Cas& c : casos)
@@ -50,8 +51,34 @@ int RunTest(const PhysicsTest& test, int& lastTickExecuted)
     return 0;
 }
 
+void PerformanceTest()
+{
+    PhysicsTest test;
+    test.levelFileName = "test_level";
+    test.isTestObjEntity = false;
+    test.testObjBounds = { 4.9f, 0.1f, 1.0f, 1.0f };
+    test.testObjVel = { 0.0f, 0.0f };
+    test.ticks = 100000; // Around 1667 seconds in a real game scenario
+
+    auto begin = std::chrono::high_resolution_clock::now();
+
+    Level level(nullptr); level.BuildLevelFromFile(test.levelFileName);
+    for (int i = 0; i < test.ticks; ++i)
+    {
+        level.Update(1.0f / 60.0f);
+    }
+
+    auto end = std::chrono::high_resolution_clock::now();    
+    auto elapsed = end - begin;
+    auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
+    printf("Elapsed time: %.2f seconds\n", elapsedMs / 1000.0f);
+}
+
 int main()
 {
+    PerformanceTest();
+
+    /*
     PhysicsTest test;
     test.levelFileName = "physics_test/physics_test_01";
     test.isTestObjEntity = false;
@@ -62,4 +89,7 @@ int main()
     int lastTickExecuted = 0;
     int testResult = RunTest(test, lastTickExecuted);
     (void)testResult; (void)lastTickExecuted;
+    */
+
+    return 0;
 }
