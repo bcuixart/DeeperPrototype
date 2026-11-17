@@ -30,9 +30,9 @@ void Level::RenderBackground(const float deltaTime) const
 
 void Level::RenderObjects(const float deltaTime) const
 {
-    for (int i = 0; i < kMaxLevelHeight; ++i)
+    for (int i = _levelBounds.y; i < _levelBounds.y + _levelBounds.height; ++i)
     {
-        for (int j = 0; j < kMaxLevelWidth; ++j)
+        for (int j = _levelBounds.x; j < _levelBounds.x + _levelBounds.width; ++j)
         {
             if (_levelTiles[i][j])
             {
@@ -46,9 +46,9 @@ void Level::RenderObjects(const float deltaTime) const
 
 void Level::RenderBounds(const float deltaTime) const
 {
-    for (int i = 0; i < kMaxLevelHeight; ++i)
+    for (int i = _levelBounds.y; i < _levelBounds.y + _levelBounds.height; ++i)
     {
-        for (int j = 0; j < kMaxLevelWidth; ++j)
+        for (int j = _levelBounds.x; j < _levelBounds.x + _levelBounds.width; ++j)
         {
             if (_levelTiles[i][j])
             {
@@ -82,9 +82,9 @@ void Level::RenderEditorGridBounds(const float deltaTime) const
 
 void Level::RenderEditorObjectBounds(const float deltaTime) const
 {
-    for (int i = 0; i < kMaxLevelHeight; ++i)
+    for (int i = _levelBounds.y; i < _levelBounds.y + _levelBounds.height; ++i)
     {
-        for (int j = 0; j < kMaxLevelWidth; ++j)
+        for (int j = _levelBounds.x; j < _levelBounds.x + _levelBounds.width; ++j)
         {
             if (_levelTiles[i][j])
             {
@@ -625,7 +625,13 @@ void Level::ComputeLevelBounds()
                 any = true;
             }
 
-    _levelBounds = any ? Rectangle{ xMin, yMin, xMax - xMin, yMax - yMin }
+
+    float xMinInt = floorf(xMin);
+    float yMinInt = floorf(yMin);
+    float xMaxInt = ceilf(xMax);
+    float yMaxInt = ceilf(yMax);
+
+    _levelBounds = any ? Rectangle{ xMinInt, yMinInt, xMaxInt - xMinInt, yMaxInt - yMinInt }
                        : Rectangle{ 0, 0, (float)kMaxLevelWidth, (float)kMaxLevelHeight };
 }
 
