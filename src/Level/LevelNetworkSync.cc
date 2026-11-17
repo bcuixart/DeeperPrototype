@@ -92,7 +92,7 @@ void LevelNetworkSync::ApplySnapshot(uint32_t hostTick, const std::vector<uint8_
         const float err  = std::hypot(h.x - m.x, h.y - m.y);
         const float verr = std::hypot(h.vx - m.vx, h.vy - m.vy);
         worst = std::max(worst, err);
-        if (err > kIgnoreError || verr > kIgnoreVelocity || h.mode != m.mode || h.flags != m.flags)
+        if (err > kIgnoreError || verr > kIgnoreVelocity || h.mode != m.mode || h.flags != m.flags || h.flags2 != m.flags2)
             mismatch = true;
     }
     const bool breakableTilesMismatch = (hostBreakableTiles != mine.breakableTiles);

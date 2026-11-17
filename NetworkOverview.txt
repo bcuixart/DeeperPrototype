@@ -1,5 +1,5 @@
 HOTDOG FEST - VISIÓ GENERAL DE LA XARXA
-Protocol versió 12
+Protocol versió 13
 
 Aquest document descriu com funciona el multijugador en línia: capes, missatges, simulació, correcció d'errors,
 fases de la partida, robustesa i limitacions conegudes. Al final hi ha una recepta per afegir coses noves i una
@@ -245,14 +245,14 @@ s'ignoraven.)
 11. SNAPSHOTS, ROLLBACK I REPRODUCCIÓ
 ================================================================
 
-Snapshot (blob): u8 nCossos | per cos (x, y, vx, vy, mode, flags, aux, cause, depth) | u16 nTilesSorra | bitset de sorra.
+Snapshot (blob): u8 nCossos | per cos (x, y, vx, vy, mode, flags, flags2,aux, cause, depth) | u16 nTilesSorra | bitset de sorra.
 La mida és FIXA per nivell i nombre de gossos: 304 bytes en una prova, 526 amb 8 jugadors a test_level_online
 (límit 1000). GameManager::BeginLevel() la imprimeix i avisa si es passa del límit.
 Límits de disseny: nCossos és un u8 (màx. 255) i els tiles de sorra un u16; la mida total pesa més que res altre.
 
 ApplySnapshot (client), per cada snapshot del host al tick T amb tick local L:
   1. Si L < T, o L - T >= kHistory: s'ignora (massa vell o del futur).
-  2. Compara cada cos amb el que el client tenia al tick T (posició, velocitat, mode, flags) i la sorra.
+  2. Compara cada cos amb el que el client tenia al tick T (posició, velocitat, mode, flags, flags2) i la sorra.
   3. Si hi ha diferències: adopta l'estat del host a T i reprodueix T+1..L amb ReplayTick(), que fa servir els
      inputs locals originals i els remots ara coneguts.
   4. Escriu "[rollback] T=.. L=.. error màxim ..." si l'error és gran o la sorra difereix.
