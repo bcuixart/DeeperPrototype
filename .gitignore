@@ -39,6 +39,8 @@
 *.exe
 *.out
 *.app
+game
+physicstest
 
 # Build directories
 build/
