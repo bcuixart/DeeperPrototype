@@ -49,7 +49,7 @@ public:
 
     void StartSliding();
 
-    float GetSlopeAcceleration() const override { return (_state == DogState::Sliding) ? kSlideAcceleration : 0.0f; }
+    float GetSlopeAcceleration() const override { return (_state == DogState::Sliding || _state == DogState::Stunned) ? kSlideAcceleration : 0.0f; }
 
     bool IsInDefaultState() const { return _state == DogState::Default; }
 
