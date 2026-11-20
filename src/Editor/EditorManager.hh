@@ -4,6 +4,8 @@
 #include <iostream>
 #include <sstream>
 
+#include "raygui.h"
+
 #include "Level/Level.hh"
 
 class EditorManager {
@@ -12,9 +14,10 @@ public:
 	~EditorManager();
 
 	void Update(const float deltaTime);
-	void Render(const float deltaTime) const;
+	void Render(const float deltaTime);
 
-	void LoadLevelFromFile(const std::string& fileName);
+	void LoadEmptyLevel();
+
 	void GetLevelDataToPlaytest(std::ostream& stream) const { _level.WriteLevelToStream(stream); };
 
 	bool CanEnterPlaytest() const { return _level.CanEnterPlaytest(); }
@@ -22,6 +25,10 @@ public:
 protected:
 
 private:
+	void RenderEditorUI(const float deltaTime);
+
+	void LoadLevelFromFile(const std::string& fileName);
+
 	void HandleAddingObjects();
 	void HandleRemovingObjects();
 	
@@ -39,6 +46,9 @@ private:
 	int _selectedObjectEditorOrderIndex = 0;
 
 	LevelBackgroundType _selectedBackgroundType = LevelBackgroundType::Park;
+
+	mutable char _fileName[MAX_BYTES_IN_LEVELNAME] = "level_saved";
+	mutable bool _fileNameEditMode = false;
 
 	constexpr static float kEditorCamMoveSpeed = 1000.0f;
 	constexpr static float kEditorCamZoomSpeed = 25.0f;

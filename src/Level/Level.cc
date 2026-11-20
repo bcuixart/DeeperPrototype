@@ -122,6 +122,24 @@ Camera2D Level::FitCameraToBounds(float margin, float minWidthTiles, float minHe
     return cam;
 }
 
+void Level::ClearLevel()
+{
+    _levelObjects.clear();
+    for (auto& row : _levelTiles) for (auto& t : row) t.reset();
+    _dogs.clear();
+    _dogHouses.clear();
+    _netBodies.clear();
+    _breakableTiles.clear();
+    _grabbables.clear();
+    _physicsManager = PhysicsManager(this);
+    _objectPlacements.clear();
+    _tileIds = {};
+
+    SetBackground(LevelBackgroundType::Park);
+
+    ComputeLevelBounds();
+}
+
 bool Level::BuildLevelFromFile(const std::string& fileName)
 {
     std::ifstream file("assets/levels/" + fileName + ".dgl");
@@ -135,6 +153,8 @@ bool Level::BuildLevelFromFile(const std::string& fileName)
 
 bool Level::BuildLevelFromStream(std::istream& stream)
 {
+    ClearLevel();
+
     int bg;
     stream >> bg;
     _backgroundTypeIndex = static_cast<LevelBackgroundType>(bg);
@@ -148,17 +168,6 @@ bool Level::BuildLevelFromStream(std::istream& stream)
         return false;
     }
     SetBackground(_backgroundTypeIndex);
-
-    _levelObjects.clear();
-    for (auto& row : _levelTiles) for (auto& t : row) t.reset();
-    _dogs.clear();
-    _dogHouses.clear();
-    _netBodies.clear();
-    _breakableTiles.clear();
-    _grabbables.clear();
-    _physicsManager = PhysicsManager(this);
-    _objectPlacements.clear();
-    _tileIds = {};
 
     for (int y = 0; y < kMaxLevelHeight; ++y)
     {
@@ -211,6 +220,66 @@ void Level::WriteLevelToStream(std::ostream& out) const
         rows[(int)p.placedPosition.y][(int)p.placedPosition.x] = (char)p.id;
 
     for (const auto& r : rows) out << r << '\n';
+}
+
+void Level::WriteLevelToFile(const std::string& fileName) const
+{
+	if (fileName.empty()) return;
+	if (fileName.length() > MAX_BYTES_IN_LEVELNAME) return;
+
+	char* name = (char*)fileName.c_str();
+    if (strlen(name) > MAX_BYTES_IN_LEVELNAME) return;
+
+	uint8_t width = (uint8_t)_levelBounds.width;
+	uint8_t height = (uint8_t)_levelBounds.height;
+	uint8_t x_min = (uint8_t)_levelBounds.x;
+	uint8_t y_min = (uint8_t)_levelBounds.y;
+	uint8_t x_max = (uint8_t)(_levelBounds.x + width - 1);
+	uint8_t y_max = (uint8_t)(_levelBounds.y + height - 1);
+
+	uint8_t tiles_kind[width * height] = { 0 };
+    size_t i = 0;
+    for (int y = y_min; y < y_max; ++y)
+        for (int x = x_min; x < x_max; ++x)
+            if (_tileIds[y][x]) tiles_kind[i++] = _tileIds[y][x];
+
+    SerdeLevel level_base = {
+        .height = height,
+        .width = width,
+        .version_major = kLevelVersionMajor,
+        .version_minor = kLevelVersionMinor,
+        .name = (uint8_t*) name,
+        .name_length = fileName.length(),
+        .goal = 0,
+        .background = (uint8_t)_backgroundTypeIndex,
+        .water_level = 0,
+        .modification_date = 1794063605,
+        .tiles_kind = tiles_kind,
+        .tiles_variant = NULL,
+    };
+
+    printf("Now serializing");
+
+    uint64_t count = 0;
+    if (serialize(level_base, NULL, &count) != OK) 
+    {
+		printf("Error serializing level to file: %s\n", fileName.c_str());
+        return;
+    }
+    uint8_t* output = (uint8_t*)calloc(count, sizeof(uint8_t));
+    serialize(level_base, output, NULL);
+
+	FILE* fd_write = fopen(("assets/levels/" + fileName + ".dgl").c_str(), "wb");
+	if (fd_write == NULL) {
+		printf("Error opening file for writing: %s\n", fileName.c_str());
+		return;
+	}
+	if (fwrite(output, sizeof(uint8_t), count, fd_write) != count) {
+		printf("Error writing to file: %s\n", fileName.c_str());
+		return;
+	}
+	fclose(fd_write);
+	free(output);
 }
 
 void Level::SetBackground(LevelBackgroundType backgroundType)

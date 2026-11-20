@@ -9,9 +9,13 @@
 
 #include "PhysicsManager.hh"
 #include "LevelObjectsList.hh"
+#include "LevelSerializer.hh"
 
 constexpr int kMaxLevelWidth = 64;
 constexpr int kMaxLevelHeight = 32;
+
+constexpr int kLevelVersionMajor = 0;
+constexpr int kLevelVersionMinor = 1;
 
 class LevelManager;
 
@@ -35,9 +39,12 @@ public:
 
 	Camera2D FitCameraToBounds(float margin, float minWidthTiles, float minHeightTiles) const;
 
+	void ClearLevel();
+
 	bool BuildLevelFromFile(const std::string& fileName);
 	bool BuildLevelFromStream(std::istream& stream);
 	void WriteLevelToStream(std::ostream& stream) const;
+	void WriteLevelToFile(const std::string& fileName) const;
 
 	void SetBackground(LevelBackgroundType backgroundType);
 

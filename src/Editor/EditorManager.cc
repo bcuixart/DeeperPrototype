@@ -13,6 +13,8 @@ EditorManager::~EditorManager()
 
 void EditorManager::Update(const float deltaTime)
 {
+    if (_fileNameEditMode) return;
+
     // We do not update the level in the editor, as it is not running the game logic. The level is only rendered for editing purposes.
     // _level.Update(deltaTime);
 
@@ -46,7 +48,7 @@ void EditorManager::Update(const float deltaTime)
     _mousePrevY = _mouseY;
 }
 
-void EditorManager::Render(const float deltaTime) const
+void EditorManager::Render(const float deltaTime)
 {
     BeginDrawing();
     BeginMode2D(_cam);
@@ -63,11 +65,43 @@ void EditorManager::Render(const float deltaTime) const
     DrawFPS(-500, -500);
 
     EndMode2D();
+	RenderEditorUI(deltaTime);
     EndDrawing();
+}
+
+void EditorManager::RenderEditorUI(const float deltaTime)
+{
+    const float sw = (float)GetScreenWidth();
+    const float sh = (float)GetScreenHeight();
+
+    if (GuiTextBox(Rectangle{ sw - 500.0f, sh - 97.0f, 300.0f, 67.0f }, _fileName, 64, _fileNameEditMode))
+    {
+        _fileNameEditMode = !_fileNameEditMode;
+    }
+
+	if (GuiButton(Rectangle{ sw - 77.0f, sh - 97.0f, 67.0f, 67.0f }, "Save Level"))
+	{
+		_fileNameEditMode = false;
+		_level.WriteLevelToFile(_fileName);
+	}
+
+	if (GuiButton(Rectangle{ sw - 157.0f, sh - 97.0f, 67.0f, 67.0f }, "Load Level"))
+	{
+		_fileNameEditMode = false;
+		LoadLevelFromFile(_fileName);
+	}
+}
+
+void EditorManager::LoadEmptyLevel()
+{
+	_level.ClearLevel();
+
+	_cam = _level.FitCameraToBounds(1.0f, 16.0f, 9.0f);
 }
 
 void EditorManager::LoadLevelFromFile(const std::string& fileName)
 {
+	_level.ClearLevel();
     _level.BuildLevelFromFile(fileName);
 
     _cam = _level.FitCameraToBounds(1.0f, 16.0f, 9.0f);
