@@ -28,6 +28,7 @@ private:
 	void RenderEditorUI(const float deltaTime);
 
 	void LoadLevelFromFile(const std::string& fileName);
+	void LoadLevelFromFileAmat(const std::string& fileName);
 
 	void HandleAddingObjects();
 	void HandleRemovingObjects();

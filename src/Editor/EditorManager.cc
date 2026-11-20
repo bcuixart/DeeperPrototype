@@ -90,6 +90,12 @@ void EditorManager::RenderEditorUI(const float deltaTime)
 		_fileNameEditMode = false;
 		LoadLevelFromFile(_fileName);
 	}
+
+    if (GuiButton(Rectangle{ sw - 157.0f, sh - 210.0f, 67.0f, 67.0f }, "Load Level (Amat)"))
+    {
+        _fileNameEditMode = false;
+        LoadLevelFromFileAmat(_fileName);
+    }
 }
 
 void EditorManager::LoadEmptyLevel()
@@ -103,6 +109,14 @@ void EditorManager::LoadLevelFromFile(const std::string& fileName)
 {
 	_level.ClearLevel();
     _level.BuildLevelFromFile(fileName);
+
+    _cam = _level.FitCameraToBounds(1.0f, 16.0f, 9.0f);
+}
+
+void EditorManager::LoadLevelFromFileAmat(const std::string& fileName)
+{
+	_level.ClearLevel();
+    _level.BuildLevelFromFileAmat(fileName);
 
     _cam = _level.FitCameraToBounds(1.0f, 16.0f, 9.0f);
 }

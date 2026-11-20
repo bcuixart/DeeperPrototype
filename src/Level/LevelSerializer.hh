@@ -54,6 +54,7 @@ typedef enum {
 } HDF_SERDE_RESULT;
 
 const uint64_t MAX_BYTES_IN_LEVELNAME = 64;
+const uint64_t MAX_TILES_IN_LEVEL = 64 * 32;
 
 /*
  * `output` must be "large enough". To find out which size that is, use

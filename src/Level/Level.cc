@@ -205,6 +205,93 @@ bool Level::BuildLevelFromStream(std::istream& stream)
     return true;
 }
 
+bool Level::BuildLevelFromFileAmat(const std::string& fileName)
+{
+    std::ifstream file("assets/levels/" + fileName + ".dgl", std::ios::binary);
+    if (!file.is_open())
+    {
+        std::cerr << "[Level] No s'ha pogut obrir el nivell: " << fileName << "\n";
+        return false;
+    }
+
+    file.seekg(0, std::ios::end);
+    size_t streamSize = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    std::vector<uint8_t> stream(streamSize);
+    file.read(reinterpret_cast<char*>(stream.data()), streamSize);
+
+    return BuildLevelFromStreamAmat(stream.data(), streamSize);
+}
+
+bool Level::BuildLevelFromStreamAmat(uint8_t* stream, size_t streamSize)
+{
+    SerdeLevel level;
+
+    level.name = (uint8_t*)calloc(MAX_BYTES_IN_LEVELNAME, sizeof(uint8_t));
+    level.tiles_kind = (uint8_t*)calloc(MAX_TILES_IN_LEVEL, sizeof(uint8_t));
+
+	if (!stream || !level.name || !level.tiles_kind)
+	{
+		std::cerr << "[Level] Error allocating memory for level deserialization\n";
+		return false;
+	}
+
+    if (deserialize(stream, streamSize, &level) != OK)
+    {
+        std::cerr << "[Level] Error deserializing level from stream\n";
+        free(level.name); free(level.tiles_kind); return false;
+    }
+
+    if (level.background < 0 || level.background >= (uint8_t)LevelBackgroundType::Count)
+    {
+        std::cerr << "[Level] Invalid background type\n";
+        free(level.name); free(level.tiles_kind); return false;
+    }
+	printf("[Level] Deserialized level: %s, size: %dx%d, background: %d\n", level.name, level.width, level.height, level.background);
+    SetBackground((LevelBackgroundType)level.background);
+    
+	uint8_t width = level.width;
+	uint8_t height = level.height;
+
+	for (uint8_t y = 0; y < height; ++y)
+	{
+		for (uint8_t x = 0; x < width; ++x)
+		{
+			uint8_t tileId = level.tiles_kind[y * width + x];
+			if (tileId != 0) printf("[Level] Placing tile with ID %d at (%d, %d)\n", tileId, x, y);
+			if (tileId != 0) PlaceObjectById(tileId, x, y);
+		}
+	}
+
+    for (int y = 0; y < kMaxLevelHeight; ++y)
+        for (int x = 0; x < kMaxLevelWidth; ++x)
+            if (_levelTiles[y][x]) UpdateTileAutotile(x, y);
+
+    for (int y = 0; y < kMaxLevelHeight; ++y)
+        for (int x = 0; x < kMaxLevelWidth; ++x)
+            if (_levelTiles[y][x]) SetTileSideCollisionMask(x, y);
+
+    // Populate grabbables list
+    for (auto& o : _levelObjects)
+    {
+        if (o->GetGrabbableType() != GrabbableType::None)
+        {
+            if (_grabbables.size() < kMaxGrabbables)
+            {
+                _grabbables.push_back(o.get());
+                o->SetGrabbableIndex(static_cast<uint8_t>(_grabbables.size() - 1));
+            }
+        }
+    }
+
+	free(level.name);
+	free(level.tiles_kind);
+
+	printf("[Level] Level deserialized successfully: %s\n", level.name);
+	return true;
+}
+
 void Level::WriteLevelToStream(std::ostream& out) const
 {
     out << (int)_backgroundTypeIndex << "\n";
@@ -234,14 +321,17 @@ void Level::WriteLevelToFile(const std::string& fileName) const
 	uint8_t height = (uint8_t)_levelBounds.height;
 	uint8_t x_min = (uint8_t)_levelBounds.x;
 	uint8_t y_min = (uint8_t)_levelBounds.y;
-	uint8_t x_max = (uint8_t)(_levelBounds.x + width - 1);
-	uint8_t y_max = (uint8_t)(_levelBounds.y + height - 1);
+	uint8_t x_max = (uint8_t)(_levelBounds.x + width);
+	uint8_t y_max = (uint8_t)(_levelBounds.y + height);
 
 	uint8_t tiles_kind[width * height] = { 0 };
     size_t i = 0;
     for (int y = y_min; y < y_max; ++y)
-        for (int x = x_min; x < x_max; ++x)
-            if (_tileIds[y][x]) tiles_kind[i++] = _tileIds[y][x];
+        for (int x = x_min; x < x_max; ++x) 
+        {
+            if (_tileIds[y][x]) tiles_kind[i] = _tileIds[y][x];
+            ++i;
+		}
 
     SerdeLevel level_base = {
         .height = height,
@@ -278,6 +368,8 @@ void Level::WriteLevelToFile(const std::string& fileName) const
 		printf("Error writing to file: %s\n", fileName.c_str());
 		return;
 	}
+
+	printf("Level serialized successfully to file: %s\n", fileName.c_str());
 	fclose(fd_write);
 	free(output);
 }

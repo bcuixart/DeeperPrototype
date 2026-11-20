@@ -43,6 +43,8 @@ public:
 
 	bool BuildLevelFromFile(const std::string& fileName);
 	bool BuildLevelFromStream(std::istream& stream);
+	bool BuildLevelFromFileAmat(const std::string& fileName);
+	bool BuildLevelFromStreamAmat(uint8_t* stream, size_t streamSize);
 	void WriteLevelToStream(std::ostream& stream) const;
 	void WriteLevelToFile(const std::string& fileName) const;
 

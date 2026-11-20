@@ -3,9 +3,8 @@
 // (it might look like cursor/byte_count are simplifiable, but tiles are written
 //  bit-aligned instead of byte-aligned, so I think this is nicer)
 
-const uint8_t BITS_IN_DELTA=2, MAX_DELTA=0b11;
-const uint8_t BITS_IN_KIND =5, MAX_KIND =0b11111 ;
-const uint64_t MAX_TILES_IN_LEVEL     = 64*32; // must be high upper bound
+const uint8_t BITS_IN_DELTA=8, MAX_DELTA=0b11111111;
+const uint8_t BITS_IN_KIND =8, MAX_KIND =0b11111111;
 
 // ======= The impl =======
 
